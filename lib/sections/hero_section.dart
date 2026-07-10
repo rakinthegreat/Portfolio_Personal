@@ -59,33 +59,33 @@ class _HeroSectionState extends State<HeroSection>
         .toList();
 
     _charSlide = _charCtrls
-        .map((c) => Tween<Offset>(
-              begin: const Offset(0, 0.6),
-              end: Offset.zero,
-            ).animate(
-                CurvedAnimation(parent: c, curve: Curves.easeOutQuart)))
+        .map(
+          (c) => Tween<Offset>(
+            begin: const Offset(0, 0.6),
+            end: Offset.zero,
+          ).animate(CurvedAnimation(parent: c, curve: Curves.easeOutQuart)),
+        )
         .toList();
 
     _metaCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _metaOpacity =
-        CurvedAnimation(parent: _metaCtrl, curve: Curves.easeOut);
+    _metaOpacity = CurvedAnimation(parent: _metaCtrl, curve: Curves.easeOut);
     _metaSlide = Tween<Offset>(
       begin: const Offset(0, 0.3),
       end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _metaCtrl, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _metaCtrl, curve: Curves.easeOutCubic));
 
     _dotCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
 
-    _dotScale = Tween<double>(begin: 0.7, end: 1.0).animate(
-      CurvedAnimation(parent: _dotCtrl, curve: Curves.easeInOut),
-    );
+    _dotScale = Tween<double>(
+      begin: 0.7,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _dotCtrl, curve: Curves.easeInOut));
   }
 
   void _startAnimation() {
@@ -101,12 +101,9 @@ class _HeroSectionState extends State<HeroSection>
       });
     }
 
-    Future.delayed(
-      Duration(milliseconds: allChars * baseDelay + 100),
-      () {
-        if (mounted) _metaCtrl.forward();
-      },
-    );
+    Future.delayed(Duration(milliseconds: allChars * baseDelay + 100), () {
+      if (mounted) _metaCtrl.forward();
+    });
   }
 
   @override
@@ -151,9 +148,7 @@ class _HeroSectionState extends State<HeroSection>
         child: Stack(
           children: [
             // ── Ambient drifting dots in background ──────────────────────
-            const Positioned.fill(
-              child: AmbientDots(),
-            ),
+            const Positioned.fill(child: AmbientDots()),
 
             // ── Main content with parallax ────────────────────────────────
             AnimatedBuilder(
@@ -173,9 +168,7 @@ class _HeroSectionState extends State<HeroSection>
               },
               child: MaxWidthBox(
                 child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isMobile ? 24 : 48,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 48),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -189,15 +182,16 @@ class _HeroSectionState extends State<HeroSection>
                               // Location pill
                               Container(
                                 padding: const EdgeInsets.symmetric(
-                                    horizontal: 10, vertical: 5),
+                                  horizontal: 10,
+                                  vertical: 5,
+                                ),
                                 decoration: BoxDecoration(
                                   border: Border.all(
-                                      color: kLightGrey, width: 1),
+                                    color: kLightGrey,
+                                    width: 1,
+                                  ),
                                 ),
-                                child: Text(
-                                  'DHAKA, BD',
-                                  style: labelStyle(),
-                                ),
+                                child: Text('DHAKA, BD', style: labelStyle()),
                               ),
                               const Spacer(),
                               const LiveClock(),
@@ -226,17 +220,20 @@ class _HeroSectionState extends State<HeroSection>
                           ...List.generate(
                             _line2.length,
                             (i) => _buildChar(
-                                _line1.length + i, _line2[i], nameStyle),
+                              _line1.length + i,
+                              _line2[i],
+                              nameStyle,
+                            ),
                           ),
                           const SizedBox(width: 8),
                           // Blinking cursor — visible after name finishes
                           FadeTransition(
                             opacity: _metaOpacity,
                             child: Padding(
-                              padding: const EdgeInsets.only(bottom: 13),
-                              child: BlinkingCursor(
-                                size: isMobile ? 44 : 72,
+                              padding: EdgeInsets.only(
+                                bottom: isMobile ? 10 : 13,
                               ),
+                              child: BlinkingCursor(size: isMobile ? 48 : 76),
                             ),
                           ),
                         ],
