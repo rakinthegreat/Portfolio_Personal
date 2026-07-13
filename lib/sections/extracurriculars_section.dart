@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../theme.dart';
 import '../widgets/reveal_on_scroll.dart';
@@ -12,11 +13,14 @@ class _Activity {
 }
 
 const _activities = [
-  _Activity('IIT Programming Club', 'Member', '2022 — Present'),
-  _Activity('Competitive Programming', 'Contestant', '2021 — Present'),
-  _Activity('Open Source Contributions', 'Contributor', '2023 — Present'),
-  _Activity('Tech Blogging', 'Author', '2023 — Present'),
-  _Activity('Hackathon Participant', 'Team Lead', '2022 — Present'),
+  _Activity('Digital SAT Instructor', 'Aemers', '2025 — 2026'),
+  _Activity('Part-time IELTS Instructor', 'Robi 10 Minutes School', 'Briefly'),
+  _Activity('President (Research & Development)', 'Notre Dame Nature Study Club', '2023 — 2024'),
+  _Activity(
+    'Founding President & Chairperson of Advisory Board',
+    'Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)',
+    'Pres: 2019-20 · Chair: 2023-24',
+  ),
 ];
 
 class ExtracurricularsSection extends StatelessWidget {
@@ -44,7 +48,7 @@ class ExtracurricularsSection extends StatelessWidget {
           sectionDivider(),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : 48,
+              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -57,7 +61,7 @@ class ExtracurricularsSection extends StatelessWidget {
                       children: [
                         dot(size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('05  ·  EXTRACURRICULARS'),
+                        sectionLabel('05  ·  EXPERIENCES'),
                       ],
                     ),
                   ),
@@ -98,59 +102,58 @@ class _ActivityRowState extends State<_ActivityRow> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
-
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: const Duration(milliseconds: 200),
         color: _hovered ? kGhostGrey : kWhite,
-        padding: const EdgeInsets.symmetric(vertical: 22, horizontal: 4),
+        padding: const EdgeInsets.all(32),
+        margin: const EdgeInsets.only(bottom: 24),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Organization name
+            Text(
+              widget.activity.role.toUpperCase(),
+              style: GoogleFonts.spaceMono(
+                fontSize: 12,
+                letterSpacing: 2,
+                color: kGrey,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 12),
+            // Job Title / Role
+            Text(
+              widget.activity.title,
+              style: const TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w800,
+                color: kBlack,
+                height: 1.2,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Period
             Row(
               children: [
-                dot(size: 5, color: _hovered ? kBlack : kGrey),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: isMobile
-                      ? Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(widget.activity.title,
-                                style: const TextStyle(
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.w700,
-                                    color: kBlack)),
-                            const SizedBox(height: 4),
-                            Text(widget.activity.role,
-                                style: const TextStyle(
-                                    fontSize: 13, color: kGrey)),
-                          ],
-                        )
-                      : Row(
-                          children: [
-                            Expanded(
-                              child: Text(widget.activity.title,
-                                  style: const TextStyle(
-                                      fontSize: 20,
-                                      fontWeight: FontWeight.w700,
-                                      color: kBlack)),
-                            ),
-                            Text(widget.activity.role,
-                                style: const TextStyle(
-                                    fontSize: 14, color: kGrey)),
-                          ],
-                        ),
+                Container(
+                  width: 32,
+                  height: 1,
+                  color: kGrey,
                 ),
-                const SizedBox(width: 16),
-                Text(widget.activity.period,
-                    style: const TextStyle(fontSize: 12, color: kGrey)),
+                const SizedBox(width: 12),
+                Text(
+                  widget.activity.period,
+                  style: GoogleFonts.spaceMono(
+                    fontSize: 12,
+                    color: kGrey,
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 22),
-            const Divider(color: kLightGrey, thickness: 1, height: 1),
           ],
         ),
       ),

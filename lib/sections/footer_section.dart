@@ -27,7 +27,7 @@ class FooterSection extends StatelessWidget {
           sectionDivider(),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : 48,
+              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
               vertical: 40,
             ),
             child: MaxWidthBox(

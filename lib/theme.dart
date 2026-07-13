@@ -77,7 +77,7 @@ TextStyle itemSubStyle() => GoogleFonts.spaceGrotesk(
 
 // ─── Layout Constants ────────────────────────────────────────────────────────
 const double kSectionPaddingV = 100;
-const double kMaxWidth = 900;
+const double kMaxWidth = double.infinity;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 Widget sectionDivider() => const Divider(
@@ -111,10 +111,14 @@ class MaxWidthBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
+    return Align(
+      alignment: Alignment.centerLeft,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: kMaxWidth),
-        child: child,
+        child: SizedBox(
+          width: double.infinity,
+          child: child,
+        ),
       ),
     );
   }

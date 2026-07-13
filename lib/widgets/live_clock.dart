@@ -1,11 +1,21 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../theme.dart';
 
-/// Live updating clock — shows current local time, updates every second.
+/// Live updating clock — Concentric Rings minimalist style
 class LiveClock extends StatefulWidget {
-  const LiveClock({super.key});
+  final double size;
+  final bool isBackground;
+  final bool showDate;
+
+  const LiveClock({
+    super.key,
+    this.size = 42,
+    this.isBackground = false,
+    this.showDate = true,
+  });
 
   @override
   State<LiveClock> createState() => _LiveClockState();
@@ -13,31 +23,15 @@ class LiveClock extends StatefulWidget {
 
 class _LiveClockState extends State<LiveClock> {
   late Timer _timer;
-  late String _timeStr;
-  late String _dateStr;
+  late DateTime _now;
 
   @override
   void initState() {
     super.initState();
-    _update();
+    _now = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) _update();
+      if (mounted) setState(() => _now = DateTime.now());
     });
-  }
-
-  void _update() {
-    final now = DateTime.now();
-    final h = now.hour.toString().padLeft(2, '0');
-    final m = now.minute.toString().padLeft(2, '0');
-    final s = now.second.toString().padLeft(2, '0');
-    _timeStr = '$h:$m:$s';
-
-    const months = [
-      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
-      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
-    ];
-    _dateStr = '${now.day.toString().padLeft(2, '0')} ${months[now.month - 1]} ${now.year}';
-    setState(() {});
   }
 
   @override
@@ -48,29 +42,131 @@ class _LiveClockState extends State<LiveClock> {
 
   @override
   Widget build(BuildContext context) {
+    const months = [
+      'JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN',
+      'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'
+    ];
+    final dateStr = '${_now.day.toString().padLeft(2, '0')} ${months[_now.month - 1]} ${_now.year}';
+
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(
-          _timeStr,
-          style: GoogleFonts.spaceMono(
-            fontSize: 13,
-            color: kBlack,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1,
+        SizedBox(
+          width: widget.size,
+          height: widget.size,
+          child: CustomPaint(
+            painter: _ConcentricClockPainter(_now, widget.size, widget.isBackground),
           ),
         ),
-        const SizedBox(height: 2),
-        Text(
-          _dateStr,
-          style: GoogleFonts.spaceMono(
-            fontSize: 9,
-            color: kGrey,
-            letterSpacing: 1.5,
+        if (widget.showDate) ...[
+          const SizedBox(height: 8),
+          Text(
+            dateStr,
+            style: GoogleFonts.spaceMono(
+              fontSize: 9,
+              color: kGrey,
+              letterSpacing: 1.5,
+            ),
           ),
-        ),
+        ]
       ],
     );
+  }
+}
+
+class _ConcentricClockPainter extends CustomPainter {
+  final DateTime time;
+  final double sizeFactor;
+  final bool isBackground;
+  
+  _ConcentricClockPainter(this.time, this.sizeFactor, this.isBackground);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final maxRadius = size.width / 2;
+    
+    // Scale stroke widths and gaps based on the size (base size was 42)
+    final scale = sizeFactor / 42.0;
+    
+    // Base it entirely on maxRadius so it scales perfectly up to 800px+ without blobbing
+    final gap = maxRadius * 0.15; // 15% gap between rings
+
+    // 3 distinct shades for the arcs
+    final hrColor = isBackground ? kGrey.withOpacity(0.9) : kBlack;
+    final minColor = isBackground ? kGrey.withOpacity(0.5) : kGrey;
+    final secColor = isBackground ? kGrey.withOpacity(0.25) : kLightGrey;
+    final trackColor = isBackground ? kGhostGrey : kGhostGrey;
+
+    final secPaint = Paint()
+      ..color = secColor
+      ..strokeWidth = maxRadius * 0.02
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+      
+    final minPaint = Paint()
+      ..color = minColor
+      ..strokeWidth = maxRadius * 0.04
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+      
+    final hrPaint = Paint()
+      ..color = hrColor
+      ..strokeWidth = maxRadius * 0.06
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+
+    final trackPaint = Paint()
+      ..color = trackColor
+      ..strokeWidth = 1.0 // Crisp 1px line regardless of scale
+      ..style = PaintingStyle.stroke;
+
+    final rOuter = maxRadius;
+    final rMid = maxRadius - gap;
+    final rInner = maxRadius - (gap * 2);
+
+    // Draw tracks
+    canvas.drawCircle(center, rOuter, trackPaint);
+    canvas.drawCircle(center, rMid, trackPaint);
+    canvas.drawCircle(center, rInner, trackPaint);
+
+    // Draw arcs (start from top: -pi/2)
+    const startAngle = -math.pi / 2;
+    
+    // Seconds arc (0 to 60)
+    final secAngle = (time.second / 60) * 2 * math.pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: rOuter),
+      startAngle,
+      secAngle == 0 ? 0.001 : secAngle,
+      false,
+      secPaint,
+    );
+
+    // Minutes arc (0 to 60)
+    final minAngle = (time.minute / 60) * 2 * math.pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: rMid),
+      startAngle,
+      minAngle == 0 ? 0.001 : minAngle,
+      false,
+      minPaint,
+    );
+
+    // Hours arc (0 to 12)
+    final hrAngle = ((time.hour % 12 + time.minute / 60) / 12) * 2 * math.pi;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: rInner),
+      startAngle,
+      hrAngle == 0 ? 0.001 : hrAngle,
+      false,
+      hrPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConcentricClockPainter oldDelegate) {
+    return oldDelegate.time != time;
   }
 }

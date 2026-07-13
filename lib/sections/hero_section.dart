@@ -150,6 +150,20 @@ class _HeroSectionState extends State<HeroSection>
             // ── Ambient drifting dots in background ──────────────────────
             const Positioned.fill(child: AmbientDots()),
 
+            // ── Huge Ambient Clock ──────────────────────────────────────────
+            Positioned(
+              right: -size.width * 0.05,
+              top: size.height * 0.05,
+              child: Opacity(
+                opacity: 1.0,
+                child: LiveClock(
+                  size: isMobile ? size.width * 0.9 : size.height * 0.85,
+                  isBackground: true,
+                  showDate: false,
+                ),
+              ),
+            ),
+
             // ── Main content with parallax ────────────────────────────────
             AnimatedBuilder(
               animation: widget.scrollController,
@@ -166,124 +180,117 @@ class _HeroSectionState extends State<HeroSection>
                   child: child,
                 );
               },
-              child: MaxWidthBox(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: isMobile ? 24 : 48),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── Top bar: Live clock top-right ─────────────────
-                      Padding(
-                        padding: const EdgeInsets.only(top: 32),
-                        child: FadeTransition(
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: isMobile ? 24 : size.width * 0.08,
+                  right: isMobile ? 24 : 0,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                        Spacer(flex: isMobile ? 5 : 3),
+
+                        // ── RAKIN ──────────────────────────────────────────
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: List.generate(
+                            _line1.length,
+                            (i) => _buildChar(i, _line1[i], nameStyle),
+                          ),
+                        ),
+
+                        // ── TALUKDER + blinking cursor ─────────────────────
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            ...List.generate(
+                              _line2.length,
+                              (i) => _buildChar(
+                                _line1.length + i,
+                                _line2[i],
+                                nameStyle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Blinking cursor — visible after name finishes
+                            FadeTransition(
+                              opacity: _metaOpacity,
+                              child: Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: isMobile ? 10 : 13,
+                                ),
+                                child: BlinkingCursor(size: isMobile ? 48 : 80),
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        const SizedBox(height: 32),
+
+                        // ── Rule + role label ──────────────────────────────
+                        FadeTransition(
                           opacity: _metaOpacity,
-                          child: Row(
-                            children: [
-                              // Location pill
-                              Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 10,
-                                  vertical: 5,
+                          child: SlideTransition(
+                            position: _metaSlide,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                sectionDivider(),
+                                const SizedBox(height: 20),
+                                Row(
+                                  children: [
+                                    ScaleTransition(
+                                      scale: _dotScale,
+                                      child: dot(size: 6),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'MD RAKINUZZAMAN TALUKDER',
+                                            style: labelStyle().copyWith(
+                                              color: kBlack,
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'SOFTWARE ENGINEER',
+                                            style: labelStyle(),
+                                          ),
+                                          Text(
+                                            'INSTITUTE OF INFORMATION TECHNOLOGY',
+                                            style: labelStyle(),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: kLightGrey,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Text('DHAKA, BD', style: labelStyle()),
-                              ),
-                              const Spacer(),
-                              const LiveClock(),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      const Spacer(flex: 2),
-
-                      // ── RAKIN ──────────────────────────────────────────
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: List.generate(
-                          _line1.length,
-                          (i) => _buildChar(i, _line1[i], nameStyle),
-                        ),
-                      ),
-
-                      // ── TALUKDER + blinking cursor ─────────────────────
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          ...List.generate(
-                            _line2.length,
-                            (i) => _buildChar(
-                              _line1.length + i,
-                              _line2[i],
-                              nameStyle,
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          // Blinking cursor — visible after name finishes
-                          FadeTransition(
-                            opacity: _metaOpacity,
-                            child: Padding(
-                              padding: EdgeInsets.only(
-                                bottom: isMobile ? 10 : 13,
-                              ),
-                              child: BlinkingCursor(size: isMobile ? 48 : 76),
-                            ),
-                          ),
-                        ],
-                      ),
+                        ),
 
-                      const SizedBox(height: 32),
+                        const Spacer(flex: 2),
 
-                      // ── Rule + role label ──────────────────────────────
-                      FadeTransition(
-                        opacity: _metaOpacity,
-                        child: SlideTransition(
-                          position: _metaSlide,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              sectionDivider(),
-                              const SizedBox(height: 20),
-                              Row(
-                                children: [
-                                  ScaleTransition(
-                                    scale: _dotScale,
-                                    child: dot(size: 6),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Text(
-                                    'SOFTWARE ENGINEER  ·  IIT, DHAKA UNIVERSITY',
-                                    style: labelStyle(),
-                                  ),
-                                ],
-                              ),
-                            ],
+                        // ── Bouncing scroll arrow ──────────────────────────
+                        FadeTransition(
+                          opacity: _metaOpacity,
+                          child: const Padding(
+                            padding: EdgeInsets.only(bottom: 48),
+                            child: BouncingScrollArrow(),
                           ),
                         ),
-                      ),
-
-                      const Spacer(flex: 2),
-
-                      // ── Bouncing scroll arrow ──────────────────────────
-                      FadeTransition(
-                        opacity: _metaOpacity,
-                        child: const Padding(
-                          padding: EdgeInsets.only(bottom: 48),
-                          child: BouncingScrollArrow(),
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ),
           ],
         ),
       ),

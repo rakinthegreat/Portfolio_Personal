@@ -10,8 +10,12 @@ class _Skill {
 }
 
 const _skills = [
+  _Skill('C', 'Language'),
+  _Skill('Java', 'Language'),
+  _Skill('Kotlin', 'Language'),
   _Skill('Python', 'Language'),
   _Skill('Dart / Flutter', 'Language · Framework'),
+  _Skill('Android Development', 'Platform'),
   _Skill('JavaScript', 'Language'),
   _Skill('TypeScript', 'Language'),
   _Skill('React', 'Framework'),
@@ -20,6 +24,7 @@ const _skills = [
   _Skill('SQL', 'Database'),
   _Skill('Git', 'Tool'),
   _Skill('Linux', 'Platform'),
+  _Skill('Dalvik Bytecode', 'Android Reverse Engineering'),
 ];
 
 class ExpertiseSection extends StatelessWidget {
@@ -47,7 +52,7 @@ class ExpertiseSection extends StatelessWidget {
           sectionDivider(),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : 48,
+              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -72,13 +77,29 @@ class ExpertiseSection extends StatelessWidget {
                   ),
                   const SizedBox(height: 12),
                   // Skills list
-                  ...List.generate(_skills.length, (i) {
-                    return RevealOnScroll(
-                      visibilityKey: 'skill-$i',
-                      delay: Duration(milliseconds: 100 + i * 60),
-                      child: _SkillRow(skill: _skills[i]),
-                    );
-                  }),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final bool twoCols = constraints.maxWidth > 600;
+                      final double itemWidth = twoCols
+                          ? (constraints.maxWidth - 48) / 2
+                          : constraints.maxWidth;
+
+                      return Wrap(
+                        spacing: 48, // horizontal spacing between columns
+                        runSpacing: 0,
+                        children: List.generate(_skills.length, (i) {
+                          return SizedBox(
+                            width: itemWidth,
+                            child: RevealOnScroll(
+                              visibilityKey: 'skill-$i',
+                              delay: Duration(milliseconds: 100 + (i % (twoCols ? 2 : 1)) * 100),
+                              child: _SkillRow(skill: _skills[i]),
+                            ),
+                          );
+                        }),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
