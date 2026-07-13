@@ -28,7 +28,9 @@ class AcademicsSection extends StatelessWidget {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -54,7 +56,7 @@ class AcademicsSection extends StatelessWidget {
                       children: [
                         Text('02', style: ghostNumberStyle(context)),
                         Padding(
-                          padding: const EdgeInsets.only(top: 40),
+                          padding: const EdgeInsets.only(top: 70),
                           child: Text(
                             'Educational\nBackground',
                             style: sectionHeadingStyle(context),
@@ -71,16 +73,20 @@ class AcademicsSection extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: const [
                         _EducationRow(
-                          degree: 'Bachelor of Science in Software Engineering (BSSE)',
+                          degree:
+                              'Bachelor of Science in Software Engineering (BSSE)',
                           batch: '17th Batch (Currently studying)',
-                          inst: 'Institute of Information Technology, University of Dhaka',
+                          inst:
+                              'Institute of Information Technology, University of Dhaka',
                           period: 'Since July 2025',
                         ),
                         SizedBox(height: 24),
                         _EducationRow(
                           degree: 'Bachelor of Business Administration (BBA)',
-                          batch: '33rd Batch (Initially enrolled, didn\'t complete)',
-                          inst: 'Institute of Business Administration, University of Dhaka',
+                          batch:
+                              '33rd Batch (Initially enrolled, didn\'t complete)',
+                          inst:
+                              'Institute of Business Administration, University of Dhaka',
                           period: 'Feb 2025 — June 2025',
                         ),
                         SizedBox(height: 24),
@@ -167,7 +173,8 @@ class AcademicsSection extends StatelessWidget {
           children: [
             _dialogBullet('DU IBA: Rank 30th'),
             _dialogBullet(
-                'Aalto University (QS #114): Full Tuition Scholarship (Category A) - Chem. Eng.'),
+              'Aalto University (QS #114): Full Tuition Scholarship (Category A) - Chem. Eng.',
+            ),
             _dialogBullet('New York University (NYUAD): Invited for CW'),
             _dialogBullet('SUST'),
             _dialogBullet('KUET'),
@@ -206,9 +213,10 @@ class AcademicsSection extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label,
-              style:
-                  const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+          Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+          ),
           Text(value, style: const TextStyle(fontSize: 15)),
         ],
       ),
@@ -221,11 +229,16 @@ class AcademicsSection extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('• ',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+          const Text(
+            '• ',
+            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           Expanded(
-              child:
-                  Text(text, style: const TextStyle(fontSize: 15, height: 1.4))),
+            child: Text(
+              text,
+              style: const TextStyle(fontSize: 15, height: 1.4),
+            ),
+          ),
         ],
       ),
     );

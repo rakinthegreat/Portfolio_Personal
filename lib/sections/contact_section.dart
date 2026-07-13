@@ -52,7 +52,9 @@ class _ContactSectionState extends State<ContactSection> {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -73,15 +75,18 @@ class _ContactSectionState extends State<ContactSection> {
                   RevealOnScroll(
                     visibilityKey: 'contact-ghost',
                     delay: const Duration(milliseconds: 80),
-                    child: Text('07', style: ghostNumberStyle(context)),
-                  ),
-                  const SizedBox(height: 12),
-                  RevealOnScroll(
-                    visibilityKey: 'contact-cta',
-                    delay: const Duration(milliseconds: 120),
-                    child: Text(
-                      "Let's build\nsomething.",
-                      style: sectionHeadingStyle(context),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text('07', style: ghostNumberStyle(context)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 70),
+                          child: Text(
+                            "Let's build\nsomething.",
+                            style: sectionHeadingStyle(context),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(height: 32),
@@ -147,10 +152,7 @@ class _EmailBlockState extends State<_EmailBlock> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'EMAIL',
-            style: labelStyle(context).copyWith(fontSize: 10),
-          ),
+          Text('EMAIL', style: labelStyle(context).copyWith(fontSize: 10)),
           const SizedBox(height: 12),
           MouseRegion(
             cursor: SystemMouseCursors.click,

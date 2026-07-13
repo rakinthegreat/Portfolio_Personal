@@ -14,9 +14,17 @@ class _Social {
 
 const _socials = [
   _Social('GitHub', '@rakintalukder', 'https://github.com/rakintalukder'),
-  _Social('LinkedIn', 'Rakin Talukder', 'https://linkedin.com/in/rakintalukder'),
+  _Social(
+    'LinkedIn',
+    'Rakin Talukder',
+    'https://linkedin.com/in/rakintalukder',
+  ),
   _Social('Twitter / X', '@rakintalukder', 'https://twitter.com/rakintalukder'),
-  _Social('Instagram', '@rakin.talukder', 'https://instagram.com/rakin.talukder'),
+  _Social(
+    'Instagram',
+    '@rakin.talukder',
+    'https://instagram.com/rakin.talukder',
+  ),
 ];
 
 class SocialsSection extends StatelessWidget {
@@ -44,7 +52,9 @@ class SocialsSection extends StatelessWidget {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -65,7 +75,19 @@ class SocialsSection extends StatelessWidget {
                   RevealOnScroll(
                     visibilityKey: 'social-ghost',
                     delay: const Duration(milliseconds: 80),
-                    child: Text('06', style: ghostNumberStyle(context)),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text('06', style: ghostNumberStyle(context)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 70),
+                          child: Text(
+                            'Find me Online',
+                            style: sectionHeadingStyle(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ...List.generate(_socials.length, (i) {

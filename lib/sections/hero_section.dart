@@ -188,7 +188,7 @@ class _HeroSectionState extends State<HeroSection>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                        Spacer(flex: isMobile ? 5 : 3),
+                        Spacer(flex: isMobile ? 7 : 3),
 
                         // ── RAKIN ──────────────────────────────────────────
                         Row(
@@ -214,6 +214,7 @@ class _HeroSectionState extends State<HeroSection>
                               ),
                             ),
                             const SizedBox(width: 8),
+                            /*
                             // Blinking cursor — visible after name finishes
                             FadeTransition(
                               opacity: _metaOpacity,
@@ -224,6 +225,7 @@ class _HeroSectionState extends State<HeroSection>
                                 child: BlinkingCursor(size: isMobile ? 48 : 80),
                               ),
                             ),
+                            */
                           ],
                         ),
 
@@ -237,7 +239,7 @@ class _HeroSectionState extends State<HeroSection>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                sectionDivider(context),
+                                //sectionDivider(context),
                                 const SizedBox(height: 20),
                                 Row(
                                   children: [
@@ -263,10 +265,12 @@ class _HeroSectionState extends State<HeroSection>
                                             'SOFTWARE ENGINEER',
                                             style: labelStyle(context),
                                           ),
+                                          /*
                                           Text(
                                             'INSTITUTE OF INFORMATION TECHNOLOGY',
                                             style: labelStyle(context),
                                           ),
+                                          */
                                         ],
                                       ),
                                     ),

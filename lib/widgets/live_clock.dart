@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:portfolio/widgets/theme_transition_overlay.dart';
 import '../theme.dart';
 
 /// Live updating clock — Concentric Rings minimalist style
@@ -64,15 +65,30 @@ class _LiveClockState extends State<LiveClock> {
               ),
               Align(
                 alignment: Alignment.center,
-                child: IconButton(
-                  onPressed: () => ThemeController.of(context).toggleTheme(),
-                  icon: Icon(
-                    context.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                    color: context.kBlack,
-                    size: widget.size * 0.15, // Scale icon size with clock
-                  ),
-                  tooltip: 'Toggle Theme',
-                  splashRadius: widget.size * 0.15,
+                child: Builder(
+                  builder: (iconContext) {
+                    return IconButton(
+                      onPressed: () {
+                        // Find the center of the icon in global coordinates
+                        final renderBox = iconContext.findRenderObject() as RenderBox?;
+                        Offset center = Offset.zero;
+                        if (renderBox != null) {
+                          final position = renderBox.localToGlobal(Offset.zero);
+                          center = position + Offset(renderBox.size.width / 2, renderBox.size.height / 2);
+                        }
+                        
+                        // Trigger our custom full-screen ripple!
+                        ThemeController.of(context).toggleTheme(center);
+                      },
+                      icon: Icon(
+                        context.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                        color: context.kBlack,
+                        size: widget.size * 0.15,
+                      ),
+                      tooltip: 'Toggle Theme',
+                      splashRadius: widget.size * 0.15,
+                    );
+                  }
                 ),
               ),
             ],
@@ -106,9 +122,6 @@ class _ConcentricClockPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
     final maxRadius = size.width / 2;
-    
-    // Scale stroke widths and gaps based on the size (base size was 42)
-    final scale = sizeFactor / 42.0;
     
     // Base it entirely on maxRadius so it scales perfectly up to 800px+ without blobbing
     final gap = maxRadius * 0.15; // 15% gap between rings

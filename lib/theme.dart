@@ -1,29 +1,25 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ─── Theme Management ────────────────────────────────────────────────────────
-class ThemeController extends InheritedWidget {
-  final bool isDark;
-  final VoidCallback toggleTheme;
+// ─── Theme Data Generator ──────────────────────────────────────────────────────
+ThemeData getAppTheme(bool isDark) {
+  final kWhite = isDark ? const Color(0xFF070707) : const Color(0xFFFFFFFF);
+  final kBlack = isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
 
-  const ThemeController({
-    super.key,
-    required this.isDark,
-    required this.toggleTheme,
-    required super.child,
-  });
-
-  static ThemeController of(BuildContext context) {
-    return context.dependOnInheritedWidgetOfExactType<ThemeController>()!;
-  }
-
-  @override
-  bool updateShouldNotify(ThemeController oldWidget) => isDark != oldWidget.isDark;
+  return ThemeData(
+    brightness: isDark ? Brightness.dark : Brightness.light,
+    scaffoldBackgroundColor: kWhite,
+    colorScheme: isDark ? const ColorScheme.dark() : const ColorScheme.light(),
+    textTheme: GoogleFonts.spaceGroteskTextTheme().apply(
+      bodyColor: kBlack,
+      displayColor: kBlack,
+    ),
+  );
 }
 
 // ─── Theme Extensions ────────────────────────────────────────────────────────
 extension AppColors on BuildContext {
-  bool get isDark => ThemeController.of(this).isDark;
+  bool get isDark => Theme.of(this).brightness == Brightness.dark;
   
   Color get kBlack => isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
   Color get kWhite => isDark ? const Color(0xFF070707) : const Color(0xFFFFFFFF);

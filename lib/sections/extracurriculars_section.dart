@@ -15,7 +15,11 @@ class _Activity {
 const _activities = [
   _Activity('Digital SAT Instructor', 'Aemers', '2025 — 2026'),
   _Activity('Part-time IELTS Instructor', 'Robi 10 Minutes School', 'Briefly'),
-  _Activity('President (Research & Development)', 'Notre Dame Nature Study Club', '2023 — 2024'),
+  _Activity(
+    'President (Research & Development)',
+    'Notre Dame Nature Study Club',
+    '2023 — 2024',
+  ),
   _Activity(
     'Founding President & Chairperson of Advisory Board',
     'Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)',
@@ -48,7 +52,9 @@ class ExtracurricularsSection extends StatelessWidget {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -69,7 +75,19 @@ class ExtracurricularsSection extends StatelessWidget {
                   RevealOnScroll(
                     visibilityKey: 'extra-ghost',
                     delay: const Duration(milliseconds: 80),
-                    child: Text('05', style: ghostNumberStyle(context)),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text('05', style: ghostNumberStyle(context)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 70),
+                          child: Text(
+                            'Experiences',
+                            style: sectionHeadingStyle(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   ...List.generate(_activities.length, (i) {
@@ -139,11 +157,7 @@ class _ActivityRowState extends State<_ActivityRow> {
             // Period
             Row(
               children: [
-                Container(
-                  width: 32,
-                  height: 1,
-                  color: context.kGrey,
-                ),
+                Container(width: 32, height: 1, color: context.kGrey),
                 const SizedBox(width: 12),
                 Text(
                   widget.activity.period,

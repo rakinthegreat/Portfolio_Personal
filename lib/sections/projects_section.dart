@@ -76,7 +76,9 @@ class ProjectsSection extends StatelessWidget {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -97,29 +99,43 @@ class ProjectsSection extends StatelessWidget {
                   RevealOnScroll(
                     visibilityKey: 'proj-ghost',
                     delay: const Duration(milliseconds: 80),
-                    child: Text('04', style: ghostNumberStyle(context)),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text('04', style: ghostNumberStyle(context)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 70),
+                          child: Text(
+                            'Featured Projects',
+                            style: sectionHeadingStyle(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 16),
                   // Grid or single column depending on width
-                  LayoutBuilder(builder: (context, constraints) {
-                    final crossCount = constraints.maxWidth > 500 ? 2 : 1;
-                    return GridView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: crossCount,
-                        crossAxisSpacing: 16,
-                        mainAxisSpacing: 16,
-                        childAspectRatio: crossCount == 2 ? 1.5 : 2.2,
-                      ),
-                      itemCount: _projects.length,
-                      itemBuilder: (ctx, i) => RevealOnScroll(
-                        visibilityKey: 'proj-card-$i',
-                        delay: Duration(milliseconds: 100 + i * 80),
-                        child: _ProjectCard(project: _projects[i]),
-                      ),
-                    );
-                  }),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final crossCount = constraints.maxWidth > 500 ? 2 : 1;
+                      return GridView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: crossCount,
+                          crossAxisSpacing: 16,
+                          mainAxisSpacing: 16,
+                          childAspectRatio: crossCount == 2 ? 1.5 : 2.2,
+                        ),
+                        itemCount: _projects.length,
+                        itemBuilder: (ctx, i) => RevealOnScroll(
+                          visibilityKey: 'proj-card-$i',
+                          delay: Duration(milliseconds: 100 + i * 80),
+                          child: _ProjectCard(project: _projects[i]),
+                        ),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -156,7 +172,9 @@ class _ProjectCardState extends State<_ProjectCard> {
           decoration: BoxDecoration(
             color: _hovered ? context.kGhostGrey : context.kWhite,
             border: Border.all(
-              color: _hovered ? context.kBlack.withValues(alpha: 0.2) : context.kLightGrey,
+              color: _hovered
+                  ? context.kBlack.withValues(alpha: 0.2)
+                  : context.kLightGrey,
               width: 1,
             ),
           ),

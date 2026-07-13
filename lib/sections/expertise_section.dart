@@ -15,7 +15,7 @@ const _skills = [
   _Skill('Kotlin', 'Language'),
   _Skill('Python', 'Language'),
   _Skill('Dart / Flutter', 'Language · Framework'),
-  _Skill('Android Development', 'Platform'),
+  _Skill('Android', 'Platform'),
   _Skill('JavaScript', 'Language'),
   _Skill('TypeScript', 'Language'),
   _Skill('React', 'Framework'),
@@ -25,6 +25,15 @@ const _skills = [
   _Skill('Git', 'Tool'),
   _Skill('Linux', 'Platform'),
   _Skill('Dalvik Bytecode', 'Android Reverse Engineering'),
+  _Skill('Docker', 'Containerization'),
+  _Skill('GitHub Actions', 'CI/CD · Automation'),
+  _Skill('Vercel', 'Cloud Deployment'),
+  _Skill('Arduino / ESP32', 'IoT · Embedded Systems'),
+  _Skill('MQTT / WebSockets', 'Real-time Protocols'),
+  _Skill('REST APIs', 'API Architecture'),
+  _Skill('NVIDIA NIM', 'AI Microservices'),
+  _Skill('Firebase / Supabase', 'Backend as a Service'),
+  _Skill('Inkscape / Canva', 'Vector Graphics & UI Design'),
 ];
 
 class ExpertiseSection extends StatelessWidget {
@@ -52,7 +61,9 @@ class ExpertiseSection extends StatelessWidget {
           sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
+              horizontal: isMobile
+                  ? 24
+                  : MediaQuery.of(context).size.width * 0.08,
               vertical: kSectionPaddingV,
             ),
             child: MaxWidthBox(
@@ -73,7 +84,19 @@ class ExpertiseSection extends StatelessWidget {
                   RevealOnScroll(
                     visibilityKey: 'exp-ghost',
                     delay: const Duration(milliseconds: 80),
-                    child: Text('03', style: ghostNumberStyle(context)),
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Text('03', style: ghostNumberStyle(context)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 70),
+                          child: Text(
+                            'Tech Stack',
+                            style: sectionHeadingStyle(context),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   const SizedBox(height: 12),
                   // Skills list
@@ -92,7 +115,10 @@ class ExpertiseSection extends StatelessWidget {
                             width: itemWidth,
                             child: RevealOnScroll(
                               visibilityKey: 'skill-$i',
-                              delay: Duration(milliseconds: 100 + (i % (twoCols ? 2 : 1)) * 100),
+                              delay: Duration(
+                                milliseconds:
+                                    100 + (i % (twoCols ? 2 : 1)) * 100,
+                              ),
                               child: _SkillRow(skill: _skills[i]),
                             ),
                           );
@@ -142,9 +168,7 @@ class _SkillRowState extends State<_SkillRow> {
               ),
             ),
             const SizedBox(width: 20),
-            Expanded(
-              child: Text(widget.skill.name, style: itemStyle(context)),
-            ),
+            Expanded(child: Text(widget.skill.name, style: itemStyle(context))),
             Text(widget.skill.category, style: itemSubStyle(context)),
           ],
         ),

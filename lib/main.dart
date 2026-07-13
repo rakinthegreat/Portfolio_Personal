@@ -1,6 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'theme.dart';
 import 'sections/hero_section.dart';
 import 'sections/about_section.dart';
@@ -15,66 +14,45 @@ import 'widgets/dot_nav.dart';
 import 'widgets/cursor_follower.dart';
 import 'widgets/scroll_progress_bar.dart';
 
+import 'widgets/theme_transition_overlay.dart';
+
+final GlobalKey portfolioHomeKey = GlobalKey();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   final prefs = await SharedPreferences.getInstance();
   runApp(PortfolioApp(prefs: prefs));
 }
 
-class PortfolioApp extends StatefulWidget {
+class PortfolioApp extends StatelessWidget {
   final SharedPreferences prefs;
   const PortfolioApp({super.key, required this.prefs});
-
-  @override
-  State<PortfolioApp> createState() => _PortfolioAppState();
-}
-
-class _PortfolioAppState extends State<PortfolioApp> {
-  late bool _isDark;
-
-  @override
-  void initState() {
-    super.initState();
-    _isDark = widget.prefs.getBool('isDark') ?? false;
-  }
-
-  void _toggleTheme() {
-    setState(() {
-      _isDark = !_isDark;
-      widget.prefs.setBool('isDark', _isDark);
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
     // We defer to system brightness if no preference exists
     final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
-    final bool activeDark = widget.prefs.getBool('isDark') ?? isSystemDark;
-    
-    // Make sure our local state matches
-    _isDark = activeDark;
+    final bool activeDark = prefs.getBool('isDark') ?? isSystemDark;
 
-    return ThemeController(
-      isDark: _isDark,
-      toggleTheme: _toggleTheme,
+    return ThemeTransitionOverlay(
+      initialDark: activeDark,
+      onThemeChanged: (isDark) {
+        prefs.setBool('isDark', isDark);
+      },
       child: Builder(
         builder: (innerContext) {
+          final isDark = ThemeController.of(innerContext).isDark;
+          
           return MaterialApp(
             title: 'Rakin Talukder',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              scaffoldBackgroundColor: innerContext.kWhite,
-              colorScheme: activeDark 
-                  ? const ColorScheme.dark() 
-                  : const ColorScheme.light(),
-              textTheme: GoogleFonts.spaceGroteskTextTheme().apply(
-                bodyColor: innerContext.kBlack,
-                displayColor: innerContext.kBlack,
-              ),
+            // The scaffold must be transparent so our ripple overlay shows through!
+            theme: getAppTheme(isDark).copyWith(
+              scaffoldBackgroundColor: Colors.transparent,
             ),
-            home: const PortfolioHome(),
+            home: PortfolioHome(key: portfolioHomeKey),
           );
-        }
+        },
       ),
     );
   }
@@ -120,7 +98,7 @@ class _PortfolioHomeState extends State<PortfolioHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: context.kWhite,
+      backgroundColor: Colors.transparent,
       body: CursorFollower(
         child: Stack(
           children: [

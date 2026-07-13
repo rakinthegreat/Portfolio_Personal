@@ -55,7 +55,7 @@ class AboutSection extends StatelessWidget {
                       children: [
                         Text('01', style: ghostNumberStyle(context)),
                         Padding(
-                          padding: const EdgeInsets.only(top: 40),
+                          padding: const EdgeInsets.only(top: 70),
                           child: Text(
                             'Building things\nthat matter.',
                             style: sectionHeadingStyle(context),
