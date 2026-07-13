@@ -25,7 +25,7 @@ class AcademicsSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -39,9 +39,9 @@ class AcademicsSection extends StatelessWidget {
                     visibilityKey: 'acad-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('02  ·  ACADEMICS'),
+                        sectionLabel('02  ·  ACADEMICS', context),
                       ],
                     ),
                   ),
@@ -251,43 +251,43 @@ class _EducationRow extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        border: Border.all(color: kLightGrey, width: 1),
+        border: Border.all(color: context.kLightGrey, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             degree,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w700,
-              color: kBlack,
+              color: context.kBlack,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             batch,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
-              color: kBlack,
+              color: context.kBlack,
               fontWeight: FontWeight.w400,
             ),
           ),
           const SizedBox(height: 12),
           Text(
             inst,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 15,
-              color: kBlack,
+              color: context.kBlack,
               fontWeight: FontWeight.w500,
             ),
           ),
           const SizedBox(height: 8),
           Text(
             period,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: kGrey,
+              color: context.kGrey,
               letterSpacing: 1,
             ),
           ),
@@ -310,15 +310,15 @@ class _OutlinedBtn extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         decoration: BoxDecoration(
-          border: Border.all(color: kBlack, width: 1.5),
+          border: Border.all(color: context.kBlack, width: 1.5),
         ),
         child: Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
             letterSpacing: 1.2,
-            color: kBlack,
+            color: context.kBlack,
           ),
         ),
       ),
@@ -336,13 +336,13 @@ class _InfoDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(0)),
-      backgroundColor: kWhite,
+      backgroundColor: context.kWhite,
       insetPadding: const EdgeInsets.all(20),
       child: Container(
         width: 500,
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          border: Border.all(color: kBlack, width: 2),
+          border: Border.all(color: context.kBlack, width: 2),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -354,22 +354,22 @@ class _InfoDialog extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       letterSpacing: 1.5,
-                      color: kBlack,
+                      color: context.kBlack,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close, color: kBlack),
+                  icon: Icon(Icons.close, color: context.kBlack),
                   onPressed: () => Navigator.of(context).pop(),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            const Divider(color: kLightGrey, height: 1, thickness: 1),
+            Divider(color: context.kLightGrey, height: 1, thickness: 1),
             const SizedBox(height: 24),
             content,
           ],

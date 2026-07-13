@@ -38,7 +38,7 @@ class _BlinkingCursorState extends State<BlinkingCursor>
         child: Container(
           width: widget.size * 0.12,
           height: widget.size,
-          color: kBlack,
+          color: context.kBlack,
         ),
       ),
     );

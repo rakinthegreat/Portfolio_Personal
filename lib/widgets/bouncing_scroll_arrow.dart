@@ -52,9 +52,9 @@ class _BouncingScrollArrowState extends State<BouncingScrollArrow>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  dot(size: 5, color: kGrey),
+                  dot(context, size: 5, color: context.kGrey),
                   const SizedBox(width: 10),
-                  Text('SCROLL', style: labelStyle()),
+                  Text('SCROLL', style: labelStyle(context)),
                 ],
               ),
               const SizedBox(height: 8),
@@ -87,17 +87,20 @@ class _Chevron extends StatelessWidget {
       opacity: opacity,
       child: CustomPaint(
         size: const Size(14, 7),
-        painter: _ChevronPainter(),
+        painter: _ChevronPainter(context.kGrey),
       ),
     );
   }
 }
 
 class _ChevronPainter extends CustomPainter {
+  final Color color;
+  _ChevronPainter(this.color);
+  
   @override
   void paint(Canvas canvas, Size size) {
     final paint = Paint()
-      ..color = kGrey
+      ..color = color
       ..strokeWidth = 1.2
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round;

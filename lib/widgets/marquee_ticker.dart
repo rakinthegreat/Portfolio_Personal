@@ -57,7 +57,7 @@ class _MarqueeTickerState extends State<MarqueeTicker>
   Widget build(BuildContext context) {
     final textStyle = GoogleFonts.spaceMono(
       fontSize: 11,
-      color: kGrey,
+      color: context.kGrey,
       letterSpacing: 2,
     );
 

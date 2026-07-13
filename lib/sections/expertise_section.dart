@@ -49,7 +49,7 @@ class ExpertiseSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -63,9 +63,9 @@ class ExpertiseSection extends StatelessWidget {
                     visibilityKey: 'exp-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('03  ·  EXPERTISE'),
+                        sectionLabel('03  ·  EXPERTISE', context),
                       ],
                     ),
                   ),
@@ -128,7 +128,7 @@ class _SkillRowState extends State<_SkillRow> {
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        color: _hovered ? kGhostGrey : kWhite,
+        color: _hovered ? context.kGhostGrey : context.kWhite,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 4),
         child: Row(
           children: [
@@ -137,15 +137,15 @@ class _SkillRowState extends State<_SkillRow> {
               width: 6,
               height: 6,
               decoration: BoxDecoration(
-                color: _hovered ? kBlack : kGrey,
+                color: _hovered ? context.kBlack : context.kGrey,
                 shape: BoxShape.circle,
               ),
             ),
             const SizedBox(width: 20),
             Expanded(
-              child: Text(widget.skill.name, style: itemStyle()),
+              child: Text(widget.skill.name, style: itemStyle(context)),
             ),
-            Text(widget.skill.category, style: itemSubStyle()),
+            Text(widget.skill.category, style: itemSubStyle(context)),
           ],
         ),
       ),

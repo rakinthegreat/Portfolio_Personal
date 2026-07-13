@@ -45,7 +45,7 @@ class ExtracurricularsSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -59,9 +59,9 @@ class ExtracurricularsSection extends StatelessWidget {
                     visibilityKey: 'extra-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('05  ·  EXPERIENCES'),
+                        sectionLabel('05  ·  EXPERIENCES', context),
                       ],
                     ),
                   ),
@@ -107,7 +107,7 @@ class _ActivityRowState extends State<_ActivityRow> {
       onExit: (_) => setState(() => _hovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        color: _hovered ? kGhostGrey : kWhite,
+        color: _hovered ? context.kGhostGrey : context.kWhite,
         padding: const EdgeInsets.all(32),
         margin: const EdgeInsets.only(bottom: 24),
         child: Column(
@@ -119,7 +119,7 @@ class _ActivityRowState extends State<_ActivityRow> {
               style: GoogleFonts.spaceMono(
                 fontSize: 12,
                 letterSpacing: 2,
-                color: kGrey,
+                color: context.kGrey,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -127,10 +127,10 @@ class _ActivityRowState extends State<_ActivityRow> {
             // Job Title / Role
             Text(
               widget.activity.title,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w800,
-                color: kBlack,
+                color: context.kBlack,
                 height: 1.2,
                 letterSpacing: -0.5,
               ),
@@ -142,14 +142,14 @@ class _ActivityRowState extends State<_ActivityRow> {
                 Container(
                   width: 32,
                   height: 1,
-                  color: kGrey,
+                  color: context.kGrey,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   widget.activity.period,
                   style: GoogleFonts.spaceMono(
                     fontSize: 12,
-                    color: kGrey,
+                    color: context.kGrey,
                   ),
                 ),
               ],

@@ -28,7 +28,7 @@ class ScrollProgressBar extends StatelessWidget {
           alignment: Alignment.centerLeft,
           child: FractionallySizedBox(
             widthFactor: progress,
-            child: Container(height: 2, color: kBlack),
+            child: Container(height: 2, color: context.kBlack),
           ),
         );
       },

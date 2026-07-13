@@ -1,12 +1,36 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ─── Colours ────────────────────────────────────────────────────────────────
-const kBlack = Color(0xFF000000);
-const kWhite = Color(0xFFFFFFFF);
-const kGrey = Color(0xFF888888);
-const kLightGrey = Color(0xFFEEEEEE);
-const kGhostGrey = Color(0xFFF0F0F0);
+// ─── Theme Management ────────────────────────────────────────────────────────
+class ThemeController extends InheritedWidget {
+  final bool isDark;
+  final VoidCallback toggleTheme;
+
+  const ThemeController({
+    super.key,
+    required this.isDark,
+    required this.toggleTheme,
+    required super.child,
+  });
+
+  static ThemeController of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ThemeController>()!;
+  }
+
+  @override
+  bool updateShouldNotify(ThemeController oldWidget) => isDark != oldWidget.isDark;
+}
+
+// ─── Theme Extensions ────────────────────────────────────────────────────────
+extension AppColors on BuildContext {
+  bool get isDark => ThemeController.of(this).isDark;
+  
+  Color get kBlack => isDark ? const Color(0xFFFFFFFF) : const Color(0xFF000000);
+  Color get kWhite => isDark ? const Color(0xFF070707) : const Color(0xFFFFFFFF);
+  Color get kGrey => isDark ? const Color(0xFFAAAAAA) : const Color(0xFF888888);
+  Color get kLightGrey => isDark ? const Color(0xFF2A2A2A) : const Color(0xFFEEEEEE);
+  Color get kGhostGrey => isDark ? const Color(0xFF1A1A1A) : const Color(0xFFF0F0F0);
+}
 
 // ─── Text Styles ─────────────────────────────────────────────────────────────
 
@@ -16,7 +40,7 @@ TextStyle heroNameStyle(BuildContext context) {
   return GoogleFonts.spaceGrotesk(
     fontSize: w < 600 ? 72 : 120,
     fontWeight: FontWeight.w800,
-    color: kBlack,
+    color: context.kBlack,
     height: 0.92,
     letterSpacing: -2,
   );
@@ -28,7 +52,7 @@ TextStyle sectionHeadingStyle(BuildContext context) {
   return GoogleFonts.spaceGrotesk(
     fontSize: w < 600 ? 36 : 56,
     fontWeight: FontWeight.w800,
-    color: kBlack,
+    color: context.kBlack,
     letterSpacing: -1,
   );
 }
@@ -39,67 +63,67 @@ TextStyle ghostNumberStyle(BuildContext context) {
   return GoogleFonts.spaceGrotesk(
     fontSize: w < 600 ? 80 : 140,
     fontWeight: FontWeight.w800,
-    color: kGhostGrey,
+    color: context.kGhostGrey,
     height: 1,
     letterSpacing: -4,
   );
 }
 
 /// Small label / monospace
-TextStyle labelStyle() => GoogleFonts.spaceMono(
+TextStyle labelStyle(BuildContext context) => GoogleFonts.spaceMono(
       fontSize: 12,
-      color: kGrey,
+      color: context.kGrey,
       letterSpacing: 2,
       fontWeight: FontWeight.w400,
     );
 
 /// Body text
-TextStyle bodyStyle() => GoogleFonts.spaceGrotesk(
+TextStyle bodyStyle(BuildContext context) => GoogleFonts.spaceGrotesk(
       fontSize: 18,
-      color: kGrey,
+      color: context.kGrey,
       height: 1.6,
       fontWeight: FontWeight.w400,
     );
 
 /// Big skill / item text
-TextStyle itemStyle() => GoogleFonts.spaceGrotesk(
+TextStyle itemStyle(BuildContext context) => GoogleFonts.spaceGrotesk(
       fontSize: 28,
       fontWeight: FontWeight.w700,
-      color: kBlack,
+      color: context.kBlack,
       letterSpacing: -0.5,
     );
 
-TextStyle itemSubStyle() => GoogleFonts.spaceGrotesk(
+TextStyle itemSubStyle(BuildContext context) => GoogleFonts.spaceGrotesk(
       fontSize: 14,
       fontWeight: FontWeight.w400,
-      color: kGrey,
+      color: context.kGrey,
     );
 
 // ─── Layout Constants ────────────────────────────────────────────────────────
 const double kSectionPaddingV = 100;
-const double kMaxWidth = double.infinity;
+const double kMaxWidth = 1200;
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
-Widget sectionDivider() => const Divider(
-      color: kLightGrey,
+Widget sectionDivider(BuildContext context) => Divider(
+      color: context.kLightGrey,
       thickness: 1,
       height: 1,
     );
 
-Widget dot({double size = 8, Color color = kBlack}) => Container(
+Widget dot(BuildContext context, {double size = 8, Color? color}) => Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color,
+        color: color ?? context.kBlack,
         shape: BoxShape.circle,
       ),
     );
 
-Widget sectionLabel(String text) => Text(
+Widget sectionLabel(String text, BuildContext context) => Text(
       text,
       style: GoogleFonts.spaceMono(
         fontSize: 11,
-        color: kGrey,
+        color: context.kGrey,
         letterSpacing: 2.5,
         fontWeight: FontWeight.w400,
       ),

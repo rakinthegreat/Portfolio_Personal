@@ -55,8 +55,27 @@ class _LiveClockState extends State<LiveClock> {
         SizedBox(
           width: widget.size,
           height: widget.size,
-          child: CustomPaint(
-            painter: _ConcentricClockPainter(_now, widget.size, widget.isBackground),
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _ConcentricClockPainter(_now, widget.size, widget.isBackground, context),
+                ),
+              ),
+              Align(
+                alignment: Alignment.center,
+                child: IconButton(
+                  onPressed: () => ThemeController.of(context).toggleTheme(),
+                  icon: Icon(
+                    context.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                    color: context.kBlack,
+                    size: widget.size * 0.15, // Scale icon size with clock
+                  ),
+                  tooltip: 'Toggle Theme',
+                  splashRadius: widget.size * 0.15,
+                ),
+              ),
+            ],
           ),
         ),
         if (widget.showDate) ...[
@@ -65,7 +84,7 @@ class _LiveClockState extends State<LiveClock> {
             dateStr,
             style: GoogleFonts.spaceMono(
               fontSize: 9,
-              color: kGrey,
+              color: context.kGrey,
               letterSpacing: 1.5,
             ),
           ),
@@ -79,8 +98,9 @@ class _ConcentricClockPainter extends CustomPainter {
   final DateTime time;
   final double sizeFactor;
   final bool isBackground;
+  final BuildContext context;
   
-  _ConcentricClockPainter(this.time, this.sizeFactor, this.isBackground);
+  _ConcentricClockPainter(this.time, this.sizeFactor, this.isBackground, this.context);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -94,10 +114,10 @@ class _ConcentricClockPainter extends CustomPainter {
     final gap = maxRadius * 0.15; // 15% gap between rings
 
     // 3 distinct shades for the arcs
-    final hrColor = isBackground ? kGrey.withOpacity(0.9) : kBlack;
-    final minColor = isBackground ? kGrey.withOpacity(0.5) : kGrey;
-    final secColor = isBackground ? kGrey.withOpacity(0.25) : kLightGrey;
-    final trackColor = isBackground ? kGhostGrey : kGhostGrey;
+    final hrColor = isBackground ? context.kGrey.withOpacity(0.9) : context.kBlack;
+    final minColor = isBackground ? context.kGrey.withOpacity(0.5) : context.kGrey;
+    final secColor = isBackground ? context.kGrey.withOpacity(0.25) : context.kLightGrey;
+    final trackColor = isBackground ? context.kGhostGrey : context.kGhostGrey;
 
     final secPaint = Paint()
       ..color = secColor

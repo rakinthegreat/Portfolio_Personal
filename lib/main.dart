@@ -1,5 +1,7 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'theme.dart';
 import 'sections/hero_section.dart';
 import 'sections/about_section.dart';
 import 'sections/academics_section.dart';
@@ -13,30 +15,67 @@ import 'widgets/dot_nav.dart';
 import 'widgets/cursor_follower.dart';
 import 'widgets/scroll_progress_bar.dart';
 
-void main() {
-  runApp(const PortfolioApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final prefs = await SharedPreferences.getInstance();
+  runApp(PortfolioApp(prefs: prefs));
 }
 
-class PortfolioApp extends StatelessWidget {
-  const PortfolioApp({super.key});
+class PortfolioApp extends StatefulWidget {
+  final SharedPreferences prefs;
+  const PortfolioApp({super.key, required this.prefs});
+
+  @override
+  State<PortfolioApp> createState() => _PortfolioAppState();
+}
+
+class _PortfolioAppState extends State<PortfolioApp> {
+  late bool _isDark;
+
+  @override
+  void initState() {
+    super.initState();
+    _isDark = widget.prefs.getBool('isDark') ?? false;
+  }
+
+  void _toggleTheme() {
+    setState(() {
+      _isDark = !_isDark;
+      widget.prefs.setBool('isDark', _isDark);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Rakin Talukder',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        scaffoldBackgroundColor: const Color(0xFFFFFFFF),
-        colorScheme: const ColorScheme.light(
-          surface: Color(0xFFFFFFFF),
-          onSurface: Color(0xFF000000),
-        ),
-        textTheme: GoogleFonts.spaceGroteskTextTheme().apply(
-          bodyColor: const Color(0xFF000000),
-          displayColor: const Color(0xFF000000),
-        ),
+    // We defer to system brightness if no preference exists
+    final isSystemDark = MediaQuery.of(context).platformBrightness == Brightness.dark;
+    final bool activeDark = widget.prefs.getBool('isDark') ?? isSystemDark;
+    
+    // Make sure our local state matches
+    _isDark = activeDark;
+
+    return ThemeController(
+      isDark: _isDark,
+      toggleTheme: _toggleTheme,
+      child: Builder(
+        builder: (innerContext) {
+          return MaterialApp(
+            title: 'Rakin Talukder',
+            debugShowCheckedModeBanner: false,
+            theme: ThemeData(
+              scaffoldBackgroundColor: innerContext.kWhite,
+              colorScheme: activeDark 
+                  ? const ColorScheme.dark() 
+                  : const ColorScheme.light(),
+              textTheme: GoogleFonts.spaceGroteskTextTheme().apply(
+                bodyColor: innerContext.kBlack,
+                displayColor: innerContext.kBlack,
+              ),
+            ),
+            home: const PortfolioHome(),
+          );
+        }
       ),
-      home: const PortfolioHome(),
     );
   }
 }
@@ -81,7 +120,7 @@ class _PortfolioHomeState extends State<PortfolioHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: context.kWhite,
       body: CursorFollower(
         child: Stack(
           children: [

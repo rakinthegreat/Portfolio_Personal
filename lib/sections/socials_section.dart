@@ -41,7 +41,7 @@ class SocialsSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -55,9 +55,9 @@ class SocialsSection extends StatelessWidget {
                     visibilityKey: 'social-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('06  ·  SOCIALS'),
+                        sectionLabel('06  ·  SOCIALS', context),
                       ],
                     ),
                   ),
@@ -113,7 +113,7 @@ class _SocialRowState extends State<_SocialRow> {
         onTap: _launch,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
-          color: _hovered ? kGhostGrey : kWhite,
+          color: _hovered ? context.kGhostGrey : context.kWhite,
           padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 4),
           child: Column(
             children: [
@@ -125,7 +125,7 @@ class _SocialRowState extends State<_SocialRow> {
                       style: TextStyle(
                         fontSize: 26,
                         fontWeight: FontWeight.w700,
-                        color: _hovered ? kBlack : kBlack,
+                        color: _hovered ? context.kBlack : context.kBlack,
                         letterSpacing: -0.5,
                       ),
                     ),
@@ -134,7 +134,7 @@ class _SocialRowState extends State<_SocialRow> {
                     widget.social.handle,
                     style: TextStyle(
                       fontSize: 14,
-                      color: _hovered ? kBlack : kGrey,
+                      color: _hovered ? context.kBlack : context.kGrey,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -142,14 +142,14 @@ class _SocialRowState extends State<_SocialRow> {
                     duration: const Duration(milliseconds: 180),
                     style: TextStyle(
                       fontSize: 18,
-                      color: _hovered ? kBlack : kGrey,
+                      color: _hovered ? context.kBlack : context.kGrey,
                     ),
                     child: const Text('↗'),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              const Divider(color: kLightGrey, thickness: 1, height: 1),
+              Divider(color: context.kLightGrey, thickness: 1, height: 1),
             ],
           ),
         ),

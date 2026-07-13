@@ -49,7 +49,7 @@ class _ContactSectionState extends State<ContactSection> {
       child: Column(
         key: widget.sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -63,9 +63,9 @@ class _ContactSectionState extends State<ContactSection> {
                     visibilityKey: 'contact-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('07  ·  CONTACT'),
+                        sectionLabel('07  ·  CONTACT', context),
                       ],
                     ),
                   ),
@@ -92,7 +92,7 @@ class _ContactSectionState extends State<ContactSection> {
                       constraints: const BoxConstraints(maxWidth: 440),
                       child: Text(
                         'Open to internships, collaborations, and interesting conversations.',
-                        style: bodyStyle(),
+                        style: bodyStyle(context),
                       ),
                     ),
                   ),
@@ -142,14 +142,14 @@ class _EmailBlockState extends State<_EmailBlock> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        border: Border.all(color: kLightGrey, width: 1),
+        border: Border.all(color: context.kLightGrey, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'EMAIL',
-            style: labelStyle().copyWith(fontSize: 10),
+            style: labelStyle(context).copyWith(fontSize: 10),
           ),
           const SizedBox(height: 12),
           MouseRegion(
@@ -163,7 +163,7 @@ class _EmailBlockState extends State<_EmailBlock> {
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
-                  color: _hovered ? kGrey : kBlack,
+                  color: _hovered ? context.kGrey : context.kBlack,
                   letterSpacing: -0.5,
                 ),
                 child: Text(widget.email),
@@ -222,10 +222,10 @@ class _ActionButtonState extends State<_ActionButton> {
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
           decoration: BoxDecoration(
             color: widget.filled
-                ? (_hovered ? kGrey : kBlack)
-                : (_hovered ? kGhostGrey : kWhite),
+                ? (_hovered ? context.kGrey : context.kBlack)
+                : (_hovered ? context.kGhostGrey : context.kWhite),
             border: Border.all(
-              color: widget.filled ? Colors.transparent : kLightGrey,
+              color: widget.filled ? Colors.transparent : context.kLightGrey,
               width: 1,
             ),
           ),
@@ -234,7 +234,7 @@ class _ActionButtonState extends State<_ActionButton> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.w600,
-              color: widget.filled ? kWhite : kBlack,
+              color: widget.filled ? context.kWhite : context.kBlack,
               letterSpacing: 2,
             ),
           ),

@@ -57,8 +57,8 @@ class _CursorFollowerState extends State<CursorFollower>
               child: Container(
                 width: 8,
                 height: 8,
-                decoration: const BoxDecoration(
-                  color: kBlack,
+                decoration: BoxDecoration(
+                  color: context.kBlack,
                   shape: BoxShape.circle,
                 ),
               ),
@@ -73,7 +73,7 @@ class _CursorFollowerState extends State<CursorFollower>
                 width: 4,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: kBlack.withValues(alpha: 0.5),
+                  color: context.kBlack.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
               ),

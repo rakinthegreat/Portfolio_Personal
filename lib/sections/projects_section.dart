@@ -73,7 +73,7 @@ class ProjectsSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -87,9 +87,9 @@ class ProjectsSection extends StatelessWidget {
                     visibilityKey: 'proj-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('04  ·  PROJECTS & APPS'),
+                        sectionLabel('04  ·  PROJECTS & APPS', context),
                       ],
                     ),
                   ),
@@ -154,9 +154,9 @@ class _ProjectCardState extends State<_ProjectCard> {
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            color: _hovered ? kGhostGrey : kWhite,
+            color: _hovered ? context.kGhostGrey : context.kWhite,
             border: Border.all(
-              color: _hovered ? kBlack.withValues(alpha: 0.2) : kLightGrey,
+              color: _hovered ? context.kBlack.withValues(alpha: 0.2) : context.kLightGrey,
               width: 1,
             ),
           ),
@@ -168,10 +168,10 @@ class _ProjectCardState extends State<_ProjectCard> {
                   Expanded(
                     child: Text(
                       widget.project.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
-                        color: kBlack,
+                        color: context.kBlack,
                       ),
                     ),
                   ),
@@ -179,7 +179,7 @@ class _ProjectCardState extends State<_ProjectCard> {
                     '↗',
                     style: TextStyle(
                       fontSize: 16,
-                      color: _hovered ? kBlack : kGrey,
+                      color: _hovered ? context.kBlack : context.kGrey,
                     ),
                   ),
                 ],
@@ -187,9 +187,9 @@ class _ProjectCardState extends State<_ProjectCard> {
               const SizedBox(height: 8),
               Text(
                 widget.project.description,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
-                  color: kGrey,
+                  color: context.kGrey,
                   height: 1.5,
                 ),
               ),
@@ -198,18 +198,18 @@ class _ProjectCardState extends State<_ProjectCard> {
                 children: [
                   Text(
                     widget.project.type.toUpperCase(),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 10,
-                      color: kGrey,
+                      color: context.kGrey,
                       letterSpacing: 2,
                     ),
                   ),
                   const Spacer(),
                   Text(
                     widget.project.year,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
-                      color: kGrey,
+                      color: context.kGrey,
                       fontWeight: FontWeight.w500,
                     ),
                   ),

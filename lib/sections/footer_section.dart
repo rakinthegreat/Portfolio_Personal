@@ -24,7 +24,7 @@ class FooterSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -35,23 +35,23 @@ class FooterSection extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      dot(size: 5, color: kGrey),
+                      dot(context, size: 5, color: context.kGrey),
                       const SizedBox(width: 10),
                       Text(
                         'RAKIN TALUKDER',
-                        style: labelStyle(),
+                        style: labelStyle(context),
                       ),
                     ],
                   ),
                   const Spacer(),
                   Text(
                     '© ${DateTime.now().year}',
-                    style: labelStyle(),
+                    style: labelStyle(context),
                   ),
                   const SizedBox(width: 24),
                   Text(
                     'DHAKA, BD',
-                    style: labelStyle(),
+                    style: labelStyle(context),
                   ),
                 ],
               ),

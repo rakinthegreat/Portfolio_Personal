@@ -237,13 +237,13 @@ class _HeroSectionState extends State<HeroSection>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                sectionDivider(),
+                                sectionDivider(context),
                                 const SizedBox(height: 20),
                                 Row(
                                   children: [
                                     ScaleTransition(
                                       scale: _dotScale,
-                                      child: dot(size: 6),
+                                      child: dot(context, size: 6),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -253,19 +253,19 @@ class _HeroSectionState extends State<HeroSection>
                                         children: [
                                           Text(
                                             'MD RAKINUZZAMAN TALUKDER',
-                                            style: labelStyle().copyWith(
-                                              color: kBlack,
+                                            style: labelStyle(context).copyWith(
+                                              color: context.kBlack,
                                               fontWeight: FontWeight.w700,
                                             ),
                                           ),
                                           const SizedBox(height: 6),
                                           Text(
                                             'SOFTWARE ENGINEER',
-                                            style: labelStyle(),
+                                            style: labelStyle(context),
                                           ),
                                           Text(
                                             'INSTITUTE OF INFORMATION TECHNOLOGY',
-                                            style: labelStyle(),
+                                            style: labelStyle(context),
                                           ),
                                         ],
                                       ),

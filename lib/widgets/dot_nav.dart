@@ -31,8 +31,8 @@ class DotNav extends StatelessWidget {
               height: isActive ? 22 : 6,
               decoration: BoxDecoration(
                 color: isActive
-                    ? kBlack
-                    : kGrey.withValues(alpha: 0.3),
+                    ? context.kBlack
+                    : context.kGrey.withValues(alpha: 0.3),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

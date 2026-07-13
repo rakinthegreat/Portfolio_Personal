@@ -25,7 +25,7 @@ class AboutSection extends StatelessWidget {
       child: Column(
         key: sectionKey,
         children: [
-          sectionDivider(),
+          sectionDivider(context),
           Padding(
             padding: EdgeInsets.symmetric(
               horizontal: isMobile ? 24 : MediaQuery.of(context).size.width * 0.08,
@@ -40,9 +40,9 @@ class AboutSection extends StatelessWidget {
                     visibilityKey: 'about-label',
                     child: Row(
                       children: [
-                        dot(size: 6),
+                        dot(context, size: 6),
                         const SizedBox(width: 10),
-                        sectionLabel('01  ·  ABOUT'),
+                        sectionLabel('01  ·  ABOUT', context),
                       ],
                     ),
                   ),
@@ -77,7 +77,7 @@ class AboutSection extends StatelessWidget {
                         'crafting clean, purposeful software. I care deeply about '
                         'design, performance, and the small details that make '
                         'experiences feel right.',
-                        style: bodyStyle(),
+                        style: bodyStyle(context),
                       ),
                     ),
                   ),

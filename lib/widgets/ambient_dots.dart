@@ -79,7 +79,7 @@ class _AmbientDotsState extends State<AmbientDots>
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       border: Border.all(
-                        color: kBlack.withValues(alpha: 0.045),
+                        color: context.kBlack.withValues(alpha: 0.045),
                         width: 1,
                       ),
                     ),
