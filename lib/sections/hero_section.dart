@@ -4,7 +4,6 @@ import '../theme.dart';
 import '../widgets/bouncing_scroll_arrow.dart';
 import '../widgets/ambient_dots.dart';
 import '../widgets/live_clock.dart';
-import '../widgets/blinking_cursor.dart';
 
 class HeroSection extends StatefulWidget {
   final GlobalKey sectionKey;

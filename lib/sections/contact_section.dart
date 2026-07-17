@@ -21,7 +21,7 @@ class ContactSection extends StatefulWidget {
 
 class _ContactSectionState extends State<ContactSection> {
   bool _copied = false;
-  static const _email = 'rakin.talukder@gmail.com';
+  static const _email = 'support@rakin-talukder.me';
 
   Future<void> _copyEmail() async {
     await Clipboard.setData(const ClipboardData(text: _email));

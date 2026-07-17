@@ -13,17 +13,22 @@ class _Social {
 }
 
 const _socials = [
-  _Social('GitHub', '@rakintalukder', 'https://github.com/rakintalukder'),
+  _Social('GitHub', '@rakinthegreat', 'https://github.com/rakinthegreat'),
   _Social(
     'LinkedIn',
     'Rakin Talukder',
-    'https://linkedin.com/in/rakintalukder',
+    'https://www.linkedin.com/in/rakin-talukder-me',
   ),
-  _Social('Twitter / X', '@rakintalukder', 'https://twitter.com/rakintalukder'),
+  _Social('Twitter / X', '@rakinthegreat', 'https://twitter.com/rakinthegreat'),
   _Social(
     'Instagram',
-    '@rakin.talukder',
-    'https://instagram.com/rakin.talukder',
+    '@rakinthegreat',
+    'https://instagram.com/rakinthegreat',
+  ),
+  _Social(
+    'Facebook',
+    'Rakin Talukder',
+    'https://www.facebook.com/rakin.talukder.ndc24',
   ),
 ];
 

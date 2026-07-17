@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../theme.dart';
+import '../widgets/live_preview_popup.dart';
 import '../widgets/reveal_on_scroll.dart';
 
 class _Project {
@@ -10,6 +11,7 @@ class _Project {
   final String year;
   final String type;
   final String url;
+  final String? previewUrl;
 
   const _Project({
     required this.name,
@@ -17,37 +19,83 @@ class _Project {
     required this.year,
     required this.type,
     required this.url,
+    this.previewUrl,
   });
 }
 
 const _projects = [
   _Project(
-    name: 'Project Alpha',
-    description: 'A full-stack web application built with Next.js and Node.js.',
+    name: 'WaitLess',
+    description: 'A productivity app that detects idle moments and prompts mindful tasks to prevent doomscrolling.',
     year: '2024',
-    type: 'Web App',
-    url: '',
+    type: 'Web & Mobile App',
+    url: 'https://github.com/rakinthegreat/friction_titanicSwimTeam',
+    previewUrl: 'https://waitless-friction.vercel.app',
   ),
   _Project(
-    name: 'MobileKit',
-    description: 'Cross-platform mobile app crafted in Flutter & Dart.',
+    name: 'HydroSync',
+    description: 'AI-calibrated hydration tracker generating personalized strategies via multi-AI fallback architecture.',
     year: '2024',
-    type: 'Mobile App',
-    url: '',
+    type: 'Mobile App (Health/AI)',
+    url: 'https://github.com/rakinthegreat/hydrosync-project',
   ),
   _Project(
-    name: 'DataFlow',
-    description: 'Python data pipeline for real-time analytics processing.',
+    name: 'Fintech App Demo',
+    description: 'Highly polished, pixel-perfect UI/UX demonstration of a modern financial application in Flutter.',
+    year: '2024',
+    type: 'Web/Mobile UI Showcase',
+    url: 'https://github.com/rakinthegreat/Fintech_Demo_Flutter',
+    previewUrl: 'https://curzpaydemo.vercel.app/',
+  ),
+  _Project(
+    name: 'Plassey 1757',
+    description: 'Historical social deduction multiplayer web game based on the Battle of Plassey with real-time sync.',
+    year: '2024',
+    type: 'Web App (Game)',
+    url: 'https://github.com/rakinthegreat/Plassey',
+    previewUrl: 'https://plassey.vercel.app',
+  ),
+  _Project(
+    name: 'Loaf',
+    description: 'Interactive sensory game for cats featuring procedural Koi AI and a custom haptic engine.',
+    year: '2024',
+    type: 'Mobile App (Game)',
+    url: 'https://github.com/rakinthegreat/loaf',
+  ),
+  _Project(
+    name: 'IIT Indoor Games',
+    description: 'Interactive application highlighting community engagement and event-specific user experiences.',
     year: '2023',
-    type: 'Tool',
-    url: '',
+    type: 'Interactive Application',
+    url: 'https://github.com/rakinthegreat',
   ),
   _Project(
-    name: 'PortfolioOS',
-    description: 'This very website — minimalist personal portfolio.',
-    year: '2025',
-    type: 'Website',
-    url: '',
+    name: 'GCamUpdater',
+    description: 'Custom update logic injected into Google Camera mods via Dalvik Bytecode reverse engineering.',
+    year: '2021',
+    type: 'Modding Utility',
+    url: 'https://github.com/rakinthegreat/GcamUpdater',
+  ),
+  _Project(
+    name: 'ImageEnhanceAndroid',
+    description: 'Showcases low-level computational photography and image manipulation directly on Android devices.',
+    year: '2021',
+    type: 'Image Processing',
+    url: 'https://gitlab.com/rakinthegreat1/ImageEnhanceAndroid',
+  ),
+  _Project(
+    name: 'PhotoCompare',
+    description: 'Complex UI state management and aggressive memory optimization for Matrix zooming/panning.',
+    year: '2021',
+    type: 'Utility App',
+    url: 'https://github.com/rakinthegreat/photocompare',
+  ),
+  _Project(
+    name: 'CameraHW',
+    description: 'Hardware abstraction tool demonstrating deep understanding of Android\'s Camera2 API.',
+    year: '2017',
+    type: 'Hardware Utility App',
+    url: 'https://github.com/rakinthegreat/CameraHW',
   ),
 ];
 
@@ -163,9 +211,16 @@ class _ProjectCardState extends State<_ProjectCard> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: widget.project.url.isNotEmpty
-            ? () => launchUrl(Uri.parse(widget.project.url))
-            : null,
+        onTap: () {
+          if (widget.project.previewUrl != null && widget.project.previewUrl!.isNotEmpty) {
+            showDialog(
+              context: context,
+              builder: (ctx) => LivePreviewPopup(url: widget.project.previewUrl!),
+            );
+          } else if (widget.project.url.isNotEmpty) {
+            launchUrl(Uri.parse(widget.project.url));
+          }
+        },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           padding: const EdgeInsets.all(24),
