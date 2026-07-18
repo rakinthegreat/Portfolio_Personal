@@ -19,12 +19,8 @@ const _socials = [
     'Rakin Talukder',
     'https://www.linkedin.com/in/rakin-talukder-me',
   ),
-  _Social('Twitter / X', '@rakinthegreat', 'https://twitter.com/rakinthegreat'),
-  _Social(
-    'Instagram',
-    '@rakinthegreat',
-    'https://instagram.com/rakinthegreat',
-  ),
+  _Social('Twitter / X', '@rakinthegreat', 'https://x.com/rakinthegreat'),
+  _Social('Instagram', '@rakinthegreat', 'https://instagram.com/rakinthegreat'),
   _Social(
     'Facebook',
     'Rakin Talukder',

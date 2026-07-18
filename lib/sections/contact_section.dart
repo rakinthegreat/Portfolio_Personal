@@ -108,19 +108,36 @@ class _ContactSectionState extends State<ContactSection> {
                   RevealOnScroll(
                     visibilityKey: 'contact-actions',
                     delay: const Duration(milliseconds: 280),
-                    child: Wrap(
-                      spacing: 24,
-                      runSpacing: 24,
-                      children: [
-                        _EmailBlock(
-                          email: _email,
-                          copied: _copied,
-                          onCopy: _copyEmail,
-                          onEmail: _sendEmail,
-                        ),
-                        const _ResumeDownloadBlock(),
-                      ],
-                    ),
+                    child: isMobile
+                        ? Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              _EmailBlock(
+                                email: _email,
+                                copied: _copied,
+                                onCopy: _copyEmail,
+                                onEmail: _sendEmail,
+                              ),
+                              const SizedBox(height: 24),
+                              const _ResumeDownloadBlock(),
+                            ],
+                          )
+                        : IntrinsicHeight(
+                            child: Row(
+                              children: [
+                                Expanded(
+                                  child: _EmailBlock(
+                                    email: _email,
+                                    copied: _copied,
+                                    onCopy: _copyEmail,
+                                    onEmail: _sendEmail,
+                                  ),
+                                ),
+                                const SizedBox(width: 24),
+                                const Expanded(child: _ResumeDownloadBlock()),
+                              ],
+                            ),
+                          ),
                   ),
                 ],
               ),
@@ -297,40 +314,20 @@ class _ResumeDownloadBlockState extends State<_ResumeDownloadBlock> {
         children: [
           Text('RESUME', style: labelStyle(context).copyWith(fontSize: 10)),
           const SizedBox(height: 12),
-          MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => setState(() => _hovered = true),
-            onExit: (_) => setState(() => _hovered = false),
-            child: GestureDetector(
-              onTap: _isGenerating ? null : _downloadResume,
-              child: AnimatedDefaultTextStyle(
-                duration: const Duration(milliseconds: 200),
-                style: bodyStyle(context).copyWith(
-                  color: _hovered ? context.kGrey : context.kBlack,
-                  fontWeight: FontWeight.w500,
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_isGenerating ? 'GENERATING...' : 'PREVIEW RESUME'),
-                    const SizedBox(width: 24),
-                    AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: _hovered ? context.kBlack : context.kGhostGrey,
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.open_in_new_rounded,
-                        size: 14,
-                        color: _hovered ? context.kWhite : context.kBlack,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          Text(
+            'Preview Resume',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: context.kBlack,
+              letterSpacing: -0.5,
             ),
+          ),
+          const SizedBox(height: 24),
+          _ActionButton(
+            label: _isGenerating ? 'GENERATING...' : 'GENERATE',
+            filled: true,
+            onTap: _isGenerating ? () {} : _downloadResume,
           ),
         ],
       ),

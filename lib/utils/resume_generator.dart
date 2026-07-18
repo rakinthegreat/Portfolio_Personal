@@ -42,7 +42,7 @@ class ResumeGenerator {
                     pw.Text('[ Software Engineer ]', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: darkText)),
                     pw.SizedBox(height: 16),
                     pw.Text(
-                      'Undergraduate Software Engineering (BSSE) student at the University of Dhaka. Experienced in developing high-performance applications and pixel-perfect interfaces across web, mobile, and desktop platforms. Driven by a passion for technical excellence and creating impactful, user-centric software solutions.',
+                      'Undergraduate Software Engineering student at the University of Dhaka. Experienced in developing high-performance applications and pixel-perfect interfaces across web, mobile, and desktop platforms. Driven by a passion for technical excellence and creating impactful, user-centric software solutions.',
                       style: pw.TextStyle(fontSize: 10, color: darkText, lineSpacing: 1.5),
                     ),
                   ],
@@ -154,13 +154,26 @@ class ResumeGenerator {
                                 pw.SizedBox(height: 16),
                                 ...PortfolioData.projects.map((project) {
                                   return pw.Padding(
-                                    padding: const pw.EdgeInsets.only(bottom: 10),
+                                    padding: const pw.EdgeInsets.only(bottom: 6),
                                     child: pw.Column(
                                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                                       children: [
-                                        pw.Text(project.name, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: whiteColor)),
+                                        pw.RichText(
+                                          maxLines: 1,
+                                          overflow: pw.TextOverflow.span,
+                                          text: pw.TextSpan(
+                                            children: [
+                                              pw.TextSpan(text: project.name, style: pw.TextStyle(fontSize: 9, fontWeight: pw.FontWeight.bold, color: whiteColor)),
+                                              pw.TextSpan(text: '  |  ${project.type}', style: pw.TextStyle(fontSize: 7, fontStyle: pw.FontStyle.italic, color: lightGreyColor)),
+                                            ],
+                                          ),
+                                        ),
                                         pw.SizedBox(height: 2),
-                                        pw.Text('${project.type}  |  ${project.year}', style: pw.TextStyle(fontSize: 8, color: lightGreyColor)),
+                                        pw.Text(
+                                          project.description,
+                                          maxLines: 2,
+                                          style: pw.TextStyle(fontSize: 7, color: lightGreyColor, lineSpacing: 1.2),
+                                        ),
                                       ],
                                     ),
                                   );

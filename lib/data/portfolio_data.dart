@@ -53,7 +53,7 @@ class PortfolioData {
       name: 'WaitLess',
       description:
           'A productivity app that detects idle moments and prompts mindful tasks to prevent doomscrolling.',
-      year: '2024',
+      year: '2026',
       type: 'Web & Mobile App',
       url: 'https://github.com/rakinthegreat/friction_titanicSwimTeam',
       previewUrl: 'https://waitless-friction.vercel.app',
@@ -64,8 +64,8 @@ class PortfolioData {
     ProjectData(
       name: 'HydroSync',
       description:
-          'AI-calibrated hydration tracker generating personalized strategies via multi-AI fallback architecture.',
-      year: '2024',
+          'AI hydration tracker generating personalized strategies with a multi-AI fallback architecture.',
+      year: '2026',
       type: 'Mobile App (Health/AI)',
       url: 'https://github.com/rakinthegreat/hydrosync-project',
       previewUrl: 'https://hydrosync-project-blush.vercel.app/',
@@ -76,8 +76,8 @@ class PortfolioData {
     ProjectData(
       name: 'Curzpay',
       description:
-          'Fintech mobile and web app frontend layout demonstrating pixel-perfect multi-platform UI fidelity.',
-      year: '2024',
+          'Fintech frontend demonstrating pixel-perfect, multi-platform UI fidelity across web and mobile.',
+      year: '2026',
       type: 'Web/Mobile UI Showcase',
       url: 'https://github.com/rakinthegreat/Fintech_Demo_Flutter',
       previewUrl: 'https://curzpaydemo.vercel.app/',
@@ -86,8 +86,8 @@ class PortfolioData {
     ProjectData(
       name: 'Plassey 1757',
       description:
-          'Historical social deduction multiplayer web game based on the Battle of Plassey with real-time sync.',
-      year: '2024',
+          'Historical social deduction multiplayer web game featuring real-time sync.',
+      year: '2025',
       type: 'Web App (Game)',
       url: 'https://github.com/rakinthegreat/Plassey',
       previewUrl: 'https://plassey.vercel.app',
@@ -97,7 +97,7 @@ class PortfolioData {
       name: 'Loaf',
       description:
           'Interactive sensory game for cats featuring procedural Koi AI and a custom haptic engine.',
-      year: '2024',
+      year: '2026',
       type: 'Mobile App (Game)',
       url: 'https://github.com/rakinthegreat/loaf',
       previewUrl: 'https://loaf-pi.vercel.app/',
@@ -108,7 +108,7 @@ class PortfolioData {
       name: 'IIT Indoor Games',
       description:
           'Interactive application highlighting community engagement and event-specific user experiences.',
-      year: '2023',
+      year: '2026',
       type: 'Interactive Application',
       url: 'https://github.com/bikramroyutsa/iit-indoors-2026',
       previewUrl: 'https://iitindoorgames2026.vercel.app/',
@@ -117,7 +117,7 @@ class PortfolioData {
       name: 'GCamUpdater',
       description:
           'Custom update logic injected into Google Camera mods via Dalvik Bytecode reverse engineering.',
-      year: '2021',
+      year: '2022',
       type: 'Modding Utility',
       url: 'https://github.com/rakinthegreat/GcamUpdater',
       downloadUrl:
@@ -126,8 +126,8 @@ class PortfolioData {
     ProjectData(
       name: 'ImageEnhanceAndroid',
       description:
-          'Showcases low-level computational photography and image manipulation directly on Android devices.',
-      year: '2021',
+          'Low-level computational photography and image manipulation tool for Android devices.',
+      year: '2023',
       type: 'Image Processing',
       url: 'https://gitlab.com/rakinthegreat1/ImageEnhanceAndroid',
       downloadUrl:
@@ -136,7 +136,7 @@ class PortfolioData {
     ProjectData(
       name: 'PhotoCompare',
       description:
-          'Complex UI state management and aggressive memory optimization for Matrix zooming/panning.',
+          'Complex UI state management and memory optimization for Matrix zooming and panning.',
       year: '2021',
       type: 'Utility App',
       url: 'https://github.com/rakinthegreat/photocompare',
@@ -145,7 +145,7 @@ class PortfolioData {
       name: 'CameraHW',
       description:
           'Hardware abstraction tool demonstrating deep understanding of Android\'s Camera2 API.',
-      year: '2017',
+      year: '2021',
       type: 'Hardware Utility App',
       url: 'https://github.com/rakinthegreat/CameraHW',
       downloadUrl: 'https://github.com/rakinthegreat/CameraHW/releases',
@@ -155,9 +155,15 @@ class PortfolioData {
   static const List<EducationData> academics = [
     EducationData(
       degree: 'Bachelor of Science in Software Engineering (BSSE)',
-      batch: '15',
+      batch: '17',
       inst: 'Institute of Information Technology, University of Dhaka',
       period: 'Since July 2025',
+    ),
+    EducationData(
+      degree: 'Bachelor of Business Administration (BBA)',
+      batch: '33',
+      inst: 'Institute of Business Administration, University of Dhaka',
+      period: 'Feb 2025 - June 2025',
     ),
     EducationData(
       degree: 'Higher Secondary Certificate (HSC)',
