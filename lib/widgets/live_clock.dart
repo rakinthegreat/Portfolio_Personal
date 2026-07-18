@@ -65,30 +65,54 @@ class _LiveClockState extends State<LiveClock> {
               ),
               Align(
                 alignment: Alignment.center,
-                child: Builder(
-                  builder: (iconContext) {
-                    return IconButton(
-                      onPressed: () {
-                        // Find the center of the icon in global coordinates
-                        final renderBox = iconContext.findRenderObject() as RenderBox?;
-                        Offset center = Offset.zero;
-                        if (renderBox != null) {
-                          final position = renderBox.localToGlobal(Offset.zero);
-                          center = position + Offset(renderBox.size.width / 2, renderBox.size.height / 2);
-                        }
-                        
-                        // Trigger our custom full-screen ripple!
-                        ThemeController.of(context).toggleTheme(center);
-                      },
-                      icon: Icon(
-                        context.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
-                        color: context.kBlack,
-                        size: widget.size * 0.15,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  alignment: Alignment.center,
+                  children: [
+                    Padding(
+                      // Symmetrical padding ensures the text remains perfectly dead-center
+                      // while giving the Stack enough physical size to encompass the icon's hitbox.
+                      padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 24),
+                      child: Text(
+                        "BINDING INTO THE\nLOOM  OF  TIME",
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.spaceGrotesk(
+                          fontSize: widget.isBackground ? 14 : 8,
+                          color: context.kBlack.withOpacity(0.5),
+                          fontStyle: FontStyle.italic,
+                          letterSpacing: 1.5,
+                        ),
                       ),
-                      tooltip: 'Toggle Theme',
-                      splashRadius: widget.size * 0.15,
-                    );
-                  }
+                    ),
+                    Positioned(
+                      top: widget.isBackground ? 0 : 8,
+                      right: widget.isBackground ? 12 : 20,
+                      child: Builder(
+                        builder: (iconContext) {
+                          return InkWell(
+                            onTap: () {
+                              final renderBox = iconContext.findRenderObject() as RenderBox?;
+                              Offset center = Offset.zero;
+                              if (renderBox != null) {
+                                final position = renderBox.localToGlobal(Offset.zero);
+                                center = position + Offset(renderBox.size.width / 2, renderBox.size.height / 2);
+                              }
+                              ThemeController.of(context).toggleTheme(center);
+                            },
+                            customBorder: const CircleBorder(),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Icon(
+                                context.isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+                                color: context.kBlack,
+                                size: widget.isBackground ? 16 : 8,
+                              ),
+                            ),
+                          );
+                        }
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

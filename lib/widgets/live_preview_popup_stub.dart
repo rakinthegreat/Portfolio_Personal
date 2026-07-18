@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 
 class LivePreviewPopup extends StatelessWidget {
   final String url;
-  const LivePreviewPopup({super.key, required this.url});
+  final bool isMobileView;
+  const LivePreviewPopup({super.key, required this.url, this.isMobileView = false});
 
   @override
   Widget build(BuildContext context) {

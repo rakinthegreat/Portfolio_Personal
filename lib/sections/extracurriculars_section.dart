@@ -4,28 +4,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../theme.dart';
 import '../widgets/reveal_on_scroll.dart';
 
-class _Activity {
-  final String title;
-  final String role;
-  final String period;
-
-  const _Activity(this.title, this.role, this.period);
-}
-
-const _activities = [
-  _Activity('Digital SAT Instructor', 'Aemers', '2025 — 2026'),
-  _Activity('Part-time IELTS Instructor', 'Robi 10 Minutes School', 'Briefly'),
-  _Activity(
-    'President (Research & Development)',
-    'Notre Dame Nature Study Club',
-    '2023 — 2024',
-  ),
-  _Activity(
-    'Founding President & Chairperson of Advisory Board',
-    'Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)',
-    'Pres: 2019-20 · Chair: 2023-24',
-  ),
-];
+import '../data/portfolio_data.dart';
 
 class ExtracurricularsSection extends StatelessWidget {
   final GlobalKey sectionKey;
@@ -90,11 +69,11 @@ class ExtracurricularsSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 12),
-                  ...List.generate(_activities.length, (i) {
+                  ...List.generate(PortfolioData.extracurriculars.length, (i) {
                     return RevealOnScroll(
                       visibilityKey: 'activity-$i',
                       delay: Duration(milliseconds: 80 + i * 70),
-                      child: _ActivityRow(activity: _activities[i]),
+                      child: _ActivityRow(activity: PortfolioData.extracurriculars[i]),
                     );
                   }),
                 ],
@@ -108,7 +87,7 @@ class ExtracurricularsSection extends StatelessWidget {
 }
 
 class _ActivityRow extends StatefulWidget {
-  final _Activity activity;
+  final ExtracurricularData activity;
   const _ActivityRow({required this.activity});
 
   @override

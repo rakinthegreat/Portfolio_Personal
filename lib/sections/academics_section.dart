@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:visibility_detector/visibility_detector.dart';
 import '../theme.dart';
 import '../widgets/reveal_on_scroll.dart';
+import '../data/portfolio_data.dart';
 
 class AcademicsSection extends StatelessWidget {
   final GlobalKey sectionKey;
@@ -71,39 +72,19 @@ class AcademicsSection extends StatelessWidget {
                     delay: const Duration(milliseconds: 200),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: const [
-                        _EducationRow(
-                          degree:
-                              'Bachelor of Science in Software Engineering (BSSE)',
-                          batch: '17th Batch (Currently studying)',
-                          inst:
-                              'Institute of Information Technology, University of Dhaka',
-                          period: 'Since July 2025',
-                        ),
-                        SizedBox(height: 24),
-                        _EducationRow(
-                          degree: 'Bachelor of Business Administration (BBA)',
-                          batch:
-                              '33rd Batch (Initially enrolled, didn\'t complete)',
-                          inst:
-                              'Institute of Business Administration, University of Dhaka',
-                          period: 'Feb 2025 — June 2025',
-                        ),
-                        SizedBox(height: 24),
-                        _EducationRow(
-                          degree: 'Higher Secondary Certificate (HSC)',
-                          batch: 'Batch 24 (Science G-15)',
-                          inst: 'Notre Dame College',
-                          period: '2024',
-                        ),
-                        SizedBox(height: 24),
-                        _EducationRow(
-                          degree: 'Secondary School Certificate (SSC)',
-                          batch: 'Batch 22 (English Version)',
-                          inst: 'Rajshahi Cantonment Public School & College',
-                          period: '2022',
-                        ),
-                      ],
+                      children: PortfolioData.academics.asMap().entries.map((entry) {
+                        final index = entry.key;
+                        final edu = entry.value;
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: index == PortfolioData.academics.length - 1 ? 0 : 24),
+                          child: _EducationRow(
+                            degree: edu.degree,
+                            batch: edu.batch,
+                            inst: edu.inst,
+                            period: edu.period,
+                          ),
+                        );
+                      }).toList(),
                     ),
                   ),
                   const SizedBox(height: 56),

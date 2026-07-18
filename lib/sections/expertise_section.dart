@@ -3,38 +3,7 @@ import 'package:visibility_detector/visibility_detector.dart';
 import '../theme.dart';
 import '../widgets/reveal_on_scroll.dart';
 
-class _Skill {
-  final String name;
-  final String category;
-  const _Skill(this.name, this.category);
-}
-
-const _skills = [
-  _Skill('C', 'Language'),
-  _Skill('Java', 'Language'),
-  _Skill('Kotlin', 'Language'),
-  _Skill('Python', 'Language'),
-  _Skill('Dart / Flutter', 'Language · Framework'),
-  _Skill('Android', 'Platform'),
-  _Skill('JavaScript', 'Language'),
-  _Skill('TypeScript', 'Language'),
-  _Skill('React', 'Framework'),
-  _Skill('Next.js', 'Framework'),
-  _Skill('Node.js', 'Runtime'),
-  _Skill('SQL', 'Database'),
-  _Skill('Git', 'Tool'),
-  _Skill('Linux', 'Platform'),
-  _Skill('Dalvik Bytecode', 'Android Reverse Engineering'),
-  _Skill('Docker', 'Containerization'),
-  _Skill('GitHub Actions', 'CI/CD · Automation'),
-  _Skill('Vercel', 'Cloud Deployment'),
-  _Skill('Arduino / ESP32', 'IoT · Embedded Systems'),
-  _Skill('MQTT / WebSockets', 'Real-time Protocols'),
-  _Skill('REST APIs', 'API Architecture'),
-  _Skill('NVIDIA NIM', 'AI Microservices'),
-  _Skill('Firebase / Supabase', 'Backend as a Service'),
-  _Skill('Inkscape / Canva', 'Vector Graphics & UI Design'),
-];
+import '../data/portfolio_data.dart';
 
 class ExpertiseSection extends StatelessWidget {
   final GlobalKey sectionKey;
@@ -108,18 +77,15 @@ class ExpertiseSection extends StatelessWidget {
                           : constraints.maxWidth;
 
                       return Wrap(
-                        spacing: 48, // horizontal spacing between columns
-                        runSpacing: 0,
-                        children: List.generate(_skills.length, (i) {
+                        spacing: 48,
+                        children: List.generate(PortfolioData.skills.length, (index) {
+                          final skill = PortfolioData.skills[index];
                           return SizedBox(
                             width: itemWidth,
                             child: RevealOnScroll(
-                              visibilityKey: 'skill-$i',
-                              delay: Duration(
-                                milliseconds:
-                                    100 + (i % (twoCols ? 2 : 1)) * 100,
-                              ),
-                              child: _SkillRow(skill: _skills[i]),
+                              visibilityKey: 'skill-$index',
+                              delay: Duration(milliseconds: 50 + (index % 3) * 50),
+                              child: _SkillChip(skill: skill),
                             ),
                           );
                         }),
@@ -136,15 +102,15 @@ class ExpertiseSection extends StatelessWidget {
   }
 }
 
-class _SkillRow extends StatefulWidget {
-  final _Skill skill;
-  const _SkillRow({required this.skill});
+class _SkillChip extends StatefulWidget {
+  final SkillData skill;
+  const _SkillChip({required this.skill});
 
   @override
-  State<_SkillRow> createState() => _SkillRowState();
+  State<_SkillChip> createState() => _SkillRowState();
 }
 
-class _SkillRowState extends State<_SkillRow> {
+class _SkillRowState extends State<_SkillChip> {
   bool _hovered = false;
 
   @override
