@@ -10,7 +10,8 @@ import 'sections/extracurriculars_section.dart';
 import 'sections/socials_section.dart';
 import 'sections/contact_section.dart';
 import 'sections/footer_section.dart';
-import 'widgets/dot_nav.dart';
+import 'widgets/side_nav.dart';
+import 'widgets/radial_edge_menu.dart';
 import 'widgets/cursor_follower.dart';
 import 'widgets/scroll_progress_bar.dart';
 
@@ -158,21 +159,51 @@ class _PortfolioHomeState extends State<PortfolioHome> {
               ),
             ),
 
-            // ── Dot nav ─────────────────────────────────────────────────
+            // ── Navigation ──────────────────────────────────────────────
             Positioned(
-              right: 24,
+              right: 0,
               top: 0,
               bottom: 0,
-              child: Center(
-                child: DotNav(
-                  count: 9,
-                  activeIndex: _activeSection,
-                  onTap: _scrollToSection,
+              child: AnimatedOpacity(
+                duration: const Duration(milliseconds: 300),
+                opacity: _activeSection > 0 ? 1.0 : 0.0,
+                child: IgnorePointer(
+                  ignoring: _activeSection == 0,
+                  child: Center(
+                    child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isMobile = MediaQuery.of(context).size.width < 800;
+                    final labels = const [
+                      'About',
+                      'Academics',
+                      'Expertise',
+                      'Projects',
+                      'Experiences',
+                      'Socials',
+                      'Contact',
+                    ];
+                    
+                    if (isMobile) {
+                      return RadialEdgeMenu(
+                        labels: labels,
+                        activeIndex: _activeSection == 8 ? 6 : _activeSection - 1,
+                        onTap: (index) => _scrollToSection(index + 1),
+                      );
+                    }
+                    
+                    return SideNav(
+                      labels: labels,
+                      activeIndex: _activeSection == 8 ? 6 : _activeSection - 1,
+                      onTap: (index) => _scrollToSection(index + 1),
+                    );
+                  },
                 ),
               ),
             ),
-          ],
+          ),
         ),
+      ],
+    ),
       ),
     );
   }

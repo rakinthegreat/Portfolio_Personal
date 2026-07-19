@@ -23,7 +23,10 @@ class ExtracurricularsSection extends StatelessWidget {
     return VisibilityDetector(
       key: const Key('extra-section'),
       onVisibilityChanged: (info) {
-        if (info.visibleFraction > 0.3) onVisible();
+        final screenHeight = MediaQuery.of(context).size.height;
+        if (info.visibleFraction > 0.3 || info.visibleBounds.height > screenHeight * 0.4) {
+          onVisible();
+        }
       },
       child: Column(
         key: sectionKey,

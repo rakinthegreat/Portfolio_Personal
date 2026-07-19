@@ -37,7 +37,7 @@ class ResumeGenerator {
                 child: pw.Column(
                   crossAxisAlignment: pw.CrossAxisAlignment.start,
                   children: [
-                    pw.Text('Md Rakinuzzaman Talukder.', style: pw.TextStyle(fontSize: 34, fontWeight: pw.FontWeight.bold, color: darkText)), // Slightly reduced font size to fit full name
+                    pw.Text('Md Rakinuzzaman Talukder.', style: pw.TextStyle(fontSize: 30, fontWeight: pw.FontWeight.bold, color: darkText)), // Slightly reduced font size to fit full name
                     pw.SizedBox(height: 4),
                     pw.Text('[ Software Engineer ]', style: pw.TextStyle(fontSize: 14, fontWeight: pw.FontWeight.bold, color: darkText)),
                     pw.SizedBox(height: 16),
