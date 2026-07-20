@@ -150,9 +150,13 @@ class _SkillRowState extends State<_SkillChip> {
                   : Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(widget.skill.name, style: itemStyle(context)),
-                        const SizedBox(width: 24),
                         Expanded(
+                          flex: 3,
+                          child: Text(widget.skill.name, style: itemStyle(context)),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          flex: 2,
                           child: Text(
                             widget.skill.category,
                             style: itemSubStyle(context),
