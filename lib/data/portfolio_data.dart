@@ -197,13 +197,15 @@ class PortfolioData {
     SkillData('Dalvik Bytecode', 'Android Reverse Engineering'),
     SkillData('Docker', 'Containerization'),
     SkillData('GitHub Actions', 'CI/CD · Automation'),
-    SkillData('Vercel', 'Cloud Deployment'),
+    SkillData('Vercel / Render', 'Cloud Deployment'),
     SkillData('Arduino / ESP32', 'IoT · Embedded Systems'),
     SkillData('MQTT / WebSockets', 'Real-time Protocols'),
     SkillData('REST APIs', 'API Architecture'),
     SkillData('NVIDIA NIM', 'AI Microservices'),
-    SkillData('Firebase / Supabase', 'Backend as a Service'),
-    SkillData('Inkscape / Canva', 'Vector Graphics & UI Design'),
+    SkillData('PyTorch / Pandas / PySpark', 'Data Science & Machine Learning'),
+    SkillData('Firebase / Supabase', 'Backend as a Service · Analytics'),
+    SkillData('Inkscape / Canva / Figma', 'Vector Graphics & UI Design'),
+    SkillData('Design Principles', 'Material · Glassmorphism · Neo-Brutalism · Minimalism · Neumorphism'),
   ];
 
   static const List<ExtracurricularData> extracurriculars = [

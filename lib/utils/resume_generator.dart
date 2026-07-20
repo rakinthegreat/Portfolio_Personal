@@ -1,4 +1,3 @@
-import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -77,7 +76,7 @@ class ResumeGenerator {
                                   child: pw.Text(skill.name, style: pw.TextStyle(fontSize: 9, color: whiteColor)),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ],
                         ),
                       ),
@@ -109,7 +108,7 @@ class ResumeGenerator {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                             // Bottom block: Experiences
@@ -132,7 +131,7 @@ class ResumeGenerator {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                           ],
@@ -177,7 +176,7 @@ class ResumeGenerator {
                                       ],
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               ],
                             ),
                             // Bottom block: Contacts

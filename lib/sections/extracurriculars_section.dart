@@ -141,11 +141,13 @@ class _ActivityRowState extends State<_ActivityRow> {
               children: [
                 Container(width: 32, height: 1, color: context.kGrey),
                 const SizedBox(width: 12),
-                Text(
-                  widget.activity.period,
-                  style: GoogleFonts.spaceMono(
-                    fontSize: 12,
-                    color: context.kGrey,
+                Expanded(
+                  child: Text(
+                    widget.activity.period,
+                    style: GoogleFonts.spaceMono(
+                      fontSize: 12,
+                      color: context.kGrey,
+                    ),
                   ),
                 ),
               ],

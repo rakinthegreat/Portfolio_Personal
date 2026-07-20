@@ -4,7 +4,6 @@ import '../theme.dart';
 import '../widgets/bouncing_scroll_arrow.dart';
 import '../widgets/ambient_dots.dart';
 import '../widgets/live_clock.dart';
-import '../widgets/theme_transition_overlay.dart';
 
 class HeroSection extends StatefulWidget {
   final GlobalKey sectionKey;
@@ -157,7 +156,7 @@ class _HeroSectionState extends State<HeroSection>
               child: Opacity(
                 opacity: 1.0,
                 child: LiveClock(
-                  size: isMobile ? size.width * 0.9 : size.height * 0.85,
+                  size: isMobile ? size.width * 0.9 : (size.width < 960 ? size.shortestSide * 0.63 : size.shortestSide * 0.85),
                   isBackground: true,
                   showDate: false,
                 ),
@@ -188,45 +187,53 @@ class _HeroSectionState extends State<HeroSection>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                        Spacer(flex: isMobile ? 7 : 3),
+                        Spacer(flex: isMobile ? 7 : 4),
 
                         // ── RAKIN ──────────────────────────────────────────
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: List.generate(
-                            _line1.length,
-                            (i) => _buildChar(i, _line1[i], nameStyle),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: List.generate(
+                              _line1.length,
+                              (i) => _buildChar(i, _line1[i], nameStyle),
+                            ),
                           ),
                         ),
 
                         // ── TALUKDER + blinking cursor ─────────────────────
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            ...List.generate(
-                              _line2.length,
-                              (i) => _buildChar(
-                                _line1.length + i,
-                                _line2[i],
-                                nameStyle,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            /*
-                            // Blinking cursor — visible after name finishes
-                            FadeTransition(
-                              opacity: _metaOpacity,
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: isMobile ? 10 : 13,
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              ...List.generate(
+                                _line2.length,
+                                (i) => _buildChar(
+                                  _line1.length + i,
+                                  _line2[i],
+                                  nameStyle,
                                 ),
-                                child: BlinkingCursor(size: isMobile ? 48 : 80),
                               ),
-                            ),
-                            */
-                          ],
+                              const SizedBox(width: 8),
+                              /*
+                              // Blinking cursor — visible after name finishes
+                              FadeTransition(
+                                opacity: _metaOpacity,
+                                child: Padding(
+                                  padding: EdgeInsets.only(
+                                    bottom: isMobile ? 10 : 13,
+                                  ),
+                                  child: BlinkingCursor(size: isMobile ? 48 : 80),
+                                ),
+                              ),
+                              */
+                            ],
+                          ),
                         ),
 
                         const SizedBox(height: 32),

@@ -159,15 +159,18 @@ class _ProjectCardState extends State<_ProjectCard> {
             const Spacer(),
             Row(
               children: [
-                Text(
-                  widget.project.type.toUpperCase(),
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: context.kGrey,
-                    letterSpacing: 2,
+                Expanded(
+                  child: Text(
+                    widget.project.type.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: context.kGrey,
+                      letterSpacing: 2,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
+                const SizedBox(width: 8),
                 Text(
                   widget.project.year,
                   style: TextStyle(

@@ -31,9 +31,12 @@ class FooterSection extends StatelessWidget {
               vertical: 40,
             ),
             child: MaxWidthBox(
-              child: Row(
+              child: Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       dot(context, size: 5, color: context.kGrey),
                       const SizedBox(width: 10),
@@ -43,15 +46,19 @@ class FooterSection extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const Spacer(),
-                  Text(
-                    '© ${DateTime.now().year}',
-                    style: labelStyle(context),
-                  ),
-                  const SizedBox(width: 24),
-                  Text(
-                    'DHAKA, BD',
-                    style: labelStyle(context),
+                  Wrap(
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        '© ${DateTime.now().year}',
+                        style: labelStyle(context),
+                      ),
+                      const SizedBox(width: 24),
+                      Text(
+                        'DHAKA, BD',
+                        style: labelStyle(context),
+                      ),
+                    ],
                   ),
                 ],
               ),

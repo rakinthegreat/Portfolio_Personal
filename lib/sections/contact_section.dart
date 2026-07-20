@@ -200,13 +200,14 @@ class _EmailBlockState extends State<_EmailBlock> {
             ),
           ),
           const SizedBox(height: 24),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
               _ActionButton(
                 label: widget.copied ? '✓ COPIED' : 'COPY',
                 onTap: widget.onCopy,
               ),
-              const SizedBox(width: 12),
               _ActionButton(
                 label: 'SEND EMAIL',
                 filled: true,
@@ -281,7 +282,6 @@ class _ResumeDownloadBlock extends StatefulWidget {
 }
 
 class _ResumeDownloadBlockState extends State<_ResumeDownloadBlock> {
-  bool _hovered = false;
   bool _isGenerating = false;
 
   void _downloadResume() async {

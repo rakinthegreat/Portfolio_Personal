@@ -115,6 +115,8 @@ class _SkillRowState extends State<_SkillChip> {
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -123,6 +125,7 @@ class _SkillRowState extends State<_SkillChip> {
         color: _hovered ? context.kGhostGrey : context.kWhite,
         padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 4),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
@@ -134,8 +137,31 @@ class _SkillRowState extends State<_SkillChip> {
               ),
             ),
             const SizedBox(width: 20),
-            Expanded(child: Text(widget.skill.name, style: itemStyle(context))),
-            Text(widget.skill.category, style: itemSubStyle(context)),
+            Expanded(
+              child: isMobile
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.skill.name, style: itemStyle(context)),
+                        const SizedBox(height: 4),
+                        Text(widget.skill.category, style: itemSubStyle(context)),
+                      ],
+                    )
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.skill.name, style: itemStyle(context)),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          child: Text(
+                            widget.skill.category,
+                            style: itemSubStyle(context),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
           ],
         ),
       ),
