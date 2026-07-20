@@ -151,12 +151,12 @@ class _HeroSectionState extends State<HeroSection>
 
             // ── Huge Ambient Clock ──────────────────────────────────────────
             Positioned(
-              right: -size.width * 0.05,
+              right: -size.width * 0.025,
               top: size.height * 0.05,
               child: Opacity(
                 opacity: 1.0,
                 child: LiveClock(
-                  size: isMobile ? size.width * 0.9 : (size.width < 960 ? size.shortestSide * 0.63 : size.shortestSide * 0.85),
+                  size: isMobile ? size.width * 0.9 : (size.width < 1100 ? size.shortestSide * 0.63 : size.shortestSide * 0.85),
                   isBackground: true,
                   showDate: false,
                 ),
