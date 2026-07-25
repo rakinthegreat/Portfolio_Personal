@@ -88,13 +88,10 @@ class AcademicsSection extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 56),
-                  RevealOnScroll(
-                    visibilityKey: 'acad-buttons',
-                    delay: const Duration(milliseconds: 300),
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 16,
-                      children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isMobile = constraints.maxWidth < 600;
+                      final btns = [
                         _OutlinedBtn(
                           label: 'TEST SCORES',
                           onTap: () => _showCredentials(context),
@@ -107,8 +104,26 @@ class AcademicsSection extends StatelessWidget {
                           label: 'MENTORSHIP AREAS',
                           onTap: () => _showMentorship(context),
                         ),
-                      ],
-                    ),
+                      ];
+
+                      return RevealOnScroll(
+                        visibilityKey: 'acad-buttons',
+                        delay: const Duration(milliseconds: 300),
+                        child: isMobile
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: btns.map((btn) => Padding(
+                                  padding: const EdgeInsets.only(bottom: 16.0),
+                                  child: btn,
+                                )).toList(),
+                              )
+                            : Wrap(
+                                spacing: 16,
+                                runSpacing: 16,
+                                children: btns,
+                              ),
+                      );
+                    }
                   ),
                 ],
               ),
@@ -308,6 +323,7 @@ class _OutlinedBtn extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
