@@ -1,4 +1,5 @@
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'theme.dart';
 import 'sections/hero_section.dart';
@@ -173,6 +174,8 @@ class _PortfolioHomeState extends State<PortfolioHome> {
                     child: LayoutBuilder(
                   builder: (context, constraints) {
                     final isMobile = MediaQuery.of(context).size.width < 800;
+                    final isTouchScreen = defaultTargetPlatform == TargetPlatform.iOS || defaultTargetPlatform == TargetPlatform.android;
+                    
                     final labels = const [
                       'About',
                       'Academics',
@@ -183,7 +186,7 @@ class _PortfolioHomeState extends State<PortfolioHome> {
                       'Contact',
                     ];
                     
-                    if (isMobile) {
+                    if (isMobile || isTouchScreen) {
                       return RadialEdgeMenu(
                         labels: labels,
                         activeIndex: _activeSection == 8 ? 6 : _activeSection - 1,
