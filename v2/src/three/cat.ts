@@ -29,17 +29,17 @@ const REST: Record<string, [string | null, V3]> = {
   neck: ['chest', v(0, 0.195, 0.105)],
   head: ['neck', v(0, 0.235, 0.135)],
 };
-for (let i = 0; i < 9; i++) REST[`tail${i}`] = [i ? `tail${i - 1}` : 'hips', v(0, 0.176, -0.16 - i * 0.03)];
+for (let i = 0; i < 9; i++) REST[`tail${i}`] = [i ? `tail${i - 1}` : 'hips', v(0, 0.176, -0.138 - i * 0.03)]; // root at the end of the rump
 for (const s of [-1, 1]) {
   const k = s < 0 ? 'L' : 'R';
-  REST[`sh${k}`] = ['chest', v(s * 0.032, 0.15, 0.07)];
-  REST[`el${k}`] = [`sh${k}`, v(s * 0.032, 0.085, 0.072)];
-  REST[`wr${k}`] = [`el${k}`, v(s * 0.03, 0.022, 0.075)];
-  REST[`pw${k}`] = [`wr${k}`, v(s * 0.03, 0.008, 0.09)];
-  REST[`th${k}`] = ['hips', v(s * 0.036, 0.15, -0.115)];
-  REST[`kn${k}`] = [`th${k}`, v(s * 0.036, 0.09, -0.085)];
-  REST[`hk${k}`] = [`kn${k}`, v(s * 0.034, 0.035, -0.125)];
-  REST[`ft${k}`] = [`hk${k}`, v(s * 0.034, 0.008, -0.105)];
+  REST[`sh${k}`] = ['chest', v(s * 0.023, 0.15, 0.07)];
+  REST[`el${k}`] = [`sh${k}`, v(s * 0.024, 0.085, 0.072)];
+  REST[`wr${k}`] = [`el${k}`, v(s * 0.024, 0.022, 0.075)];
+  REST[`pw${k}`] = [`wr${k}`, v(s * 0.024, 0.008, 0.09)];
+  REST[`th${k}`] = ['hips', v(s * 0.024, 0.15, -0.125)];
+  REST[`kn${k}`] = [`th${k}`, v(s * 0.025, 0.088, -0.112)];
+  REST[`hk${k}`] = [`kn${k}`, v(s * 0.024, 0.03, -0.13)];
+  REST[`ft${k}`] = [`hk${k}`, v(s * 0.024, 0.008, -0.116)];
 }
 const NAMES = Object.keys(REST);
 const IDX = Object.fromEntries(NAMES.map((n, i) => [n, i]));
@@ -190,7 +190,7 @@ function furMaterial(shell: number, density: number) {
   return m;
 }
 
-interface Leg { front: boolean; side: number; a: THREE.Bone; b: THREE.Bone; c: THREE.Bone; phase: number }
+interface Leg { front: boolean; side: number; a: THREE.Bone; b: THREE.Bone; c: THREE.Bone; d: THREE.Bone; phase: number }
 
 export class Cat {
   readonly root = new THREE.Group();
@@ -213,6 +213,8 @@ export class Cat {
   private prev: CatState = 'sleep';
   private timer = 0;
   private gait = 0;
+  private tailPhase = 0; // accumulated, so speed changes never make the tail jump
+  private breathPhase = 0;
   private blink = 2;
   private twitch = 3;
   private pose = { tuck: 1, curl: 1, roll: 0, walk: 0, air: 0, hiss: 0, awake: 0, sit: 0, lie: 0, groom: 0, stretch: 0, land: 0 };
@@ -257,8 +259,9 @@ export class Cat {
 
     // ── skinned geometry ──
     const body = loft(
-      [v(0, 0.165, -0.19), v(0, 0.168, -0.16), v(0, 0.171, -0.12), v(0, 0.169, -0.08), v(0, 0.166, -0.04), v(0, 0.164, 0.0), v(0, 0.163, 0.04), v(0, 0.178, 0.08), v(0, 0.205, 0.11), v(0, 0.228, 0.135)],
-      [[0.012, 0.012], [0.04, 0.045], [0.051, 0.057], [0.046, 0.052], [0.04, 0.046], [0.043, 0.054], [0.047, 0.06], [0.038, 0.046], [0.03, 0.033], [0.026, 0.028]],
+      // rump → chest: a round, full rear (no taper to a point), slim waist, deep chest
+      [v(0, 0.168, -0.153), v(0, 0.168, -0.147), v(0, 0.169, -0.136), v(0, 0.17, -0.118), v(0, 0.17, -0.092), v(0, 0.168, -0.065), v(0, 0.166, -0.03), v(0, 0.164, 0.005), v(0, 0.163, 0.04), v(0, 0.178, 0.08), v(0, 0.205, 0.11), v(0, 0.228, 0.135)],
+      [[0.01, 0.01], [0.032, 0.035], [0.048, 0.052], [0.056, 0.059], [0.053, 0.057], [0.046, 0.052], [0.041, 0.047], [0.044, 0.055], [0.049, 0.061], [0.038, 0.046], [0.03, 0.033], [0.026, 0.028]],
       44,
       26,
       {
@@ -279,18 +282,18 @@ export class Cat {
       parts.push(
         loft(
           [P(`sh${k}`).clone().add(v(-s * 0.008, 0.034, -0.004)), P(`sh${k}`), P(`el${k}`), P(`wr${k}`), P(`pw${k}`)],
-          [[0.025, 0.029], [0.02, 0.022], [0.013, 0.014], [0.0105, 0.011], [0.011, 0.011]],
+          [[0.021, 0.026], [0.019, 0.021], [0.013, 0.014], [0.0105, 0.011], [0.011, 0.011]],
           20, 14,
           { skin: (_p, t) => chain([`sh${k}`, `sh${k}`, `el${k}`, `wr${k}`, `pw${k}`], [0, 0.25, 0.5, 0.78, 1], t), color: () => WHITE, fur: () => 0.004 },
         ),
         ellipsoid(P(`pw${k}`).clone().add(v(0, -0.001, 0.004)), [0.0145, 0.0085, 0.019], `pw${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
         loft(
-          [P(`th${k}`).clone().add(v(-s * 0.01, 0.036, 0.005)), P(`th${k}`), P(`kn${k}`), P(`hk${k}`), P(`ft${k}`)],
-          [[0.034, 0.04], [0.029, 0.032], [0.017, 0.019], [0.0115, 0.012], [0.011, 0.011]],
+          [P(`th${k}`).clone().add(v(-s * 0.008, 0.034, -0.004)), P(`th${k}`), P(`kn${k}`), P(`hk${k}`), P(`ft${k}`)],
+          [[0.024, 0.029], [0.022, 0.025], [0.0135, 0.0145], [0.0105, 0.011], [0.011, 0.011]],
           20, 14,
           { skin: (_p, t) => chain([`th${k}`, `th${k}`, `kn${k}`, `hk${k}`, `ft${k}`], [0, 0.25, 0.5, 0.78, 1], t), color: () => WHITE, fur: () => 0.005 },
         ),
-        ellipsoid(P(`ft${k}`).clone().add(v(0, -0.001, 0.008)), [0.015, 0.0085, 0.023], `ft${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
+        ellipsoid(P(`ft${k}`).clone().add(v(0, -0.001, 0.004)), [0.0145, 0.0085, 0.02], `ft${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
       );
     }
 
@@ -299,7 +302,7 @@ export class Cat {
     tailPts.push(tailPts[8].clone().add(v(0, 0, -0.02)));
     parts.push(
       loft(
-        [REST.hips[1].clone().add(v(0, 0.008, -0.05)), ...tailPts],
+        [REST.hips[1].clone().add(v(0, 0.008, -0.03)), ...tailPts],
         [[0.02, 0.02], [0.015, 0.015], [0.013, 0.013], [0.013, 0.013], [0.015, 0.015], [0.018, 0.018], [0.021, 0.021], [0.023, 0.023], [0.022, 0.022], [0.017, 0.017], [0.006, 0.006]],
         50, 14,
         {
@@ -352,8 +355,8 @@ export class Cat {
     for (const s of [-1, 1]) {
       const k = s < 0 ? 'L' : 'R';
       const phase = (s < 0 ? 0 : Math.PI);
-      this.legs.push({ front: true, side: s, a: this.bones[`sh${k}`], b: this.bones[`el${k}`], c: this.bones[`wr${k}`], phase });
-      this.legs.push({ front: false, side: s, a: this.bones[`th${k}`], b: this.bones[`kn${k}`], c: this.bones[`hk${k}`], phase: phase + Math.PI });
+      this.legs.push({ front: true, side: s, a: this.bones[`sh${k}`], b: this.bones[`el${k}`], c: this.bones[`wr${k}`], d: this.bones[`pw${k}`], phase });
+      this.legs.push({ front: false, side: s, a: this.bones[`th${k}`], b: this.bones[`kn${k}`], c: this.bones[`hk${k}`], d: this.bones[`ft${k}`], phase: phase + Math.PI * 0.9 });
     }
   }
 
@@ -512,8 +515,12 @@ export class Cat {
     const B = this.bones;
 
     // ── spine: curl asleep, pitch up to sit, arch to hiss, stretch rump-up, breathe ──
-    const breath = Math.sin(t * (sleeping || Lp > 0.5 ? 1.6 : 2.4)) * 0.5 + 0.5;
-    B.hips.rotation.set(-0.28 * p.hiss - 0.6 * S + 0.3 * St, 0.14 * p.curl, 0);
+    this.breathPhase += dt * (sleeping || Lp > 0.5 ? 1.6 : 2.4);
+    this.tailPhase += dt * (1.3 + p.walk * 1.4 * Math.min(this.gaitScale, 1.6));
+    const breath = Math.sin(this.breathPhase) * 0.5 + 0.5;
+    // pelvis rolls and sways with the hind legs when walking
+    const pelvis = Math.sin(this.gait + Math.PI * 0.9) * p.walk;
+    B.hips.rotation.set(-0.28 * p.hiss - 0.6 * S + 0.3 * St, 0.14 * p.curl + pelvis * 0.07, pelvis * 0.05);
     B.spine.rotation.set(-0.08 * p.hiss - 0.05 * S, 0.16 * p.curl, 0);
     B.chest.rotation.set(0.34 * p.hiss - 0.05 * p.air + 0.05 * S - 0.15 * St, 0.16 * p.curl, 0);
     B.chest.scale.set(1 + breath * 0.025, 1 + breath * 0.03, 1);
@@ -541,12 +548,15 @@ export class Cat {
         L.b.rotation.x = -2.45 * p.tuck - 0.6 * lift + 0.3 * p.air - 0.12 * S - 0.45 * Lp + 0.2 * St + 2.25 * g;
         L.c.rotation.x = 1.0 * p.tuck + 0.45 * lift + 1.5 * Lp + 0.3 * St - 0.5 * g;
         L.a.rotation.z = -L.side * 0.06 * p.hiss - L.side * 0.25 * p.tuck - 0.22 * g;
+        L.d.rotation.x = 0.5 * lift; // paw flicks forward as it swings through
       } else {
         L.a.scale.setScalar(1 - (0.6 * Math.max(0, low - 0.4)) / 0.6);
         // sit: thigh forward along the ground, shin back, foot flat; stretch: legs long behind
+        // same stride as the front legs, mirrored: swing, knee folds back as the foot lifts, foot flicks
         L.a.rotation.x = -0.75 * low - swing + 0.85 * p.air - knead * 0.6 - 0.35 * S + 0.35 * St;
-        L.b.rotation.x = 1.75 * low + 0.55 * lift - 0.5 * p.air + 2.1 * S - 0.2 * St;
-        L.c.rotation.x = -1.15 * low - 0.4 * lift + 0.3 * p.air - 1.3 * S;
+        L.b.rotation.x = 1.75 * low + 0.6 * lift - 0.5 * p.air + 2.1 * S - 0.2 * St;
+        L.c.rotation.x = -1.15 * low - 0.45 * lift + 0.3 * p.air - 1.3 * S;
+        L.d.rotation.x = 0.5 * lift + 0.2 * p.air;
         L.a.rotation.z = -L.side * 0.05 * p.hiss - L.side * 0.55 * low - L.side * 0.12 * S;
       }
     }
@@ -559,7 +569,7 @@ export class Cat {
     const rest = Math.max(p.curl, S, Lp);
     for (let i = 0; i < 9; i++) {
       const b = B[`tail${i}`];
-      const wave = Math.sin(t * (1.6 + p.walk * 1.5) - i * 0.55) * (0.1 + 0.14 * (1 - rest)) * (1 - p.hiss * 0.8);
+      const wave = Math.sin(this.tailPhase - i * 0.5) * (0.1 + 0.14 * (1 - rest)) * (1 - p.hiss * 0.8);
       const upAwake = i === 0 ? 0.75 : i < 5 ? 0.08 : -0.06; // up with a soft hook
       const upHiss = i === 0 ? 1.25 : 0.04;
       const upLow = i === 0 ? -0.6 : i === 1 ? 0.35 : 0.04; // down to the ground, then flat

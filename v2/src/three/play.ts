@@ -16,7 +16,7 @@ const KEY_SPOTS: [number, number, number][] = [
   [-0.62, -0.3, 0.144], // on the Pavilion
   [-0.29, -0.35, 0.26], // on the book stack
   [-0.66, -0.45, 0.56], // wall shelf
-  [0.82, -0.27, 0.28], // lower shelf, next to the phone
+  [0.74, -0.24, 0.28], // lower shelf, on the climbing line
   [0.78, -0.43, 0.58], // top shelf
   [0.02, -0.44, 0.58], // halfway along the plank, under the pinboard
 ];
@@ -68,6 +68,14 @@ export class Play {
   private hissCool = 0;
   private leap: Leap | null = null;
   private landing = new THREE.Vector3(-0.78, 0, 0.36);
+  private mode: 'free' | 'plank' | 'climb' = 'free';
+  private plankZone(p: THREE.Vector3) {
+    return p.y > 0.5 && p.z < -0.3 && p.x > -0.46 && p.x < 0.5;
+  }
+  private modeT = 0; // time since the control mode last changed: the camera catches up fast
+  private climbZone(p: THREE.Vector3) {
+    return Math.abs(p.x - 0.74) < 0.2 && p.z > -0.5 && p.z < 0.13 && p.y > 0.07;
+  }
 
   constructor(
     scene: THREE.Scene,
@@ -281,10 +289,18 @@ export class Play {
       for (const b of this.boxes) if (b.minY >= y + H - 0.02 && b.minY < c && this.touches(b, sx, sz, R)) c = b.minY;
     return c;
   }
-  private offDesk(x: number, z: number, yaw: number) {
-    const fx = x + Math.sin(yaw) * (FRONT + 0.02);
-    const fz = z + Math.cos(yaw) * (FRONT + 0.02);
-    return fx < DESK.minX || fx > DESK.maxX || fz > DESK.maxZ;
+  /** How far past the desk edge he'd be: front paws on the ground, body centre in the air. */
+  private overhang(x: number, z: number, yaw: number, air: boolean) {
+    const fx = air ? x : x + Math.sin(yaw) * FRONT;
+    const fz = air ? z : z + Math.cos(yaw) * FRONT;
+    const m = air ? R : 0;
+    return Math.max(0, DESK.minX + m - fx, fx - (DESK.maxX - m), fz - (DESK.maxZ - m));
+  }
+  /** Only refuse moves that take him further over the edge, so he can walk along it, turn, or back away. */
+  private offDesk(nx: number, nz: number, x: number, z: number, yaw: number) {
+    const air = !this.grounded;
+    const after = this.overhang(nx, nz, yaw, air);
+    return after > 0 && after > this.overhang(x, z, yaw, air) + 1e-6;
   }
 
   private tryHiss() {
@@ -307,15 +323,32 @@ export class Play {
       const iz = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0) + this.stick.y;
       const input = new THREE.Vector2(ix, iz);
       if (input.length() > 1) input.normalize();
+      // up on the plank (or the shelves at that height): a 2D platformer, left/right only; S hops down
+      const onPlank = this.plankZone(pos);
+      // printer and shelf unit: a climb along the shelves, forward/back only
+      const onClimb = !onPlank && this.climbZone(pos);
+      const mode = onPlank ? 'plank' : onClimb ? 'climb' : 'free';
+      if (mode !== this.mode) this.modeT = 0;
+      this.mode = mode;
+      this.modeT += dt;
+      if (onPlank) input.y = 0; // strictly left/right
+      if (onClimb) input.x = 0;
       const hissing = this.cat.state === 'hiss';
       const run = k.has('shift') || this.stick.length() > 0.9;
       const speed = hissing ? 0 : (run ? 0.62 : 0.32) * (this.zoomies ? 1.6 : 1);
-      this.vel.lerp(new THREE.Vector3(input.x * speed, 0, input.y * speed), 1 - Math.exp(-dt * (this.grounded ? 10 : 5)));
+      const want = new THREE.Vector3(input.x * speed, 0, input.y * speed);
+      // stay on the line of the platform
+      if (onPlank) want.z = THREE.MathUtils.clamp((-0.44 - pos.z) * 10, -0.4, 0.4);
+      if (onClimb) want.x = THREE.MathUtils.clamp((0.74 - pos.x) * 6, -0.3, 0.3);
+      this.vel.lerp(want, 1 - Math.exp(-dt * (this.grounded ? 10 : 5)));
 
       // turn toward the motion, but only if the body fits at the new heading
       const hs = Math.hypot(this.vel.x, this.vel.z);
-      if (hs > 0.03) {
-        let d = Math.atan2(this.vel.x, this.vel.z) - this.yaw;
+      // face along the platform, not toward the small corrective drift
+      const fx = onClimb ? 0 : this.vel.x;
+      const fz = onPlank ? 0 : this.vel.z;
+      if (Math.hypot(fx, fz) > 0.03) {
+        let d = Math.atan2(fx, fz) - this.yaw;
         d = Math.atan2(Math.sin(d), Math.cos(d));
         const ny = this.yaw + d * Math.min(1, dt * 10);
         if (!this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
@@ -323,23 +356,32 @@ export class Play {
 
       // move one axis at a time so he slides along things; refuse to step off the desk
       const nx = pos.x + this.vel.x * dt;
-      if (this.offDesk(nx, pos.z, this.yaw)) {
+      if (this.offDesk(nx, pos.z, pos.x, pos.z, this.yaw)) {
         this.vel.x = 0;
-        if (Math.abs(input.x) > 0.3) this.tryHiss();
+        if (this.grounded && Math.abs(input.x) > 0.3) this.tryHiss();
       } else if (!this.blocked(nx, pos.z, this.yaw, pos.y)) pos.x = nx;
       else this.vel.x = 0;
       const nz = pos.z + this.vel.z * dt;
-      if (this.offDesk(pos.x, nz, this.yaw)) {
+      if (this.offDesk(pos.x, nz, pos.x, pos.z, this.yaw)) {
         this.vel.z = 0;
-        if (Math.abs(input.y) > 0.3) this.tryHiss();
+        if (this.grounded && Math.abs(input.y) > 0.3) this.tryHiss();
       } else if (!this.blocked(pos.x, nz, this.yaw, pos.y)) pos.z = nz;
       else this.vel.z = 0;
 
       // jump + gravity, with head bonks and proper landings
       if (this.jumpQueued && this.grounded && !hissing) {
-        this.vy = JUMP_V;
-        this.grounded = false;
-        sfx.jump();
+        // a jump that would land off the desk is refused (with a hiss); anything else is fine, even to the very edge
+        const air = (2 * JUMP_V) / G;
+        const lx = pos.x + this.vel.x * air;
+        const lz = pos.z + this.vel.z * air;
+        if (this.overhang(lx, lz, this.yaw, true) > R) {
+          this.vel.set(0, 0, 0);
+          this.tryHiss();
+        } else {
+          this.vy = JUMP_V;
+          this.grounded = false;
+          sfx.jump();
+        }
       }
       this.jumpQueued = false;
       this.vy -= G * dt;
@@ -372,9 +414,22 @@ export class Play {
     // camera: behind and above, looking toward the wall
     if (this.active || leaping) {
       const back = narrow ? 0.85 : 0.66;
-      const desired = new THREE.Vector3(pos.x * 0.85, pos.y + (narrow ? 0.46 : 0.34), Math.min(pos.z + back, 1.4));
-      const look = new THREE.Vector3(pos.x, pos.y + 0.1, pos.z - 0.06);
-      const kc = 1 - Math.exp(-dt * 4.5);
+      let desired = new THREE.Vector3(pos.x * 0.85, pos.y + (narrow ? 0.46 : 0.34), Math.min(pos.z + back, 1.4));
+      let look = new THREE.Vector3(pos.x, pos.y + 0.1, pos.z - 0.06);
+      if (this.mode === 'climb') {
+        // isometric: from the front-right, above, following the climb
+        const k = narrow ? 1.4 : 1;
+        desired = new THREE.Vector3(pos.x + 0.42 * k, pos.y + 0.36 * k, pos.z + 0.5 * k);
+        look = new THREE.Vector3(pos.x - 0.02, pos.y + 0.1, pos.z - 0.1);
+      }
+      const byBoard = this.mode === 'plank' && pos.x > -0.75 && pos.x < 0.6;
+      if (byBoard) {
+        // pull back and centre on the board, with him walking along the plank beneath it
+        const cx = THREE.MathUtils.clamp(pos.x * 0.6, -0.2, 0.2);
+        desired = new THREE.Vector3(cx, 0.88, narrow ? 0.75 : 0.42);
+        look = new THREE.Vector3(cx * 0.6, 0.83, -0.54); // board 0.59–1.13 m and the plank both in frame
+      }
+      const kc = 1 - Math.exp(-dt * (this.modeT < 0.7 ? 10 : 4.5)); // snap to a new view quickly
       camPos.lerp(desired, kc);
       camLook.lerp(look, kc);
     }
@@ -386,7 +441,9 @@ export class Play {
     let near: Prop | null = null;
     let best = 0.24;
     for (const p of this.props) {
-      const d = Math.hypot(p.anchor.x - pos.x, p.anchor.z - pos.z, (p.anchor.y - pos.y) * 0.5);
+      const dy = p.anchor.y - pos.y;
+      if (dy < -0.2 || dy > 0.35) continue; // things on another level aren't 'nearby'
+      const d = Math.hypot(p.anchor.x - pos.x, p.anchor.z - pos.z, dy * 0.8);
       if (d < best) {
         best = d;
         near = p;
@@ -449,7 +506,7 @@ export class Play {
         const dx = m.position.x - paw.x;
         const dz = m.position.z - paw.z;
         const d = Math.hypot(dx, dz);
-        if (d < 0.055 + r && m.position.y > catPos.y - 0.03 && m.position.y < catPos.y + 0.12 && catSpeed > 0.05) {
+        if (d < 0.055 * K + r && m.position.y > catPos.y - 0.03 && m.position.y < catPos.y + 0.12 && catSpeed > 0.05) {
           if (b.resting) sfx.knock();
           const push = catSpeed * 1.3 + 0.22;
           b.vel.set((dx / (d || 1)) * push, 0.3, (dz / (d || 1)) * push);
@@ -493,20 +550,22 @@ export class Play {
         b.vel.x *= Math.exp(-dt * 5);
         b.vel.z *= Math.exp(-dt * 5);
       }
-      m.rotation.x += b.vel.z * dt * 10;
-      m.rotation.z -= b.vel.x * dt * 10;
+      const roll = b.k.roll ?? 1; // pens roll, mugs mostly slide and tip
+      m.rotation.x += b.vel.z * dt * 10 * roll;
+      m.rotation.z -= b.vel.x * dt * 10 * roll;
       if (b.vel.lengthSq() < 4e-4 && Math.abs(b.vel.y) < 0.05) {
         b.vel.set(0, 0, 0);
         b.resting = true;
       }
       if (!b.fallen && m.position.y < -0.3) {
         b.fallen = true;
-        sfx.thud();
+        if (b.k.name === 'mug') sfx.smash();
+        else sfx.thud();
         this.saved.knocked++;
         save(this.saved);
         this.renderHud();
         const lines = ['Gravity: confirmed.', 'It had to be done.', 'No regrets.', 'Desk is cleaner now.', 'Purely scientific.'];
-        this.toast(lines[(this.saved.knocked - 1) % lines.length]);
+        this.toast(b.k.name === 'mug' ? 'The mug. He knocked off the mug.' : lines[(this.saved.knocked - 1) % lines.length]);
       }
     }
   }

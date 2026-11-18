@@ -6,11 +6,11 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { Materials } from './materials';
 import { holeMaterial } from './screens';
 import { archWindow, consoleScreen } from './textures';
-import { buildCards, catPolaroid, resumeTexture } from './cards';
+import { catPolaroid, resumeTexture } from './cards';
 
 export interface Box { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }
 export interface Prop { id: string; object: THREE.Object3D; anchor: THREE.Vector3 }
-export interface Knockable { mesh: THREE.Mesh; radius: number }
+export interface Knockable { mesh: THREE.Object3D; radius: number; name?: string; roll?: number }
 
 export const DESK = { minX: -1, maxX: 1, minZ: -0.5, maxZ: 0.5 };
 /** Layer for anything with readable text: the painted filter keeps these pixels sharp. */
@@ -290,24 +290,27 @@ export function buildDesk(M: Materials, aniso: number) {
   const frame = new THREE.Mesh(rbox(0.86, 0.56, 0.015, 0.003), M.shelf);
   frame.position.z = 0.005;
   pin.add(frame, board);
-  const cards = buildCards(aniso);
-  const cardList: [THREE.Texture, number, number, number][] = [
-    [cards.about, -0.3, 0.02, -0.02],
-    [cards.academics, -0.1, 0.0, 0.015],
-    [cards.stack, 0.1, 0.01, -0.01],
-    [cards.experiences, 0.3, 0.015, 0.02],
+  // cards are HTML seen through holes (see pincards.ts): browser-sharp lettering; pins stay 3D on top
+  const PIN_W = 0.2;
+  const cardList: [string, number, number, number][] = [
+    ['about', -0.315, 0.0, -0.02],
+    ['academics', -0.105, -0.005, 0.015],
+    ['stack', 0.105, 0.0, -0.01],
+    ['experiences', 0.315, -0.003, 0.02],
   ];
-  for (const [map, x, y, rz] of cardList) {
-    const cardMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.185, 0.262), new THREE.MeshStandardMaterial({ map, roughness: 0.85 }));
+  const pinCards: { id: string; mesh: THREE.Mesh }[] = [];
+  for (const [id, x, y, rz] of cardList) {
+    const cardMesh = new THREE.Mesh(new THREE.PlaneGeometry(PIN_W, PIN_W * 1.415), holeMaterial());
     cardMesh.position.set(x, y, 0.0212);
     cardMesh.rotation.z = rz;
-    cardMesh.castShadow = true;
     const tack = new THREE.Mesh(new THREE.SphereGeometry(0.006, 14, 10), M.ledRed);
-    tack.position.set(x, y + 0.118, 0.026);
-    pin.add(markText(cardMesh), tack);
+    tack.position.set(x, y + 0.13, 0.026);
+    tack.castShadow = true;
+    pin.add(cardMesh, tack);
+    pinCards.push({ id, mesh: cardMesh });
   }
   const pol = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.108), new THREE.MeshStandardMaterial({ map: catPolaroid(aniso), roughness: 0.6 }));
-  pol.position.set(0.37, -0.2, 0.023);
+  pol.position.set(0.37, -0.215, 0.024);
   pol.rotation.z = -0.12;
   pin.add(markText(pol));
   root.add(pin);
@@ -361,21 +364,28 @@ export function buildDesk(M: Materials, aniso: number) {
   block(0.302, 0.003, 0.212, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }), 0, -0.002, 0, 0.002, false, nb);
   root.add(nb);
   collider(-0.44, 0.3, 0.32, 0.24, 0, 0.01);
-  const mug = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.038, 0.095, 40), M.ceramic);
-  mug.position.set(0.3, 0.0475, 0.26);
+  // the mug: knockable in play mode, clickable (it wobbles and clinks) on the tour
+  const mug = new THREE.Group();
+  const mugBody = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.038, 0.095, 40), M.ceramic);
+  mugBody.position.y = 0.0025;
   const handle = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.007, 10, 24), M.ceramic);
-  handle.position.set(0.343, 0.05, 0.26);
+  handle.position.set(0.043, 0.005, 0);
   handle.rotation.y = Math.PI / 2;
-  root.add(shadowed(mug), shadowed(handle));
-  collider(0.3, 0.26, 0.09, 0.09, 0, 0.095);
+  const coffee = new THREE.Mesh(new THREE.CircleGeometry(0.036, 32), new THREE.MeshStandardMaterial({ color: 0x3b2316, roughness: 0.15 }));
+  coffee.rotation.x = -Math.PI / 2;
+  coffee.position.y = 0.04;
+  mug.add(mugBody, handle, coffee);
+  shadowed(mug);
 
   // ── things a cat would knock off a desk ──
-  const knock = (mesh: THREE.Mesh, radius: number, x: number, y: number, z: number) => {
+  const knock = (mesh: THREE.Object3D, radius: number, x: number, y: number, z: number, name?: string, roll = 1) => {
     mesh.position.set(x, y + radius, z);
     mesh.castShadow = mesh.receiveShadow = true;
     root.add(mesh);
-    knockables.push({ mesh, radius });
+    knockables.push({ mesh, radius, name, roll });
   };
+  knock(mug, 0.045, 0.3, 0, 0.26, 'mug', 0.25);
+  prop('mug', mug, [0.3, 0.05, 0.26]);
   const pen = new THREE.Mesh(new THREE.CapsuleGeometry(0.0045, 0.13, 6, 16), new THREE.MeshStandardMaterial({ color: 0x1a3d8f, roughness: 0.3 }));
   pen.rotation.set(0, 0.5, Math.PI / 2);
   knock(pen, 0.006, -0.36, 0.01, 0.33);
@@ -385,7 +395,7 @@ export function buildDesk(M: Materials, aniso: number) {
   knock(new THREE.Mesh(rbox(0.05, 0.012, 0.02, 0.003), M.metal), 0.008, 0.28, 0, 0.0);
   knock(new THREE.Mesh(rbox(0.045, 0.016, 0.025, 0.005), new THREE.MeshStandardMaterial({ color: 0xf2a2b0, roughness: 0.8 })), 0.009, -0.7, 0.145, -0.25);
 
-  return { root, props, boxes, knockables, basketSpot, lampLight, lampGlow, keyMat, laptopScreen, SCR_W, phoneScreen, PH_W, paper, printer, windowMesh: win };
+  return { root, props, boxes, knockables, basketSpot, lampLight, lampGlow, keyMat, pinCards, PIN_W, laptopScreen, SCR_W, phoneScreen, PH_W, paper, printer, windowMesh: win };
 }
 
 function rod(a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material) {

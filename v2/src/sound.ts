@@ -105,5 +105,14 @@ export const sfx = {
     }
   },
   punch: () => tone(160, 0.12, 'square', 0.12, 60),
+  /** Ceramic: a bright clink, and a crash for when it meets the floor. */
+  clink: () => {
+    tone(2600, 0.35, 'sine', 0.06);
+    tone(3900, 0.25, 'sine', 0.03, undefined, 0.01);
+  },
+  smash: () => {
+    noise(0.45, 5200, 0.8, 0.25);
+    tone(1800, 0.2, 'triangle', 0.05, 900);
+  },
   win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.1, undefined, i * 0.1)),
 };

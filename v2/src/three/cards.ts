@@ -5,6 +5,10 @@ import content from '../content.json';
 
 const SANS = '"Space Grotesk", system-ui, sans-serif';
 const MONO = '"Space Mono", ui-monospace, monospace';
+/** Painted lettering for the pinboard: a brush script for headings, a clean hand for body text. */
+const BRUSH = '"Caveat Brush", "Patrick Hand", cursive';
+const HAND = '"Patrick Hand", "Caveat Brush", cursive';
+const RES = 1.5; // drawn at 1.5x so the lettering stays crisp up close
 
 function canvas(w: number, h: number) {
   const c = document.createElement('canvas');
@@ -40,20 +44,21 @@ function wrap(g: CanvasRenderingContext2D, text: string, x: number, y: number, m
 function card(n: string, label: string, heading: string[], body: (g: CanvasRenderingContext2D, y: number, w: number) => void) {
   const W = 1200;
   const H = 1700;
-  const [c, g] = canvas(W, H);
+  const [c, g] = canvas(W * RES, H * RES);
+  g.scale(RES, RES);
   g.fillStyle = '#ffffff';
   g.fillRect(0, 0, W, H);
   g.strokeStyle = '#000';
   g.lineWidth = 6;
   g.strokeRect(3, 3, W - 6, H - 6);
-  g.fillStyle = '#888';
-  g.font = `400 30px ${MONO}`;
+  g.fillStyle = '#5a5a5a';
+  g.font = `400 34px ${HAND}`;
   g.fillText(`${n}  ·  ${label}`, 80, 120);
-  g.fillStyle = '#f0f0f0';
-  g.font = `800 300px ${SANS}`;
+  g.fillStyle = '#ececec';
+  g.font = `400 320px ${BRUSH}`;
   g.fillText(n, 64, 400);
   g.fillStyle = '#000';
-  g.font = `800 100px ${SANS}`;
+  g.font = `400 118px ${BRUSH}`;
   heading.forEach((h, i) => g.fillText(h, 80, 300 + i * 104));
   body(g, 300 + heading.length * 104 + 40, W);
   return c;
@@ -61,11 +66,11 @@ function card(n: string, label: string, heading: string[], body: (g: CanvasRende
 
 export function buildCards(aniso: number) {
   const about = card('01', 'ABOUT', ['Building things', 'that matter.'], (g, y, w) => {
-    g.fillStyle = '#555';
-    g.font = `400 44px ${SANS}`;
+    g.fillStyle = '#2b2b2b';
+    g.font = `400 49px ${HAND}`;
     y = wrap(g, content.person.about, 80, y + 20, w - 160, 66);
     g.fillStyle = '#000';
-    g.font = `400 28px ${MONO}`;
+    g.font = `400 32px ${HAND}`;
     content.person.heroMeta.forEach((m, i) => g.fillText(m, 80, y + 60 + i * 46));
   });
 
@@ -74,21 +79,21 @@ export function buildCards(aniso: number) {
       g.fillStyle = '#eee';
       g.fillRect(80, y, w - 160, 3);
       y += 56;
-      g.fillStyle = '#888';
-      g.font = `400 26px ${MONO}`;
+      g.fillStyle = '#5a5a5a';
+      g.font = `400 29px ${HAND}`;
       g.fillText(`${a.period}  ·  Batch ${a.batch}`, 80, y);
       g.fillStyle = '#000';
-      g.font = `700 40px ${SANS}`;
+      g.font = `700 44px ${HAND}`;
       y = wrap(g, a.degree, 80, y + 52, w - 160, 48);
-      g.fillStyle = '#777';
-      g.font = `400 30px ${SANS}`;
+      g.fillStyle = '#444';
+      g.font = `400 33px ${HAND}`;
       y = wrap(g, a.inst, 80, y, w - 160, 40) + 10;
     }
     g.fillStyle = '#000';
     g.fillRect(80, y + 10, w - 160, 4);
-    g.font = `400 26px ${MONO}`;
+    g.font = `400 29px ${HAND}`;
     g.fillText('TEST SCORES', 80, y + 70);
-    g.font = `700 40px ${SANS}`;
+    g.font = `700 44px ${HAND}`;
     g.fillText('SAT 1530  ·  IELTS 8.0  ·  GPA 5.0 / 5.0', 80, y + 130);
   });
 
@@ -103,10 +108,10 @@ export function buildCards(aniso: number) {
       g.beginPath();
       g.arc(x + 8, yy - 12, 6, 0, Math.PI * 2);
       g.fill();
-      g.font = `700 34px ${SANS}`;
+      g.font = `700 38px ${HAND}`;
       g.fillText(name.length > 22 ? name.slice(0, 21) + '…' : name, x + 30, yy);
-      g.fillStyle = '#888';
-      g.font = `400 20px ${SANS}`;
+      g.fillStyle = '#5a5a5a';
+      g.font = `400 22px ${HAND}`;
       g.fillText(cat.length > 40 ? cat.slice(0, 39) + '…' : cat, x + 30, yy + 28);
     });
   });
@@ -116,13 +121,13 @@ export function buildCards(aniso: number) {
       g.fillStyle = '#eee';
       g.fillRect(80, y, w - 160, 3);
       g.fillStyle = '#000';
-      g.font = `700 44px ${SANS}`;
+      g.font = `700 49px ${HAND}`;
       y = wrap(g, e.title, 80, y + 70, w - 160, 52);
-      g.fillStyle = '#777';
-      g.font = `400 32px ${SANS}`;
+      g.fillStyle = '#444';
+      g.font = `400 35px ${HAND}`;
       y = wrap(g, e.role, 80, y, w - 160, 42);
-      g.fillStyle = '#888';
-      g.font = `400 26px ${MONO}`;
+      g.fillStyle = '#5a5a5a';
+      g.font = `400 29px ${HAND}`;
       g.fillText(e.period, 80, y + 4);
       y += 50;
     }

@@ -13,6 +13,7 @@ import { buildStops } from './stops';
 import { Cat } from './cat';
 import { Play } from './play';
 import { Screens } from './screens';
+import { buildPinCards, CARD_PX } from './pincards';
 import { sfx } from '../sound';
 import { describeStats, fetchServerStats } from '../stats';
 
@@ -26,7 +27,7 @@ const smooth = (a: number, b: number, x: number) => {
 
 export async function mount(tour: HTMLElement) {
   // textures are drawn with the page fonts
-  await Promise.all([document.fonts.load('800 100px "Space Grotesk"'), document.fonts.load('400 30px "Space Mono"'), document.fonts.ready]);
+  await Promise.all([document.fonts.load('800 100px "Space Grotesk"'), document.fonts.load('400 30px "Space Mono"'), document.fonts.load('400 100px "Caveat Brush"'), document.fonts.load('400 40px "Patrick Hand"'), document.fonts.ready]);
   const sticky = tour.querySelector<HTMLElement>('[data-sticky]')!;
   const stage = tour.querySelector<HTMLElement>('[data-stage]')!;
   const heroCopy = tour.querySelector<HTMLElement>('.hero-copy');
@@ -194,9 +195,12 @@ export async function mount(tour: HTMLElement) {
   scene.add(cat.root);
 
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
+  const pinEls = buildPinCards();
+  for (const c of desk.pinCards) screens.addPanel(c.mesh, desk.PIN_W, CARD_PX, pinEls[c.id as keyof typeof pinEls]);
 
   const applyTheme = () => {
-    const d = dark();
+    void dark; // the evening, lamp-lit look is used in both page themes
+    const d = true;
     scene.background = new THREE.Color(d ? 0x0b1020 : 0x1d2846);
     scene.environmentIntensity = d ? 0.08 : 0.22;
     sun.intensity = d ? 0.35 : 3.4;
@@ -265,7 +269,7 @@ export async function mount(tour: HTMLElement) {
   const exitBtn = document.createElement('button');
   exitBtn.className = 'btn btn-solid focus-exit';
   exitBtn.type = 'button';
-  exitBtn.textContent = '← Back to the desk  (Esc)';
+  exitBtn.textContent = '← Back  (Esc)';
   sticky.append(exitBtn);
   const playBtn = document.createElement('button');
   playBtn.type = 'button';
@@ -278,7 +282,7 @@ export async function mount(tour: HTMLElement) {
   const focusPos = new THREE.Vector3();
   const focusLook = new THREE.Vector3();
   const focus = (which: 'laptop' | 'phone') => {
-    if (play.busy) play.exit();
+    // playing? just pause: the loop stops driving the cat while a screen is focused, and Back resumes the open world
     const anchor = which === 'laptop' ? desk.laptopScreen : desk.phoneScreen;
     const w = which === 'laptop' ? desk.SCR_W : desk.PH_W;
     const h = which === 'laptop' ? desk.SCR_W / 1.6 : desk.PH_W * (844 / 390);
@@ -288,16 +292,21 @@ export async function mount(tour: HTMLElement) {
     const d = Math.max(h / 2 / t, w / 2 / (t * camera.aspect)) * 1.3;
     focusPos.copy(focusLook).addScaledVector(n, d);
     focused = which;
+    cat.root.visible = false; // out of the way while you use the screen
     tour.classList.add('screen-focus');
     document.documentElement.classList.add('focusing'); // lock page scroll while using the screen
   };
   const unfocus = () => {
     if (!focused) return;
     focused = null;
+    cat.root.visible = true;
     tour.classList.remove('screen-focus');
     document.documentElement.classList.remove('focusing');
   };
-  exitBtn.addEventListener('click', unfocus);
+  // Back / Esc leave the screen straight away, back to the laptop or phone on the desk
+  // (the demo stays on its screen; ◀ on the laptop and the phone's home bar go to their home screens)
+  const goBack = () => unfocus();
+  exitBtn.addEventListener('click', goBack);
   // While playing or using a screen, the page must not scroll (it would move the camera rail).
   // overflow:hidden on <html> breaks position:sticky, so swallow scroll input instead.
   const locked = () => /(playing|focusing)/.test(document.documentElement.className);
@@ -306,7 +315,7 @@ export async function mount(tour: HTMLElement) {
   addEventListener('keydown', (e) => {
     if (locked() && ['PageDown', 'PageUp', 'Home', 'End', ' '].includes(e.key) && !(e.target as HTMLElement).closest?.('input, textarea')) e.preventDefault();
   });
-  addEventListener('keydown', (e) => e.key === 'Escape' && unfocus());
+  addEventListener('keydown', (e) => e.key === 'Escape' && goBack());
   screens.onOpenOnPhone = (name) => {
     screens.openApp(name);
     focus('phone');
@@ -314,6 +323,8 @@ export async function mount(tour: HTMLElement) {
 
   // ── printing the résumé ──
   let printT = -1;
+  let mugWobble = 0;
+  const mug = desk.props.find((p) => p.id === 'mug')!.object;
   const PRINT_SECS = 3.4;
   const startPrint = () => {
     if (printT >= 0 && printT < PRINT_SECS) return;
@@ -324,7 +335,10 @@ export async function mount(tour: HTMLElement) {
 
   // ── play mode ──
   const play = new Play(scene, cat, desk.boxes, desk.knockables, desk.props, desk.basketSpot, sticky,
-    (id) => showCaption(id ? stops.findIndex((s) => s.id === id) : -1),
+    (id) => {
+      showCaption(id ? stops.findIndex((s) => s.id === id) : -1);
+      if (id === 'boardgame') play.toast('Plassey 1757 · play it live on the Victus.');
+    },
     (on) => {
       document.documentElement.classList.toggle('playing', on);
       active = -1;
@@ -377,11 +391,13 @@ export async function mount(tour: HTMLElement) {
   const targets: THREE.Object3D[] = [];
   desk.props.forEach((p) => p.object.traverse((o) => (o as THREE.Mesh).isMesh && targets.push(o)));
   const catTargets = cat.hitTargets;
+  let lastHit: THREE.Intersection | null = null;
   const pick = (e: MouseEvent) => {
     const r = renderer.domElement.getBoundingClientRect();
     pointer.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects([...catTargets, ...targets], false);
+    lastHit = hits[0] ?? null;
     if (!hits.length) return null;
     let o: THREE.Object3D | null = hits[0].object;
     if (catTargets.includes(o as THREE.SkinnedMesh)) return 'cat';
@@ -409,6 +425,10 @@ export async function mount(tour: HTMLElement) {
       cat.poke();
       sfx.purr();
     },
+    mug: () => {
+      mugWobble = 1;
+      sfx.clink();
+    },
   };
   const stopOf: Record<string, string> = { glass: 'phone', boardgame: 'laptop' };
   renderer.domElement.addEventListener('click', (e) => {
@@ -421,6 +441,13 @@ export async function mount(tour: HTMLElement) {
     }
     if (!hit) return;
     const i = stops.findIndex((s) => s.id === (stopOf[hit] ?? hit));
+    // tapping the 3D screen itself presses the control under the pointer (app icon, project card, tab)
+    const screenHit = lastHit && (lastHit.object === desk.laptopScreen ? 'laptop' : lastHit.object === desk.phoneScreen ? 'phone' : null);
+    if (screenHit && lastHit!.uv && (play.active || i === Math.round(progress))) {
+      screens.clickAt(screenHit, lastHit!.uv.x, lastHit!.uv.y);
+      focus(screenHit);
+      return;
+    }
     // first click flies to the object; once you're there (or playing) it opens
     if (play.active || i === Math.round(progress) || i < 0) actions[hit]?.();
     else scrollToStop(i);
@@ -435,7 +462,7 @@ export async function mount(tour: HTMLElement) {
     composer.setSize(w, h);
     const pr = renderer.getPixelRatio();
     (paint.uniforms.uTexel.value as THREE.Vector2).set(2.2 / w, 2.2 / h);
-    textMask.setSize(Math.round((w * pr) / 2), Math.round((h * pr) / 2)); // half-res mask is plenty // brush size in CSS px, same on any display
+    textMask.setSize(Math.round(w * pr), Math.round(h * pr)); // full res: crisp edges where sharp text meets paint
     void pr;
     screens.setSize(w, h);
     camera.aspect = w / h;
@@ -521,6 +548,13 @@ export async function mount(tour: HTMLElement) {
       const jerky = (Math.floor(steps * 18) + smooth(0, 1, (steps * 18) % 1)) / 18;
       desk.paper.position.set(0, 0.047 - 0.03 * jerky, -0.03 + 0.21 * jerky);
       desk.paper.rotation.x = -Math.PI / 2 + 0.22 * (1 - jerky) - 0.06 * jerky;
+    }
+
+    // a clicked mug rocks on its base
+    if (mugWobble > 0 && !play.active) {
+      mugWobble = Math.max(0, mugWobble - dt * 1.2);
+      mug.rotation.z = Math.sin(t * 22) * 0.12 * mugWobble * mugWobble;
+      mug.rotation.x = Math.cos(t * 17) * 0.05 * mugWobble * mugWobble;
     }
 
     const introFade = play.active || focused ? 0 : 1 - smooth(0.05, 0.45, progress);

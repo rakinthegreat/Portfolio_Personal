@@ -2,12 +2,22 @@
   "person": {
     "name": "Rakin Talukder",
     "fullName": "Md Rakinuzzaman Talukder",
-    "heroLines": ["RAKIN", "TALUKDER"],
-    "heroMeta": ["MD RAKINUZZAMAN TALUKDER", "SOFTWARE ENGINEER", "INSTITUTE OF INFORMATION TECHNOLOGY"],
+    "heroLines": [
+      "RAKIN",
+      "TALUKDER"
+    ],
+    "heroMeta": [
+      "MD RAKINUZZAMAN TALUKDER",
+      "SOFTWARE ENGINEER",
+      "INSTITUTE OF INFORMATION TECHNOLOGY"
+    ],
     "role": "Software Engineer",
     "location": "Dhaka, BD",
     "timezone": "Asia/Dhaka",
-    "aboutHeading": ["Building things", "that matter."],
+    "aboutHeading": [
+      "Building things",
+      "that matter."
+    ],
     "about": "I'm Rakin — a software engineer from Dhaka, Bangladesh. I study at IIT, Dhaka University and spend my time crafting clean, purposeful software. I care deeply about design, performance, and the small details that make experiences feel right.",
     "contactEmail": "support@rakin-talukder.me",
     "contactSub": "Open to internships, collaborations, and interesting conversations.",
@@ -33,7 +43,8 @@
       "mobile": true,
       "downloadUrl": "https://github.com/rakinthegreat/friction_titanicSwimTeam/releases",
       "icon": "W",
-      "color": "#2f5d4a"
+      "color": "#2f5d4a",
+      "iconUrl": "https://waitless-friction.vercel.app/icon.png?icon.0hya7o2.5._x-.png"
     },
     {
       "name": "HydroSync",
@@ -45,7 +56,8 @@
       "mobile": true,
       "downloadUrl": "https://github.com/rakinthegreat/hydrosync-project/releases",
       "icon": "H",
-      "color": "#2d7fb8"
+      "color": "#2d7fb8",
+      "iconUrl": "https://hydrosync-project-blush.vercel.app/icons/Icon-192.png"
     },
     {
       "name": "Curzpay",
@@ -56,7 +68,8 @@
       "previewUrl": "https://curzpaydemo.vercel.app/",
       "mobile": true,
       "icon": "C",
-      "color": "#5b3fd1"
+      "color": "#5b3fd1",
+      "iconUrl": "https://curzpaydemo.vercel.app/icons/Icon-192.png"
     },
     {
       "name": "Plassey 1757",
@@ -77,7 +90,8 @@
       "mobile": true,
       "downloadUrl": "https://github.com/rakinthegreat/loaf/releases",
       "icon": "L",
-      "color": "#e08a3c"
+      "color": "#e08a3c",
+      "iconUrl": "https://loaf-pi.vercel.app/icons/Icon-192.png"
     },
     {
       "name": "IIT Indoor Games",
@@ -136,18 +150,56 @@
     }
   ],
   "academics": [
-    { "degree": "Bachelor of Science in Software Engineering (BSSE)", "batch": "17", "inst": "Institute of Information Technology, University of Dhaka", "period": "Since July 2025" },
-    { "degree": "Bachelor of Business Administration (BBA)", "batch": "33", "inst": "Institute of Business Administration, University of Dhaka", "period": "Feb 2025 - June 2025" },
-    { "degree": "Higher Secondary Certificate (HSC)", "batch": "2024", "inst": "Notre Dame College", "period": "2024" },
-    { "degree": "Secondary School Certificate (SSC)", "batch": "2022", "inst": "Rajshahi Cantonment Public School & College", "period": "2022" }
+    {
+      "degree": "Bachelor of Science in Software Engineering (BSSE)",
+      "batch": "17",
+      "inst": "Institute of Information Technology, University of Dhaka",
+      "period": "Since July 2025"
+    },
+    {
+      "degree": "Bachelor of Business Administration (BBA)",
+      "batch": "33",
+      "inst": "Institute of Business Administration, University of Dhaka",
+      "period": "Feb 2025 - June 2025"
+    },
+    {
+      "degree": "Higher Secondary Certificate (HSC)",
+      "batch": "2024",
+      "inst": "Notre Dame College",
+      "period": "2024"
+    },
+    {
+      "degree": "Secondary School Certificate (SSC)",
+      "batch": "2022",
+      "inst": "Rajshahi Cantonment Public School & College",
+      "period": "2022"
+    }
   ],
   "testScores": [
-    ["DIGITAL SAT", "1530"],
-    [" (MATH)", "800"],
-    [" (EBRW)", "730"],
-    ["IELTS", "8.0"],
-    ["HSC GPA", "5.0"],
-    ["SSC GPA", "5.0"]
+    [
+      "DIGITAL SAT",
+      "1530"
+    ],
+    [
+      " (MATH)",
+      "800"
+    ],
+    [
+      " (EBRW)",
+      "730"
+    ],
+    [
+      "IELTS",
+      "8.0"
+    ],
+    [
+      "HSC GPA",
+      "5.0"
+    ],
+    [
+      "SSC GPA",
+      "5.0"
+    ]
   ],
   "acceptances": [
     "DU IBA: Rank 30th",
@@ -167,44 +219,158 @@
     "HSC, SSC, A Level, O Level Academics"
   ],
   "skills": [
-    ["C", "Language"],
-    ["Java", "Language"],
-    ["Kotlin", "Language"],
-    ["Python", "Language"],
-    ["Dart / Flutter", "Language · Framework"],
-    ["Android", "Platform"],
-    ["JavaScript", "Language"],
-    ["TypeScript", "Language"],
-    ["React", "Framework"],
-    ["Next.js", "Framework"],
-    ["Node.js", "Runtime"],
-    ["SQL", "Database"],
-    ["Git", "Tool"],
-    ["Linux", "Platform"],
-    ["Dalvik Bytecode", "Android Reverse Engineering"],
-    ["Docker", "Containerization"],
-    ["GitHub Actions", "CI/CD · Automation"],
-    ["Vercel / Render", "Cloud Deployment"],
-    ["Arduino / ESP32", "IoT · Embedded Systems"],
-    ["MQTT / WebSockets", "Real-time Protocols"],
-    ["REST APIs", "API Architecture"],
-    ["NVIDIA NIM", "AI Microservices"],
-    ["PyTorch / Pandas / PySpark", "Data Science & Machine Learning"],
-    ["Firebase / Supabase", "Backend as a Service · Analytics"],
-    ["Inkscape / Canva / Figma", "Vector Graphics & UI Design"],
-    ["Design Principles", "Material · Glassmorphism · Neo-Brutalism · Minimalism · Neumorphism"]
+    [
+      "C",
+      "Language"
+    ],
+    [
+      "Java",
+      "Language"
+    ],
+    [
+      "Kotlin",
+      "Language"
+    ],
+    [
+      "Python",
+      "Language"
+    ],
+    [
+      "Dart / Flutter",
+      "Language · Framework"
+    ],
+    [
+      "Android",
+      "Platform"
+    ],
+    [
+      "JavaScript",
+      "Language"
+    ],
+    [
+      "TypeScript",
+      "Language"
+    ],
+    [
+      "React",
+      "Framework"
+    ],
+    [
+      "Next.js",
+      "Framework"
+    ],
+    [
+      "Node.js",
+      "Runtime"
+    ],
+    [
+      "SQL",
+      "Database"
+    ],
+    [
+      "Git",
+      "Tool"
+    ],
+    [
+      "Linux",
+      "Platform"
+    ],
+    [
+      "Dalvik Bytecode",
+      "Android Reverse Engineering"
+    ],
+    [
+      "Docker",
+      "Containerization"
+    ],
+    [
+      "GitHub Actions",
+      "CI/CD · Automation"
+    ],
+    [
+      "Vercel / Render",
+      "Cloud Deployment"
+    ],
+    [
+      "Arduino / ESP32",
+      "IoT · Embedded Systems"
+    ],
+    [
+      "MQTT / WebSockets",
+      "Real-time Protocols"
+    ],
+    [
+      "REST APIs",
+      "API Architecture"
+    ],
+    [
+      "NVIDIA NIM",
+      "AI Microservices"
+    ],
+    [
+      "PyTorch / Pandas / PySpark",
+      "Data Science & Machine Learning"
+    ],
+    [
+      "Firebase / Supabase",
+      "Backend as a Service · Analytics"
+    ],
+    [
+      "Inkscape / Canva / Figma",
+      "Vector Graphics & UI Design"
+    ],
+    [
+      "Design Principles",
+      "Material · Glassmorphism · Neo-Brutalism · Minimalism · Neumorphism"
+    ]
   ],
   "experiences": [
-    { "title": "Digital SAT Instructor", "role": "Aemers", "period": "2025 - 2026" },
-    { "title": "Part-time IELTS Instructor", "role": "Robi 10 Minutes School", "period": "Briefly" },
-    { "title": "President (Research & Development)", "role": "Notre Dame Nature Study Club", "period": "2023 - 2024" },
-    { "title": "Founding President & Chairperson of Advisory Board", "role": "Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)", "period": "Pres: 2019-20 · Chair: 2023-24" }
+    {
+      "title": "Digital SAT Instructor",
+      "role": "Aemers",
+      "period": "2025 - 2026"
+    },
+    {
+      "title": "Part-time IELTS Instructor",
+      "role": "Robi 10 Minutes School",
+      "period": "Briefly"
+    },
+    {
+      "title": "President (Research & Development)",
+      "role": "Notre Dame Nature Study Club",
+      "period": "2023 - 2024"
+    },
+    {
+      "title": "Founding President & Chairperson of Advisory Board",
+      "role": "Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)",
+      "period": "Pres: 2019-20 · Chair: 2023-24"
+    }
   ],
   "socials": [
-    { "label": "GitHub", "handle": "@rakinthegreat", "url": "https://github.com/rakinthegreat" },
-    { "label": "LinkedIn", "handle": "Rakin Talukder", "url": "https://www.linkedin.com/in/rakin-talukder-me" },
-    { "label": "Twitter / X", "handle": "@rakinthegreat", "url": "https://x.com/rakinthegreat" },
-    { "label": "Instagram", "handle": "@rakinthegreat", "url": "https://instagram.com/rakinthegreat" },
-    { "label": "Facebook", "handle": "Rakin Talukder", "url": "https://www.facebook.com/rakin.talukder.ndc24" }
+    {
+      "label": "GitHub",
+      "handle": "@rakinthegreat",
+      "url": "https://github.com/rakinthegreat"
+    },
+    {
+      "label": "LinkedIn",
+      "handle": "Rakin Talukder",
+      "url": "https://www.linkedin.com/in/rakin-talukder-me"
+    },
+    {
+      "label": "Twitter / X",
+      "handle": "@rakinthegreat",
+      "url": "https://x.com/rakinthegreat"
+    },
+    {
+      "label": "Instagram",
+      "handle": "@rakinthegreat",
+      "url": "https://instagram.com/rakinthegreat"
+    },
+    {
+      "label": "Facebook",
+      "handle": "Rakin Talukder",
+      "url": "https://www.facebook.com/rakin.talukder.ndc24"
+    }
   ]
 }
