@@ -1,0 +1,210 @@
+{
+  "person": {
+    "name": "Rakin Talukder",
+    "fullName": "Md Rakinuzzaman Talukder",
+    "heroLines": ["RAKIN", "TALUKDER"],
+    "heroMeta": ["MD RAKINUZZAMAN TALUKDER", "SOFTWARE ENGINEER", "INSTITUTE OF INFORMATION TECHNOLOGY"],
+    "role": "Software Engineer",
+    "location": "Dhaka, BD",
+    "timezone": "Asia/Dhaka",
+    "aboutHeading": ["Building things", "that matter."],
+    "about": "I'm Rakin — a software engineer from Dhaka, Bangladesh. I study at IIT, Dhaka University and spend my time crafting clean, purposeful software. I care deeply about design, performance, and the small details that make experiences feel right.",
+    "contactEmail": "support@rakin-talukder.me",
+    "contactSub": "Open to internships, collaborations, and interesting conversations.",
+    "ticker": "SOFTWARE ENGINEER  ·  FLUTTER  ·  REACT  ·  PYTHON  ·  OPEN SOURCE  ·  IIT DU  ·  DHAKA  ·  ",
+    "resume": {
+      "title": "[ Software Engineer ]",
+      "summary": "Undergraduate Software Engineering student at the University of Dhaka. Experienced in developing high-performance applications and pixel-perfect interfaces across web, mobile, and desktop platforms. Driven by a passion for technical excellence and creating impactful, user-centric software solutions.",
+      "phone": "+8801817092350",
+      "email": "talukderrakinuzzaman@gmail.com",
+      "website": "rakin-talukder.me",
+      "github": "github.com/rakinthegreat",
+      "linkedin": "linkedin.com/in/rakin-talukder-me"
+    }
+  },
+  "projects": [
+    {
+      "name": "WaitLess",
+      "description": "A productivity app that detects idle moments and prompts mindful tasks to prevent doomscrolling.",
+      "year": "2026",
+      "type": "Web & Mobile App",
+      "url": "https://github.com/rakinthegreat/friction_titanicSwimTeam",
+      "previewUrl": "https://waitless-friction.vercel.app",
+      "mobile": true,
+      "downloadUrl": "https://github.com/rakinthegreat/friction_titanicSwimTeam/releases",
+      "icon": "W",
+      "color": "#2f5d4a"
+    },
+    {
+      "name": "HydroSync",
+      "description": "AI hydration tracker generating personalized strategies with a multi-AI fallback architecture.",
+      "year": "2026",
+      "type": "Mobile App (Health/AI)",
+      "url": "https://github.com/rakinthegreat/hydrosync-project",
+      "previewUrl": "https://hydrosync-project-blush.vercel.app/",
+      "mobile": true,
+      "downloadUrl": "https://github.com/rakinthegreat/hydrosync-project/releases",
+      "icon": "H",
+      "color": "#2d7fb8"
+    },
+    {
+      "name": "Curzpay",
+      "description": "Fintech frontend demonstrating pixel-perfect, multi-platform UI fidelity across web and mobile.",
+      "year": "2026",
+      "type": "Web/Mobile UI Showcase",
+      "url": "https://github.com/rakinthegreat/Fintech_Demo_Flutter",
+      "previewUrl": "https://curzpaydemo.vercel.app/",
+      "mobile": true,
+      "icon": "C",
+      "color": "#5b3fd1"
+    },
+    {
+      "name": "Plassey 1757",
+      "description": "Historical social deduction multiplayer web game featuring real-time sync.",
+      "year": "2025",
+      "type": "Web App (Game)",
+      "url": "https://github.com/rakinthegreat/Plassey",
+      "previewUrl": "https://plassey.vercel.app",
+      "downloadUrl": "https://github.com/rakinthegreat/Plassey/releases"
+    },
+    {
+      "name": "Loaf",
+      "description": "Interactive sensory game for cats featuring procedural Koi AI and a custom haptic engine.",
+      "year": "2026",
+      "type": "Mobile App (Game)",
+      "url": "https://github.com/rakinthegreat/loaf",
+      "previewUrl": "https://loaf-pi.vercel.app/",
+      "mobile": true,
+      "downloadUrl": "https://github.com/rakinthegreat/loaf/releases",
+      "icon": "L",
+      "color": "#e08a3c"
+    },
+    {
+      "name": "IIT Indoor Games",
+      "description": "Interactive application highlighting community engagement and event-specific user experiences.",
+      "year": "2026",
+      "type": "Interactive Application",
+      "url": "https://github.com/bikramroyutsa/iit-indoors-2026",
+      "previewUrl": "https://iitindoorgames2026.vercel.app/"
+    },
+    {
+      "name": "SARsight",
+      "description": "NASA Space Apps Challenge 2026: a 4D geospatial platform turning NASA-ISRO NISAR radar data into plain answers for farmers, families and scientists.",
+      "year": "2026",
+      "type": "Web App (Geospatial)",
+      "url": "https://github.com/rakinthegreat/SARsight",
+      "previewUrl": "https://sarsight.vercel.app"
+    },
+    {
+      "name": "Low-Light Enhancement",
+      "description": "SPL-1: implementation and tiled parallelization of Retinex and DT-CWT based low-light image enhancement in Java/OpenCV.",
+      "year": "2026",
+      "type": "Image Processing (SE 2105)",
+      "url": "https://github.com/rakinthegreat/se2105_1728",
+      "previewUrl": "https://se2105-1728.vercel.app"
+    },
+    {
+      "name": "GCamUpdater",
+      "description": "Custom update logic injected into Google Camera mods via Dalvik Bytecode reverse engineering.",
+      "year": "2022",
+      "type": "Modding Utility",
+      "url": "https://github.com/rakinthegreat/GcamUpdater",
+      "downloadUrl": "https://www.celsoazevedo.com/files/android/google-camera/dev-greatness/"
+    },
+    {
+      "name": "ImageEnhanceAndroid",
+      "description": "Low-level computational photography and image manipulation tool for Android devices.",
+      "year": "2023",
+      "type": "Image Processing",
+      "url": "https://gitlab.com/rakinthegreat1/ImageEnhanceAndroid",
+      "downloadUrl": "https://gitlab.com/rakinthegreat1/ImageEnhanceAndroid/-/blob/main/app/debug/app-debug.apk?ref_type=heads"
+    },
+    {
+      "name": "PhotoCompare",
+      "description": "Complex UI state management and memory optimization for Matrix zooming and panning.",
+      "year": "2021",
+      "type": "Utility App",
+      "url": "https://github.com/rakinthegreat/photocompare"
+    },
+    {
+      "name": "CameraHW",
+      "description": "Hardware abstraction tool demonstrating deep understanding of Android's Camera2 API.",
+      "year": "2021",
+      "type": "Hardware Utility App",
+      "url": "https://github.com/rakinthegreat/CameraHW",
+      "downloadUrl": "https://github.com/rakinthegreat/CameraHW/releases"
+    }
+  ],
+  "academics": [
+    { "degree": "Bachelor of Science in Software Engineering (BSSE)", "batch": "17", "inst": "Institute of Information Technology, University of Dhaka", "period": "Since July 2025" },
+    { "degree": "Bachelor of Business Administration (BBA)", "batch": "33", "inst": "Institute of Business Administration, University of Dhaka", "period": "Feb 2025 - June 2025" },
+    { "degree": "Higher Secondary Certificate (HSC)", "batch": "2024", "inst": "Notre Dame College", "period": "2024" },
+    { "degree": "Secondary School Certificate (SSC)", "batch": "2022", "inst": "Rajshahi Cantonment Public School & College", "period": "2022" }
+  ],
+  "testScores": [
+    ["DIGITAL SAT", "1530"],
+    [" (MATH)", "800"],
+    [" (EBRW)", "730"],
+    ["IELTS", "8.0"],
+    ["HSC GPA", "5.0"],
+    ["SSC GPA", "5.0"]
+  ],
+  "acceptances": [
+    "DU IBA: Rank 30th",
+    "Aalto University (QS #114): Full Tuition Scholarship (Category A) - Chem. Eng.",
+    "New York University (NYUAD): Invited for CW",
+    "SUST",
+    "KUET",
+    "CUET"
+  ],
+  "mentorship": [
+    "Digital SAT",
+    "IELTS",
+    "Engineering Admissions",
+    "DU A, IBA Admissions",
+    "Private Uni. Admissions",
+    "US Admissions",
+    "HSC, SSC, A Level, O Level Academics"
+  ],
+  "skills": [
+    ["C", "Language"],
+    ["Java", "Language"],
+    ["Kotlin", "Language"],
+    ["Python", "Language"],
+    ["Dart / Flutter", "Language · Framework"],
+    ["Android", "Platform"],
+    ["JavaScript", "Language"],
+    ["TypeScript", "Language"],
+    ["React", "Framework"],
+    ["Next.js", "Framework"],
+    ["Node.js", "Runtime"],
+    ["SQL", "Database"],
+    ["Git", "Tool"],
+    ["Linux", "Platform"],
+    ["Dalvik Bytecode", "Android Reverse Engineering"],
+    ["Docker", "Containerization"],
+    ["GitHub Actions", "CI/CD · Automation"],
+    ["Vercel / Render", "Cloud Deployment"],
+    ["Arduino / ESP32", "IoT · Embedded Systems"],
+    ["MQTT / WebSockets", "Real-time Protocols"],
+    ["REST APIs", "API Architecture"],
+    ["NVIDIA NIM", "AI Microservices"],
+    ["PyTorch / Pandas / PySpark", "Data Science & Machine Learning"],
+    ["Firebase / Supabase", "Backend as a Service · Analytics"],
+    ["Inkscape / Canva / Figma", "Vector Graphics & UI Design"],
+    ["Design Principles", "Material · Glassmorphism · Neo-Brutalism · Minimalism · Neumorphism"]
+  ],
+  "experiences": [
+    { "title": "Digital SAT Instructor", "role": "Aemers", "period": "2025 - 2026" },
+    { "title": "Part-time IELTS Instructor", "role": "Robi 10 Minutes School", "period": "Briefly" },
+    { "title": "President (Research & Development)", "role": "Notre Dame Nature Study Club", "period": "2023 - 2024" },
+    { "title": "Founding President & Chairperson of Advisory Board", "role": "Rajshahi Cantonment Public Model United Nations Association (RCPMUNA)", "period": "Pres: 2019-20 · Chair: 2023-24" }
+  ],
+  "socials": [
+    { "label": "GitHub", "handle": "@rakinthegreat", "url": "https://github.com/rakinthegreat" },
+    { "label": "LinkedIn", "handle": "Rakin Talukder", "url": "https://www.linkedin.com/in/rakin-talukder-me" },
+    { "label": "Twitter / X", "handle": "@rakinthegreat", "url": "https://x.com/rakinthegreat" },
+    { "label": "Instagram", "handle": "@rakinthegreat", "url": "https://instagram.com/rakinthegreat" },
+    { "label": "Facebook", "handle": "Rakin Talukder", "url": "https://www.facebook.com/rakin.talukder.ndc24" }
+  ]
+}
