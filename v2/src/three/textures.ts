@@ -92,7 +92,7 @@ export const phoneScreen = () =>
     g.fillText('Do one small thing', w / 2, 665);
   });
 
-/** Handheld console: a 16-bit boxing match, made for Arshia. */
+/** Handheld console: a 16-bit boxing match. */
 export const consoleScreen = () =>
   canvasTex(160, 128, (g, w, h) => {
     const P = 4; // pixel size
@@ -117,7 +117,7 @@ export const consoleScreen = () =>
     g.fillStyle = dark;
     g.font = 'bold 12px monospace';
     g.fillText('KO!', 66, 16);
-    g.fillText('♥ ARSHIA', 4, 124);
+    g.fillText('PUNCH IT OUT', 4, 124);
   }, true);
 
 /** Pinboard printouts. */

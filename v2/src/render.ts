@@ -156,8 +156,8 @@ export function renderLite(c: Content): string {
           <p class="block-label">RESUME</p>
           <p class="block-value">Preview Resume</p>
           <div class="block-btns">
-            <a class="btn btn-solid" href="/resume.html">PREVIEW</a>
-            <a class="btn" href="/resume.html?print=1">DOWNLOAD PDF</a>
+            <a class="btn btn-solid" href="/resume.html" data-resume="">PREVIEW</a>
+            <a class="btn" href="/resume.html?print=1" data-resume="pdf">DOWNLOAD PDF</a>
           </div>
         </div>
       </div>

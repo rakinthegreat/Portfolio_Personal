@@ -33,7 +33,7 @@ Plus a **Lite page** (plain HTML, same content, Léo-style typography) auto-serv
 | 5 | **Desk lamp + old Android phone** (camera corner) | **SPL-1 low-light enhancement** (Retinex + DT-CWT, se2105_1728), ImageEnhanceAndroid, GCamUpdater, CameraHW, PhotoCompare | Toggle the lamp off → a dark photo "enhances" (Retinex demo) |
 | 6 | **Cork pinboard** | **SARsight** (NASA Space Apps 2026, NISAR radar) | Pinned printouts; SARsight radar sweep animates |
 | 7 | **Notebook** | Academics (IIT BSSE, IBA BBA, NDC, RCPSC), teaching (SAT, IELTS), MUN mentoring, skills | Pages flip |
-| 8 | **Handheld console** | Easter egg: 16-bit boxing mini-game made for Arshia (named) | Playable tiny pixel game |
+| 8 | **Handheld console** | Easter egg: 16-bit boxing mini-game | Playable tiny pixel game |
 | 9 | **Sticky notes + little printer** | Contact, socials | Printer prints the résumé PDF (reuse current generator logic) |
 
 ## 4. Gamification (light)
@@ -89,7 +89,6 @@ Status (2026-11-18): phases 1–7 built in `v2/` (uncommitted). Left for Rakin: 
 - v2 lives in `v2/`; the Flutter site at the repo root stays untouched and deployed.
 - Desk props: built procedurally in code (rounded clay shapes).
 - **The cat**: built procedurally in code (no free model fit), modelled on his photos in `v2/cat/`: a slim, long-legged young white cat with big tall pink-lined ears, a wedge face, pink nose and grey-green eyes; a dark grey-brown tabby patch on the crown sweeping over one ear (that ear dark-backed); a grey smudge at the base of the tail; a broom tail that is white at the root and fades to near-black, bushiest at the tip; pink beans.
-- Arcade easter egg names Arshia.
 - Dropped: Jotno Ai, Type I Error.
 
 

@@ -284,6 +284,7 @@ dialog.info::backdrop { background: rgba(0, 0, 0, 0.5); }
 .phone-status { display: flex; justify-content: space-between; padding: 18px 30px 8px; color: #fff; font: 600 15px var(--sans); }
 .phone-screen { position: relative; flex: 1; margin: 0 4px; overflow: hidden; border-radius: 0 0 40px 40px; background: radial-gradient(120% 80% at 30% 0%, #3a3a3a, #111); }
 .phone-screen iframe { position: absolute; inset: 0; height: 100%; }
+.scr [hidden] { display: none !important; }
 .launcher { position: absolute; inset: 0; padding: 40px 28px; display: grid; grid-template-columns: repeat(4, 1fr); align-content: start; gap: 28px 14px; }
 .launcher h2 { grid-column: 1 / -1; margin: 0 0 4px; color: #fff; font: 300 64px/1 var(--sans); letter-spacing: -2px; }
 .app { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: #fff; font: 500 13px var(--sans); cursor: pointer; }
@@ -389,3 +390,258 @@ dialog.arcade { padding: 0; border: 0; background: transparent; overflow: visibl
 .browser-nav { border: 0; background: none; padding: 2px 6px; font: 400 16px var(--mono); color: #555; cursor: pointer; border-radius: 6px; }
 .browser-nav:hover { background: #ececec; color: #000; }
 .tour.screen-focus .play-hud, .tour.screen-focus .play-toast { display: none; }
+
+/* the scientific calculator beside the phone: real buttons, seen through its 3D face */
+.calc {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px 16px 20px;
+  border-radius: 22px;
+  background: linear-gradient(175deg, #34383f, #22252b 40%, #1b1d22);
+  font-family: 'Space Grotesk', system-ui, sans-serif;
+  color: #e9e6df;
+  user-select: none;
+  filter: brightness(0.94);
+}
+.calc-top { display: flex; align-items: center; gap: 8px; font-size: 11px; letter-spacing: 1.5px; }
+.calc-brand { font-weight: 800; letter-spacing: 2px; }
+.calc-model { color: #9aa0aa; }
+.calc-solar { margin-left: auto; width: 74px; height: 18px; border-radius: 3px; background: repeating-linear-gradient(90deg, #3a2a22 0 17px, #1c1411 17px 19px); box-shadow: inset 0 0 0 2px #15171b; }
+.calc-lcd {
+  height: 112px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #b9c4a7, #a8b496);
+  box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.35), 0 0 0 5px #15171b;
+  color: #1f241b;
+  font-family: 'Space Mono', ui-monospace, monospace;
+  display: grid;
+  grid-template-rows: 14px 1fr 44px;
+  overflow: hidden;
+}
+.calc-ind { font-size: 11px; letter-spacing: 1px; opacity: 0.75; }
+.calc-expr { font-size: 17px; white-space: nowrap; overflow: hidden; align-self: center; }
+.calc-out { font-size: 32px; font-weight: 700; text-align: right; white-space: nowrap; overflow: hidden; line-height: 44px; }
+.calc-keys { flex: 1; display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 1fr; gap: 9px 8px; }
+.ck {
+  border: 0;
+  border-radius: 10px 10px 13px 13px;
+  background: linear-gradient(180deg, #f3f1ec, #d9d5cc);
+  box-shadow: 0 3px 0 #8f8a80, 0 4px 6px rgba(0, 0, 0, 0.35);
+  color: #1d1f23;
+  font: 700 20px/1 'Space Grotesk', system-ui, sans-serif;
+  cursor: pointer;
+}
+.ck.fn { background: linear-gradient(180deg, #4a4f58, #3a3e46); box-shadow: 0 3px 0 #16181c, 0 4px 6px rgba(0, 0, 0, 0.35); color: #eceae4; font-size: 15px; border-radius: 9px; }
+.ck.warn { background: linear-gradient(180deg, #f08a4b, #d96a2b); box-shadow: 0 3px 0 #8a3f17, 0 4px 6px rgba(0, 0, 0, 0.35); color: #fff; font-size: 16px; }
+.ck.eq { background: linear-gradient(180deg, #5c8f6e, #437258); box-shadow: 0 3px 0 #23402f, 0 4px 6px rgba(0, 0, 0, 0.35); color: #fff; }
+.ck:active, .ck.down { transform: translateY(3px); box-shadow: 0 0 0 transparent, 0 1px 2px rgba(0, 0, 0, 0.4); }
+.ck:focus-visible { outline: 3px solid #f08a4b; outline-offset: 2px; }
+
+/* résumé popup, laid out like the original: the page on the left, downloads on the right (top bar on phones) */
+.cvd {
+  width: min(800px, calc(100vw - 48px));
+  height: 90vh;
+  max-width: none;
+  max-height: none;
+  padding: 0;
+  border: 1px solid var(--light);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  overflow: hidden;
+}
+.cvd[open] { display: flex; }
+.cvd::backdrop { background: rgba(0, 0, 0, 0.55); }
+.cvd-view { flex: 1; min-width: 0; overflow: auto; background: var(--ghost); }
+.cvd-page { display: flex; justify-content: center; padding: 16px; }
+.cvd-page canvas { display: block; height: auto; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25); background: #fff; }
+.cvd-side { flex: none; width: 152px; display: flex; flex-direction: column; gap: 8px; padding: 16px; border-left: 1px solid var(--light); }
+.cvd-x { align-self: flex-end; margin-bottom: auto; }
+.cvd-label { margin: 0 0 8px; font: 700 10px var(--mono); letter-spacing: 2px; color: var(--grey); }
+.cvd-icon, .cvd-dl { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; color: var(--ink); cursor: pointer; border-radius: 8px; }
+.cvd-icon { width: 40px; height: 40px; justify-content: center; }
+.cvd-dl { padding: 14px 16px; font: 600 14px var(--sans); }
+.cvd-icon:hover, .cvd-dl:hover { background: var(--ghost); }
+.cvd svg { width: 20px; height: 20px; flex: none; }
+.cvd .busy { opacity: 0.45; cursor: progress; }
+.cvd-bar { display: none; }
+@media (max-width: 700px) {
+  .cvd { width: calc(100vw - 32px); flex-direction: column; }
+  .cvd[open] { display: flex; }
+  .cvd-side { display: none; }
+  .cvd-bar { display: flex; align-items: center; gap: 2px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--light); }
+  .cvd-bar .cvd-label { margin: 0 auto 0 0; font-size: 12px; }
+}
+
+/* phone: a frosted dock of social apps along the bottom of the home screen */
+.launcher .dock { position: absolute; left: 16px; right: 16px; bottom: 18px; display: flex; justify-content: space-around; padding: 12px 10px; border-radius: 30px; background: rgba(255, 255, 255, 0.14); backdrop-filter: blur(14px); }
+.soc { display: inline-flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
+.soc i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; font: 800 24px/1 var(--sans); font-style: normal; color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+
+/* the glass plaque by the Victus: ribbed frosted glass, their photo, the song and its Spotify code */
+.plaque {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 64px 44px 52px;
+  color: #101012;
+  font-family: 'Space Mono', monospace;
+  background:
+    repeating-linear-gradient(90deg, rgba(255,255,255,0.22) 0 3px, rgba(160,170,180,0.10) 3px 7px),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.18) 0 3px, rgba(150,160,170,0.08) 3px 7px),
+    linear-gradient(170deg, #e9eef1, #d3dbe0 60%, #c9d1d6);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,0.5), inset 0 0 40px rgba(255,190,110,0.18);
+  filter: brightness(0.92) sepia(0.12); /* in the warm glow of the fairy lights */
+  user-select: none;
+}
+.pq-photo { width: 100%; aspect-ratio: 4 / 3; overflow: hidden; box-shadow: 0 2px 6px rgba(0,0,0,0.25); }
+.pq-photo img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; image-rendering: pixelated; filter: sepia(0.18) saturate(1.05); }
+.pq-track { position: relative; align-self: stretch; height: 5px; margin: 52px 6px 0; border-radius: 3px; background: #141416; }
+.pq-fill { position: absolute; inset: 0 auto 0 0; width: 0; border-radius: 3px; background: #5c6066; }
+.pq-knob { position: absolute; top: 50%; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #141416; opacity: 0; }
+.pq-time { align-self: flex-start; margin: 14px 0 0 8px; font: 400 26px/1 'Patrick Hand', 'Space Mono', cursive; letter-spacing: 2px; }
+.pq-ctl { display: flex; align-items: center; justify-content: space-between; align-self: stretch; margin: 34px 16px 0; }
+.pq-ctl button { border: 0; padding: 6px; background: none; color: #141416; cursor: pointer; }
+.pq-ctl svg { display: block; width: 52px; height: 44px; }
+.pq-ctl .pq-play svg { width: 92px; height: 92px; }
+.pq-ctl button:active { transform: scale(0.94); }
+.pq-code { width: 100%; margin-top: auto; image-rendering: auto; }
+
+
+/* ── cozy, wooden chrome for the 3D world's popups (the live demo and the résumé) ── */
+dialog.preview:not(.is-mobile), .cvd {
+  --wood-a: #5b3a22;
+  --wood-b: #6f4728;
+  --wood-c: #4a2e1a;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px;
+  background:
+    repeating-linear-gradient(92deg, rgba(255, 220, 170, 0.06) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(88deg, rgba(0, 0, 0, 0.10) 0 1px, transparent 1px 23px),
+    linear-gradient(180deg, var(--wood-b), var(--wood-a) 45%, var(--wood-c));
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.35), 0 30px 90px rgba(20, 8, 0, 0.6), 0 0 0 1px #2e1b0e;
+  color: #f4e6cc;
+}
+dialog.preview:not(.is-mobile)::backdrop, .cvd::backdrop { background: radial-gradient(ellipse at 50% 40%, rgba(60, 30, 10, 0.45), rgba(10, 5, 0, 0.78)); }
+dialog.preview:not(.is-mobile) .preview-bar { padding: 4px 6px 12px; color: #f4e6cc; }
+dialog.preview:not(.is-mobile) .preview-title { font-family: 'Patrick Hand', var(--sans); font-size: 22px; font-weight: 400; letter-spacing: 0.5px; }
+dialog.preview:not(.is-mobile) .preview-close { border-color: rgba(244, 230, 204, 0.6); border-radius: 50%; color: #f4e6cc; }
+dialog.preview:not(.is-mobile) .preview-frame { border-radius: 6px; box-shadow: inset 0 0 0 2px #2e1b0e, 0 0 0 3px rgba(255, 210, 150, 0.15); }
+/* the résumé popup: wood frame, a warm desk-mat behind the page, a parchment side panel */
+.cvd { padding: 12px; }
+.cvd-view { border-radius: 8px 0 0 8px; background: radial-gradient(ellipse at 50% 20%, #5a4130, #3a2a1e 70%); box-shadow: inset 0 2px 12px rgba(0, 0, 0, 0.45); }
+.cvd-page canvas { box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); }
+.cvd-side { border-left: 0; border-radius: 0 8px 8px 0; background: linear-gradient(180deg, #f5ead3, #e9d9b8); color: #3a2616; box-shadow: inset 2px 0 6px rgba(80, 50, 20, 0.25); }
+.cvd-side .cvd-label { color: #8a6a48; }
+.cvd-side .cvd-icon, .cvd-side .cvd-dl { color: #3a2616; }
+.cvd-side .cvd-icon:hover, .cvd-side .cvd-dl:hover { background: rgba(120, 80, 40, 0.14); }
+.cvd-bar { color: #f4e6cc; border-bottom-color: rgba(0, 0, 0, 0.3); }
+.cvd-bar .cvd-label { color: #e9cfa5; }
+.cvd-bar .cvd-icon { color: #f4e6cc; }
+@media (max-width: 700px) { .cvd-view { border-radius: 0 0 8px 8px; } }
+
+/* bottom-left: what you can do with the thing you're on or next to */
+.interact-hint {
+  position: absolute; left: clamp(16px, 3vw, 40px); bottom: 32px; z-index: 6;
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 14px 9px 9px; border: 0; border-radius: 12px;
+  background: linear-gradient(180deg, #6f4728, #4a2e1a); color: #f4e6cc;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  font: 400 17px 'Patrick Hand', var(--sans); letter-spacing: 0.3px;
+  opacity: 0; transform: translateY(6px); pointer-events: none; transition: opacity 0.2s, transform 0.2s; cursor: pointer;
+}
+.interact-hint.on { opacity: 1; transform: none; pointer-events: auto; }
+.interact-hint kbd { min-width: 30px; padding: 4px 7px; border-radius: 6px; background: #f4e6cc; color: #3a2616; font: 700 12px var(--mono); text-align: center; box-shadow: 0 2px 0 #b89a70; }
+.tour.screen-focus .interact-hint { display: none; }
+@media (pointer: coarse) { .interact-hint { bottom: 250px; } }
+
+/* his thoughts: a cloud over his head, with two little puffs trailing down to him */
+.cat-thought {
+  position: absolute; left: 0; top: 0; z-index: 5; margin: 0;
+  max-width: 220px; padding: 10px 16px; border-radius: 26px;
+  background: #fffaf0; color: #2b1d12; font: 400 18px/1.2 'Patrick Hand', var(--sans);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25), inset 0 -3px 0 rgba(120, 90, 60, 0.12);
+  opacity: 0; pointer-events: none; transition: opacity 0.25s; white-space: nowrap;
+}
+.cat-thought::before, .cat-thought::after { content: ''; position: absolute; border-radius: 50%; background: #fffaf0; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2); }
+.cat-thought::before { left: 22%; bottom: -13px; width: 14px; height: 14px; }
+.cat-thought::after { left: calc(22% - 10px); bottom: -25px; width: 8px; height: 8px; }
+.cat-thought.on { opacity: 1; }
+.tour:not(.screen-focus) .cat-thought { display: block; }
+.tour.screen-focus .cat-thought { display: none; }
+
+/* CASIO fx-991CW: a white ClassWiz, wide dark-bezel display, white number keys, grey function keys */
+.calc { background: linear-gradient(175deg, #4a4d53, #393c41 45%, #2e3035); color: #eceae4; box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.08), inset 0 -4px 0 rgba(0, 0, 0, 0.2); }
+.calc-top { align-items: baseline; justify-content: space-between; }
+.calc-brand { font: 800 italic 22px/1 'Space Grotesk', sans-serif; letter-spacing: 1px; color: #f2f2ee; }
+.calc-model { display: flex; flex-direction: column; align-items: flex-end; color: #eceae4; }
+.calc-model b { font: 700 15px/1 'Space Grotesk', sans-serif; letter-spacing: 0.5px; }
+.calc-model i { font: 600 italic 10px/1.4 'Space Grotesk', sans-serif; letter-spacing: 2px; color: #a3a6ad; text-transform: uppercase; }
+.calc-lcd { height: 124px; border-radius: 6px; background: linear-gradient(180deg, #c7cfc0, #b6bfae); box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.3), 0 0 0 7px #17181b, 0 0 0 9px #55585e; }
+.ck { background: linear-gradient(180deg, #ffffff, #ecebe7); box-shadow: 0 3px 0 #b7b5ae, 0 4px 6px rgba(0, 0, 0, 0.18); color: #1d1e22; border-radius: 9px 9px 12px 12px; }
+.ck.fn { background: linear-gradient(180deg, #5c6067, #4a4d54); box-shadow: 0 3px 0 #1e1f23, 0 4px 6px rgba(0, 0, 0, 0.3); color: #f0efea; font-size: 14px; }
+.ck.warn { background: linear-gradient(180deg, #4d6fb8, #3a5aa0); box-shadow: 0 3px 0 #233a6e, 0 4px 6px rgba(0, 0, 0, 0.22); color: #fff; }
+.ck.eq { background: linear-gradient(180deg, #f2f1ec, #dddbd4); box-shadow: 0 3px 0 #8f8d86, 0 4px 6px rgba(0, 0, 0, 0.3); color: #1d1e22; font-size: 15px; letter-spacing: 1px; }
+
+/* ── keyboard: key badges, the per-device strip, the full list ── */
+.tour kbd { display: inline-block; min-width: 1.6em; padding: 1px 5px; border-radius: 5px; background: #f4e6cc; color: #3a2616; font: 700 0.78em/1.5 var(--mono); text-align: center; box-shadow: 0 2px 0 #b89a70; }
+.tour .tour-caption .btn .ck-key { margin-right: 8px; min-width: 1.5em; background: rgba(58, 38, 22, 0.14); color: inherit; box-shadow: none; font-size: 0.95em; }
+.tour .play-help kbd { margin: 0 2px; }
+.focus-keys { display: none; position: absolute; left: 50%; bottom: 18px; z-index: 6; margin: 0; padding: 8px 14px; transform: translateX(-50%); border-radius: 10px; white-space: nowrap; font: 400 16px 'Patrick Hand', var(--sans); color: #f4e6cc; background: linear-gradient(180deg, #6f4728, #4a2e1a); box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.tour.screen-focus .focus-keys { display: block; }
+.keys-chip { position: absolute; right: clamp(16px, 3vw, 40px); bottom: 84px; z-index: 4; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 9px; background: linear-gradient(180deg, #6f4728, #4a2e1a); color: #f4e6cc; font: 400 15px 'Patrick Hand', var(--sans); cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 6px 16px rgba(0, 0, 0, 0.3); }
+.tour.screen-focus .keys-chip { display: none; }
+@media (pointer: coarse) { .keys-chip { display: none; } }
+.keys-help { position: absolute; inset: 50% auto auto 50%; z-index: 20; width: min(820px, calc(100% - 32px)); max-height: calc(100% - 40px); overflow: auto; padding: 22px 26px 16px; transform: translate(-50%, -48%); border-radius: 14px; color: #f4e6cc; opacity: 0; pointer-events: none; transition: opacity 0.2s, transform 0.2s;
+  background: repeating-linear-gradient(92deg, rgba(255, 220, 170, 0.05) 0 2px, transparent 2px 9px), repeating-linear-gradient(88deg, rgba(0, 0, 0, 0.1) 0 1px, transparent 1px 23px), linear-gradient(180deg, #6f4728, #5b3a22 45%, #4a2e1a);
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.32), 0 30px 90px rgba(20, 8, 0, 0.6), 0 0 0 1px #2e1b0e; }
+.keys-help.on { opacity: 1; pointer-events: auto; transform: translate(-50%, -50%); }
+.keys-help h2 { margin: 0 0 12px; font: 400 32px 'Patrick Hand', var(--sans); color: #fbeed6; }
+.kh-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 16px 22px; }
+.keys-help h3 { margin: 0 0 6px; font: 700 11px var(--mono); letter-spacing: 2px; text-transform: uppercase; color: #d9b98c; }
+.keys-help ul { margin: 0; padding: 0; list-style: none; font: 400 17px/1.55 'Patrick Hand', var(--sans); }
+.kh-foot { margin: 14px 0 0; font: 400 15px 'Patrick Hand', var(--sans); color: #d9b98c; }
+.browser-tab .tk { margin-right: 6px; padding: 0 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); font: 700 11px var(--mono); }
+.app { position: relative; }
+.app .ak { position: absolute; top: -6px; right: 2px; min-width: 20px; padding: 1px 5px; border-radius: 10px; background: #f4e6cc; color: #3a2616; font: 700 11px/1.4 var(--mono); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); }
+.cvd-dl kbd { margin-left: auto; padding: 0 6px; border-radius: 5px; background: rgba(58, 38, 22, 0.14); font: 700 11px/1.6 var(--mono); }
+.cvd-keys { margin: 10px 0 0; font: 400 12px var(--mono); color: #8a6a48; }
+.cvd-keys kbd { padding: 0 5px; border-radius: 4px; background: rgba(58, 38, 22, 0.14); }
+
+/* ── wooden captions and play HUD: walnut panels, parchment buttons ── */
+.tour .tour-caption, .tour .play-help, .tour .play-stats, .tour .play-toast {
+  border: 0;
+  border-radius: 12px;
+  background:
+    repeating-linear-gradient(92deg, rgba(255, 220, 170, 0.05) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(88deg, rgba(0, 0, 0, 0.10) 0 1px, transparent 1px 23px),
+    linear-gradient(180deg, #6f4728, #5b3a22 45%, #4a2e1a);
+  color: #f4e6cc;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.32), inset 0 -2px 0 rgba(0, 0, 0, 0.3), 0 12px 32px rgba(20, 8, 0, 0.45), 0 0 0 1px #2e1b0e;
+}
+.tour .tour-caption .cap-num { color: #d9b98c; }
+.tour .tour-caption h2 { font-family: 'Patrick Hand', var(--sans); font-weight: 400; font-size: 30px; letter-spacing: 0.3px; color: #fbeed6; }
+.tour .tour-caption p { color: #e6d2b0; }
+.tour .tour-caption .btn {
+  border: 0; border-radius: 8px;
+  background: linear-gradient(180deg, #f6ead2, #e6d3b0); color: #3a2616;
+  box-shadow: 0 2px 0 #9c7a52, inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+.tour .tour-caption .btn:hover { background: linear-gradient(180deg, #fff4de, #efdcba); }
+.tour .tour-caption .btn-solid { background: linear-gradient(180deg, #f2b866, #d98f3c); color: #2b1a0c; box-shadow: 0 2px 0 #8a5520, inset 0 1px 0 rgba(255, 240, 210, 0.6); }
+.tour .tour-caption .tour-stats { color: #f4e6cc; }
+.tour .play-help { padding: 8px 16px; color: #f4e6cc; }
+.tour .play-stats p { color: #e6d2b0; }
+.tour .play-stats b, .tour .play-word { color: #fbeed6; }
+.tour .play-toast { font-family: 'Patrick Hand', var(--sans); font-weight: 400; font-size: 20px; padding: 10px 20px; }
+.tour .play-exit, .tour .focus-exit, .tour .play-btn {
+  border: 0; border-radius: 10px;
+  background: linear-gradient(180deg, #6f4728, #4a2e1a); color: #f4e6cc;
+  box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 6px 18px rgba(20, 8, 0, 0.4), 0 0 0 1px #2e1b0e;
+}
+.tour .play-btn kbd { background: #f4e6cc; color: #3a2616; border-radius: 5px; }

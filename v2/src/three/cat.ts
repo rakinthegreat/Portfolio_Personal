@@ -36,10 +36,10 @@ for (const s of [-1, 1]) {
   REST[`el${k}`] = [`sh${k}`, v(s * 0.024, 0.085, 0.072)];
   REST[`wr${k}`] = [`el${k}`, v(s * 0.024, 0.022, 0.075)];
   REST[`pw${k}`] = [`wr${k}`, v(s * 0.024, 0.008, 0.09)];
-  REST[`th${k}`] = ['hips', v(s * 0.024, 0.15, -0.125)];
-  REST[`kn${k}`] = [`th${k}`, v(s * 0.025, 0.088, -0.112)];
-  REST[`hk${k}`] = [`kn${k}`, v(s * 0.024, 0.03, -0.13)];
-  REST[`ft${k}`] = [`hk${k}`, v(s * 0.024, 0.008, -0.116)];
+  REST[`th${k}`] = ['hips', v(s * 0.029, 0.15, -0.112)]; // hip joint, high in the haunch
+  REST[`kn${k}`] = [`th${k}`, v(s * 0.031, 0.098, -0.088)]; // knee: forward, at the belly line
+  REST[`hk${k}`] = [`kn${k}`, v(s * 0.027, 0.038, -0.134)]; // hock: well back
+  REST[`ft${k}`] = [`hk${k}`, v(s * 0.027, 0.009, -0.122)];
 }
 const NAMES = Object.keys(REST);
 const IDX = Object.fromEntries(NAMES.map((n, i) => [n, i]));
@@ -96,19 +96,24 @@ function loft(centres: V3[], radii: [number, number][], samples: number, ring: n
   const verts: number[] = [];
   const ts: number[] = [];
   const idx: number[] = [];
-  const up = v(0, 1, 0);
+  const X = v(1, 0, 0);
+  // radius profile through the knots on a Catmull-Rom spline: no creases where one ring meets the next
+  const cr = (a: number, b: number, c: number, d: number, k: number) =>
+    0.5 * (2 * b + (c - a) * k + (2 * a - 5 * b + 4 * c - d) * k * k + (3 * b - a - 3 * c + d) * k * k * k);
   const R = (t: number) => {
-    const f = t * (radii.length - 1);
-    const i = Math.min(radii.length - 2, Math.floor(f));
+    const n = radii.length - 1;
+    const f = t * n;
+    const i = Math.min(n - 1, Math.floor(f));
     const k = f - i;
-    return [radii[i][0] * (1 - k) + radii[i + 1][0] * k, radii[i][1] * (1 - k) + radii[i + 1][1] * k];
+    const at = (j: number) => radii[Math.max(0, Math.min(n, j))];
+    return [0, 1].map((c) => Math.max(0.002, cr(at(i - 1)[c], at(i)[c], at(i + 1)[c], at(i + 2)[c], k)));
   };
   for (let s = 0; s <= samples; s++) {
     const t = s / samples;
     const c = curve.getPoint(t);
     const T = curve.getTangent(t).normalize();
-    const ref = Math.abs(T.y) > 0.9 ? v(0, 0, 1) : up;
-    const side = new THREE.Vector3().crossVectors(ref, T).normalize();
+    // every part lies in the body's mid-plane, so the lateral axis gives a frame that never flips
+    const side = X.clone().addScaledVector(T, -X.dot(T)).normalize();
     const vup = new THREE.Vector3().crossVectors(T, side).normalize();
     const [rx, ry] = R(t);
     for (let j = 0; j < ring; j++) {
@@ -163,8 +168,12 @@ function furMaterial(shell: number, density: number) {
       .replace(
         '#include <skinning_vertex>',
         `#include <skinning_vertex>
-        transformed += normalize(objectNormal) * (uShell * furLen);
-        transformed.y -= uShell * uShell * furLen * 0.35;
+        // clumps: fur length varies over the coat so the silhouette is never a clean curve
+        vec3 cq = rest * 260.0;
+        float clump = fract(sin(dot(floor(cq), vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+        float len = furLen * (0.7 + 0.6 * clump);
+        transformed += normalize(objectNormal) * (uShell * len);
+        transformed.y -= uShell * uShell * len * 0.35;
         vRest = rest;`,
       );
     sh.fragmentShader = sh.fragmentShader
@@ -181,7 +190,11 @@ function furMaterial(shell: number, density: number) {
           vec3 q = vRest * uDensity;
           float r = furHash(floor(q));
           float d = length(fract(q) - 0.5);
-          if (r < uShell * 0.9 || d > 0.62 * (1.0 - uShell) + 0.08) discard;
+          // strands taper to soft, dithered tips (alpha stays 1 for the screen holes; MSAA and the paint smooth it)
+          float edge = 0.62 * (1.0 - uShell) + 0.08;
+          float cover = (1.0 - smoothstep(edge - 0.12, edge + 0.04, d)) * smoothstep(uShell * 0.9 - 0.08, uShell * 0.9 + 0.08, r);
+          float dither = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+          if (cover <= dither) discard;
         }`,
       )
       .replace('#include <color_fragment>', '#include <color_fragment>\n diffuseColor.rgb *= mix(0.62, 1.04, uShell);');
@@ -208,6 +221,8 @@ export class Cat {
   airborne = false;
   /** walk-cycle speed multiplier */
   gaitScale = 1;
+  /** -1 walks the legs backwards (backing away from an edge) */
+  gaitDir = 1;
   /** where the head wants to look, radians (yaw, pitch) */
   look = new THREE.Vector2();
   private prev: CatState = 'sleep';
@@ -217,7 +232,7 @@ export class Cat {
   private breathPhase = 0;
   private blink = 2;
   private twitch = 3;
-  private pose = { tuck: 1, curl: 1, roll: 0, walk: 0, air: 0, hiss: 0, awake: 0, sit: 0, lie: 0, groom: 0, stretch: 0, land: 0 };
+  private pose = { tuck: 1, curl: 1, roll: 0, walk: 0, air: 0, hiss: 0, awake: 0, sit: 0, lie: 0, groom: 0, stretch: 0, land: 0, scratch: 0 };
   /** In play mode he idles like a cat: stand, then sit (grooming now and then), then lie down sphinx-style. */
   autonomous = false;
   private idle: 'stand' | 'sit' | 'groom' | 'lie' = 'stand';
@@ -225,9 +240,10 @@ export class Cat {
   private actT = 0;
   private stretchT = 0;
   private landT = 0;
+  private scratchT = 0;
 
   /** Collision size for play mode (already scaled). */
-  static readonly SCALE = 0.55; // kitten
+  static readonly SCALE = 0.46; // kitten
   static readonly HEIGHT = 0.29 * Cat.SCALE;
   static readonly HALF_LEN = 0.14 * Cat.SCALE;
 
@@ -259,11 +275,11 @@ export class Cat {
 
     // ── skinned geometry ──
     const body = loft(
-      // rump → chest: a round, full rear (no taper to a point), slim waist, deep chest
-      [v(0, 0.168, -0.153), v(0, 0.168, -0.147), v(0, 0.169, -0.136), v(0, 0.17, -0.118), v(0, 0.17, -0.092), v(0, 0.168, -0.065), v(0, 0.166, -0.03), v(0, 0.164, 0.005), v(0, 0.163, 0.04), v(0, 0.178, 0.08), v(0, 0.205, 0.11), v(0, 0.228, 0.135)],
-      [[0.01, 0.01], [0.032, 0.035], [0.048, 0.052], [0.056, 0.059], [0.053, 0.057], [0.046, 0.052], [0.041, 0.047], [0.044, 0.055], [0.049, 0.061], [0.038, 0.046], [0.03, 0.033], [0.026, 0.028]],
-      44,
-      26,
+      // rump → chest: a round, full rear, one smooth back line; the waist tucks in under the belly, not on top
+      [v(0, 0.162, -0.163), v(0, 0.164, -0.158), v(0, 0.167, -0.147), v(0, 0.169, -0.13), v(0, 0.17, -0.1), v(0, 0.17, -0.065), v(0, 0.172, -0.03), v(0, 0.169, 0.005), v(0, 0.165, 0.04), v(0, 0.176, 0.072), v(0, 0.194, 0.098), v(0, 0.214, 0.118), v(0, 0.234, 0.135)],
+      [[0.008, 0.008], [0.027, 0.033], [0.039, 0.048], [0.045, 0.056], [0.05, 0.057], [0.047, 0.053], [0.044, 0.05], [0.045, 0.054], [0.047, 0.056], [0.042, 0.05], [0.035, 0.041], [0.029, 0.032], [0.026, 0.028]],
+      96,
+      40,
       {
         skin: (p) => chain(['hips', 'spine', 'chest', 'neck', 'head'], [-0.1, -0.02, 0.06, 0.105, 0.135], p.z),
         color: (p) => {
@@ -271,7 +287,7 @@ export class Cat {
           const k = smooth(0.03, 0.045, p.y - 0.165) * smooth(0.06, 0.0, Math.abs(p.z + 0.1)) * smooth(-0.03, 0.0, p.x);
           return WHITE.clone().lerp(SMUDGE, k * 0.9);
         },
-        fur: () => 0.0095,
+        fur: () => 0.012,
       },
     );
     const parts: THREE.BufferGeometry[] = [body];
@@ -283,17 +299,18 @@ export class Cat {
         loft(
           [P(`sh${k}`).clone().add(v(-s * 0.008, 0.034, -0.004)), P(`sh${k}`), P(`el${k}`), P(`wr${k}`), P(`pw${k}`)],
           [[0.021, 0.026], [0.019, 0.021], [0.013, 0.014], [0.0105, 0.011], [0.011, 0.011]],
-          20, 14,
+          36, 20,
           { skin: (_p, t) => chain([`sh${k}`, `sh${k}`, `el${k}`, `wr${k}`, `pw${k}`], [0, 0.25, 0.5, 0.78, 1], t), color: () => WHITE, fur: () => 0.004 },
         ),
         ellipsoid(P(`pw${k}`).clone().add(v(0, -0.001, 0.004)), [0.0145, 0.0085, 0.019], `pw${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
         loft(
-          [P(`th${k}`).clone().add(v(-s * 0.008, 0.034, -0.004)), P(`th${k}`), P(`kn${k}`), P(`hk${k}`), P(`ft${k}`)],
-          [[0.024, 0.029], [0.022, 0.025], [0.0135, 0.0145], [0.0105, 0.011], [0.011, 0.011]],
-          20, 14,
-          { skin: (_p, t) => chain([`th${k}`, `th${k}`, `kn${k}`, `hk${k}`, `ft${k}`], [0, 0.25, 0.5, 0.78, 1], t), color: () => WHITE, fur: () => 0.005 },
+          // the haunch: a broad, deep thigh that grows out of the flank and tapers to the knee
+          [P(`th${k}`).clone().add(v(-s * 0.01, 0.03, -0.01)), P(`th${k}`), P(`kn${k}`), P(`hk${k}`), P(`ft${k}`)],
+          [[0.026, 0.04], [0.027, 0.041], [0.0155, 0.018], [0.0105, 0.0115], [0.011, 0.011]],
+          44, 22,
+          { skin: (_p, t) => chain(['hips', `th${k}`, `th${k}`, `kn${k}`, `hk${k}`, `ft${k}`], [0.02, 0.22, 0.36, 0.5, 0.76, 1], t), color: () => WHITE, fur: () => 0.006 },
         ),
-        ellipsoid(P(`ft${k}`).clone().add(v(0, -0.001, 0.004)), [0.0145, 0.0085, 0.02], `ft${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
+        ellipsoid(P(`ft${k}`).clone().add(v(0, -0.001, 0.006)), [0.0145, 0.0085, 0.021], `ft${k}`, { color: () => WHITE, fur: () => 0.003 }, 18),
       );
     }
 
@@ -304,7 +321,7 @@ export class Cat {
       loft(
         [REST.hips[1].clone().add(v(0, 0.008, -0.03)), ...tailPts],
         [[0.02, 0.02], [0.015, 0.015], [0.013, 0.013], [0.013, 0.013], [0.015, 0.015], [0.018, 0.018], [0.021, 0.021], [0.023, 0.023], [0.022, 0.022], [0.017, 0.017], [0.006, 0.006]],
-        50, 14,
+        80, 20,
         {
           skin: (_p, t) => chain(['hips', ...Array.from({ length: 9 }, (_, i) => `tail${i}`)], [0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9], t),
           color: (_p, t) => WHITE.clone().lerp(TIP, smooth(0.25, 0.85, t)),
@@ -436,6 +453,11 @@ export class Cat {
     }
   }
 
+  /** Lying down or asleep: purring territory. */
+  get resting() {
+    return this.state === 'sleep' || this.state === 'roll' || (this.state === 'idle' && !this.airborne && this.idle === 'lie');
+  }
+
   get hitTargets() {
     return [this.base];
   }
@@ -462,6 +484,10 @@ export class Cat {
   /** Front legs forward, rump up: on waking. */
   stretch() {
     this.stretchT = 1.5;
+  }
+  /** Up on his hind legs, front paws raking whatever is in front of him. */
+  scratch() {
+    this.scratchT = 1.05;
   }
   /** Absorb a landing. */
   landed() {
@@ -492,10 +518,11 @@ export class Cat {
     this.think(dt);
     this.stretchT = Math.max(0, this.stretchT - dt);
     this.landT = Math.max(0, this.landT - dt);
+    this.scratchT = Math.max(0, this.scratchT - dt);
 
     const sleeping = s === 'sleep';
     const idling = s === 'idle' && !this.airborne;
-    p.tuck = damp(p.tuck, sleeping ? 1 : s === 'roll' ? 0.4 : 0, 5, dt);
+    p.tuck = damp(p.tuck, sleeping ? 1 : s === 'roll' ? 0.38 : 0, 5, dt);
     p.curl = damp(p.curl, sleeping ? 1 : 0, 3, dt);
     p.roll = damp(p.roll, s === 'roll' ? 1 : 0, 6, dt);
     p.walk = damp(p.walk, s === 'walk' && !this.airborne ? 1 : 0, 8, dt);
@@ -507,6 +534,8 @@ export class Cat {
     p.groom = damp(p.groom, idling && this.idle === 'groom' ? 1 : 0, 5, dt);
     p.stretch = damp(p.stretch, this.stretchT > 0.25 ? 1 : 0, 6, dt);
     p.land = damp(p.land, this.landT > 0 ? 1 : 0, 25, dt);
+    p.scratch = damp(p.scratch, this.scratchT > 0.12 ? 1 : 0, 12, dt);
+    const Sc = p.scratch;
     const S = p.sit;
     const Lp = p.lie;
     const G = p.groom;
@@ -520,7 +549,7 @@ export class Cat {
     const breath = Math.sin(this.breathPhase) * 0.5 + 0.5;
     // pelvis rolls and sways with the hind legs when walking
     const pelvis = Math.sin(this.gait + Math.PI * 0.9) * p.walk;
-    B.hips.rotation.set(-0.28 * p.hiss - 0.6 * S + 0.3 * St, 0.14 * p.curl + pelvis * 0.07, pelvis * 0.05);
+    B.hips.rotation.set(-0.28 * p.hiss - 0.78 * S + 0.3 * St - 0.75 * Sc, 0.14 * p.curl + pelvis * 0.07, pelvis * 0.05);
     B.spine.rotation.set(-0.08 * p.hiss - 0.05 * S, 0.16 * p.curl, 0);
     B.chest.rotation.set(0.34 * p.hiss - 0.05 * p.air + 0.05 * S - 0.15 * St, 0.16 * p.curl, 0);
     B.chest.scale.set(1 + breath * 0.025, 1 + breath * 0.03, 1);
@@ -530,11 +559,11 @@ export class Cat {
     const lookYaw = this.look.x * p.awake * (1 - p.hiss) * (1 - G);
     const bob = Math.sin(this.gait * 2) * 0.03 * p.walk;
     const lick = Math.sin(t * 9) * 0.09 * G;
-    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.4 * S - 0.12 * Lp - 0.3 * St + 0.3 * G + bob, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, 0);
+    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.52 * S + 0.55 * Sc - 0.12 * Lp - 0.3 * St + 0.3 * G + bob, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, 0);
     B.head.rotation.set(0.12 * p.curl + this.look.y * p.awake + 0.15 * p.hiss + 0.15 * S + 0.25 * G + lick, 0.55 * p.curl + lookYaw * 0.6 + 0.35 * G, -0.3 * p.curl + 0.15 * G);
 
     // ── legs ──
-    this.gait += dt * 10 * p.walk * this.gaitScale;
+    this.gait += dt * 10 * p.walk * this.gaitScale * this.gaitDir;
     for (const L of this.legs) {
       const ph = this.gait + L.phase;
       const swing = Math.sin(ph) * 0.5 * p.walk;
@@ -543,26 +572,30 @@ export class Cat {
       const g = L.side > 0 ? G : 0; // he grooms with his right paw
       if (L.front) {
         // folded front legs disappear into the loaf; in the sphinx pose they stay out in front
-        L.a.scale.setScalar(1 - (0.6 * Math.max(0, p.tuck - 0.4)) / 0.6);
-        L.a.rotation.x = 1.35 * p.tuck + swing - 0.85 * p.air + knead + 0.6 * S - 1.1 * Lp - 1.2 * St - 1.75 * g;
-        L.b.rotation.x = -2.45 * p.tuck - 0.6 * lift + 0.3 * p.air - 0.12 * S - 0.45 * Lp + 0.2 * St + 2.25 * g;
-        L.c.rotation.x = 1.0 * p.tuck + 0.45 * lift + 1.5 * Lp + 0.3 * St - 0.5 * g;
+        const fold = 1 - (0.6 * Math.max(0, p.tuck - 0.4)) / 0.6;
+        L.a.scale.set(fold / B.chest.scale.x, fold / B.chest.scale.y, fold); // breathing moves the chest, not the paws
+        // sit: straight, upright legs, paws under the chest. lie (sphinx): elbows tucked back under the chest,
+        // forearms flat along the ground. groom: the elbow flexes the paw forward and up to the mouth.
+        const rake = Math.sin(t * 15 + (L.side > 0 ? 0 : Math.PI)) * Sc; // alternate paws, down the spine
+        L.a.rotation.x = 1.35 * p.tuck + swing - 0.85 * p.air + knead + 0.84 * S + 1.02 * Lp - 1.2 * St - 1.75 * g - 0.55 * Sc + 0.35 * rake;
+        L.b.rotation.x = -2.45 * p.tuck - 0.6 * lift + 0.3 * p.air - 2.55 * Lp + 0.2 * St - 1.35 * g;
+        L.c.rotation.x = 1.0 * p.tuck + 0.45 * lift + 0.95 * Lp + 0.3 * St - 0.5 * g + 0.6 * Sc;
         L.a.rotation.z = -L.side * 0.06 * p.hiss - L.side * 0.25 * p.tuck - 0.22 * g;
         L.d.rotation.x = 0.5 * lift; // paw flicks forward as it swings through
       } else {
         L.a.scale.setScalar(1 - (0.6 * Math.max(0, low - 0.4)) / 0.6);
         // sit: thigh forward along the ground, shin back, foot flat; stretch: legs long behind
         // same stride as the front legs, mirrored: swing, knee folds back as the foot lifts, foot flicks
-        L.a.rotation.x = -0.75 * low - swing + 0.85 * p.air - knead * 0.6 - 0.35 * S + 0.35 * St;
-        L.b.rotation.x = 1.75 * low + 0.6 * lift - 0.5 * p.air + 2.1 * S - 0.2 * St;
-        L.c.rotation.x = -1.15 * low - 0.45 * lift + 0.3 * p.air - 1.3 * S;
+        L.a.rotation.x = -0.75 * low - swing + 0.85 * p.air - knead * 0.6 - 0.5 * S + 0.35 * St + 0.42 * p.hiss + 0.75 * Sc; // scratching: stays planted, body upright // hissing: up on straight legs
+        L.b.rotation.x = 1.75 * low + 0.6 * lift - 0.5 * p.air + 1.6 * S - 0.2 * St - 0.25 * p.hiss;
+        L.c.rotation.x = -1.15 * low - 0.45 * lift + 0.3 * p.air - 1.7 * S + 0.1 * p.hiss;
         L.d.rotation.x = 0.5 * lift + 0.2 * p.air;
         L.a.rotation.z = -L.side * 0.05 * p.hiss - L.side * 0.55 * low - L.side * 0.12 * S;
       }
     }
-    this.rig.position.y = -0.12 - 0.1 * low - 0.065 * S + Math.abs(Math.sin(this.gait)) * 0.006 * p.walk + 0.012 * p.hiss - 0.02 * St - 0.018 * p.land;
-    this.pivot.rotation.z = Math.PI * 0.92 * p.roll;
-    this.pivot.position.y = 0.12 - 0.03 * p.roll;
+    this.rig.position.y = -0.12 - 0.1 * low - 0.099 * S + Math.abs(Math.sin(this.gait)) * 0.006 * p.walk + 0.012 * p.hiss - 0.02 * St - 0.018 * p.land + 0.0075 * Sc;
+    this.pivot.rotation.z = Math.PI * 0.6 * p.roll; // over onto his side, belly to you, paws up and kneading
+    this.pivot.position.y = 0.12 - 0.068 * p.roll;
     this.rig.rotation.y = 0.5 * p.hiss; // turns side-on to look bigger
 
     // ── tail: up awake, wrapped round the feet sitting, along his side asleep or lying, bottle-brush to hiss ──

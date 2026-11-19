@@ -31,6 +31,13 @@ document.addEventListener('click', (e) => {
   const close = t.closest('dialog.info [data-close]');
   if (close) close.closest('dialog')?.close();
   if (t instanceof HTMLDialogElement && t.classList.contains('info')) t.close(); // backdrop click
+  // résumé: a popup preview with PDF / PNG downloads (the links still work without JS)
+  const cv = t.closest<HTMLElement>('[data-resume]');
+  if (cv) {
+    e.preventDefault();
+    const then = cv.dataset.resume as 'pdf' | 'png' | '';
+    void import('./resumeDoc').then((m) => m.openResume(then || undefined));
+  }
   const copy = t.closest<HTMLButtonElement>('[data-copy]');
   if (copy) {
     void navigator.clipboard?.writeText(copy.dataset.copy!).then(() => {

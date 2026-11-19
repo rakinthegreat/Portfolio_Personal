@@ -7,9 +7,13 @@ import type { Materials } from './materials';
 import { holeMaterial } from './screens';
 import { archWindow, consoleScreen } from './textures';
 import { catPolaroid, resumeTexture } from './cards';
+import { SCRIBBLES } from './scribbles';
+import content from '../content.json';
+const SOCIALS = content.socials;
 
 export interface Box { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }
 export interface Prop { id: string; object: THREE.Object3D; anchor: THREE.Vector3 }
+export interface ShelfBook { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; w: number; h: number; d: number; x: number; front: number }
 export interface Knockable { mesh: THREE.Object3D; radius: number; name?: string; roll?: number }
 
 export const DESK = { minX: -1, maxX: 1, minZ: -0.5, maxZ: 0.5 };
@@ -160,9 +164,47 @@ export function buildDesk(M: Materials, aniso: number) {
   laptopScreen.castShadow = false;
   prop('laptop', victus, [-0.02, 0.12, -0.12]);
   collider(-0.02, -0.12, W, D, 0, 0.022); // base: walkable (warm keyboard!)
-  collider(-0.02, -0.245, W, 0.06, 0, 0.24); // lid
+  collider(-0.02, -0.245, W, 0.06, 0, 1.2); // lid: a wall, not a ledge (he can't perch on an open screen)
 
-  // ── left: the old Pavilion server on its crate, a stack of books, a wall shelf ──
+  // ── the glass plaque at the Victus's right corner: their photo, the song, its Spotify code ──
+  const plaque = new THREE.Group();
+  plaque.position.set(0.27, 0, -0.2);
+  plaque.rotation.y = -0.38;
+  const PLQ_W = 0.12;
+  const PLQ_H = 0.2;
+  block(0.15, 0.014, 0.05, new THREE.MeshStandardMaterial({ color: 0x6b4a2e, roughness: 0.6 }), 0, 0, 0, 0.004, false, plaque); // wooden foot
+  const slab = new THREE.Mesh(
+    rbox(PLQ_W + 0.012, PLQ_H + 0.012, 0.006, 0.0015),
+    new THREE.MeshStandardMaterial({ color: 0xdfe8ee, roughness: 0.15, metalness: 0, transparent: true, opacity: 0.55 }),
+  );
+  slab.position.set(0, 0.008 + (PLQ_H + 0.012) / 2, 0);
+  plaque.add(slab);
+  const plaqueFace = new THREE.Mesh(new THREE.PlaneGeometry(PLQ_W, PLQ_H), holeMaterial());
+  plaqueFace.position.set(0, slab.position.y, 0.0032);
+  plaque.add(plaqueFace);
+  // fairy lights draped over it: a thin wire with warm bulbs
+  const wire = new THREE.CatmullRomCurve3([
+    [-0.1, 0.03, 0.03], [-0.075, 0.12, 0.015], [-0.07, 0.2, 0.012], [-0.03, 0.225, 0.01], [0.02, 0.212, 0.012], [0.07, 0.226, 0.012],
+    [0.078, 0.15, 0.014], [0.068, 0.08, 0.016], [0.09, 0.02, 0.03],
+  ].map(([x, y, z]) => new THREE.Vector3(x, y, z)));
+  plaque.add(new THREE.Mesh(new THREE.TubeGeometry(wire, 120, 0.0007, 5, false), new THREE.MeshStandardMaterial({ color: 0xc89b5a, roughness: 0.4, metalness: 0.6 })));
+  const bulbMat = new THREE.MeshStandardMaterial({ color: 0xffd28a, emissive: 0xffb347, emissiveIntensity: 3 });
+  const bulbGeo = new THREE.SphereGeometry(0.0032, 10, 8);
+  for (let i = 1; i < 12; i++) {
+    const b = new THREE.Mesh(bulbGeo, bulbMat);
+    b.position.copy(wire.getPoint(i / 12));
+    plaque.add(b);
+  }
+  const fairyLight = new THREE.PointLight(0xffb560, 0.35, 0.45, 1.6);
+  fairyLight.position.set(0, 0.13, 0.05);
+  plaque.add(fairyLight);
+  root.add(plaque);
+  slab.castShadow = true;
+  plaqueFace.castShadow = plaqueFace.receiveShadow = false;
+  prop('plaque', plaque, [0.27, 0.12, -0.2]);
+  collider(0.27, -0.2, 0.15, 0.06, 0, 1.2); // glass on edge: walk round it, don't stand on it
+
+  // ── left: the old Pavilion server on its crate, a wall shelf ──
   const server = new THREE.Group();
   block(0.38, 0.12, 0.28, M.crate, -0.62, 0, -0.32, 0.004, true, server);
   block(0.34, 0.024, 0.24, M.pavilion, -0.62, 0.12, -0.32, 0.006, true, server);
@@ -170,11 +212,6 @@ export function buildDesk(M: Materials, aniso: number) {
   block(0.012, 0.004, 0.003, M.led, -0.52, 0.13, -0.199, 0.001, false, server);
   root.add(server);
   prop('server', server, [-0.62, 0.2, -0.32]);
-  const bookCols = [0x7a2e22, 0x2f5d4a, 0x24324f, 0xc9a15a, 0x5b3f6e];
-  [0.07, 0.11, 0.08].reduce((y, h, i) => {
-    block(0.2 - i * 0.012, h, 0.15, new THREE.MeshStandardMaterial({ color: bookCols[i], roughness: 0.7 }), -0.29 + i * 0.004, y, -0.35, 0.004);
-    return y + h;
-  }, 0);
   // wall shelf with the Plassey box
   block(0.5, 0.025, 0.2, M.shelf, -0.72, 0.535, -0.45, 0.003);
   for (const x of [-0.93, -0.51]) block(0.02, 0.06, 0.16, M.metal, x, 0.475, -0.47, 0.002, false);
@@ -190,7 +227,7 @@ export function buildDesk(M: Materials, aniso: number) {
   root.add(plassey);
   prop('boardgame', plassey, [-0.86, 0.61, -0.45]);
 
-  // ── right: the shelf unit (parkour!), phone dock + water glass, console + plant ──
+  // ── right: the shelf unit (parkour!), phone dock, calculator, socials sign, console + plant ──
   const hutch = new THREE.Group();
   const HX0 = 0.5;
   const HX1 = 0.98;
@@ -202,7 +239,8 @@ export function buildDesk(M: Materials, aniso: number) {
   block(HX1 - HX0 - 0.02, 0.02, 0.14, M.shelf, (HX0 + HX1) / 2, S2 - 0.02, -0.43, 0.002, true, hutch); // shallow: room to jump up from the shelf below
   block(HX1 - HX0 + 0.02, S2 - 0.02, 0.01, M.shelf, (HX0 + HX1) / 2, 0, -0.497, 0.001, false, hutch);
   root.add(hutch);
-  // a full row of books along the bottom of the shelf unit
+  // a full row of books along the bottom of the shelf unit (he can scratch them to ribbons)
+  const shelfBooks: ShelfBook[] = [];
   {
     const cols = [0x7a2e22, 0x2f5d4a, 0x24324f, 0xc9a15a, 0x5b3f6e, 0x8c5a2b, 0x3d6f73, 0xa8432f, 0x2b2b2b, 0xd6c7a1];
     let x = HX0 + 0.015;
@@ -217,6 +255,7 @@ export function buildDesk(M: Materials, aniso: number) {
       const band = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.7, 0.012), new THREE.MeshStandardMaterial({ color: 0xe8dcc0, roughness: 0.6 }));
       band.position.set(0, h * 0.25, d / 2 + 0.0005);
       book.add(band);
+      shelfBooks.push({ mesh: book, mat, w, h, d, x: x + w / 2, front: -0.495 + d + 0.005 });
       x += w + 0.002;
       i++;
     }
@@ -226,7 +265,7 @@ export function buildDesk(M: Materials, aniso: number) {
   block(0.02, 0.06, 0.1, M.metal, 0.0, S2 - 0.08, -0.45, 0.002, false); // bracket
   // phone in a dock on the lower shelf
   const phone = new THREE.Group();
-  phone.position.set(0.64, S1, -0.3);
+  phone.position.set(0.64, S1, -0.36); // set back toward the wall
   block(0.06, 0.014, 0.05, M.blackPlastic, 0, 0, 0, 0.004, false, phone);
   const phoneBody = new THREE.Group();
   phoneBody.position.set(0, 0.008, 0.004);
@@ -239,18 +278,78 @@ export function buildDesk(M: Materials, aniso: number) {
   phone.add(phoneBody);
   root.add(shadowed(phone));
   phoneScreen.castShadow = false;
-  prop('phone', phone, [0.64, S1 + 0.08, -0.3]);
-  collider(0.64, -0.3, 0.08, 0.06, S1, S1 + 0.17);
-  // HydroSync glass
-  const glass = new THREE.Group();
-  const cup = new THREE.Mesh(new THREE.CylinderGeometry(0.032, 0.027, 0.1, 40, 1, true), M.glass);
-  cup.position.set(0.86, S1 + 0.05, -0.32);
-  const water = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.026, 0.07, 40), M.water);
-  water.position.set(0.86, S1 + 0.036, -0.32);
-  glass.add(cup, water);
-  root.add(glass);
-  prop('glass', glass, [0.86, S1 + 0.05, -0.32]);
-  collider(0.86, -0.32, 0.07, 0.07, S1, S1 + 0.1);
+  prop('phone', phone, [0.64, S1 + 0.08, -0.36]);
+  collider(0.64, -0.36, 0.08, 0.06, S1, S2 - 0.02); // upright in its dock: a wall, not something to stand on
+  // a scientific calculator lying next to the phone, back edge raised a touch; its face is real HTML
+  const calc = new THREE.Group();
+  calc.position.set(0.755, S1 + 0.0075, -0.345);
+  calc.rotation.set(0.1, -0.12, 0);
+  block(0.08, 0.012, 0.155, new THREE.MeshStandardMaterial({ color: 0x3a3d42, roughness: 0.5 }), 0, -0.006, 0, 0.005, false, calc); // fx-991CW, dark grey
+  const CALC_W = 0.07;
+  const calcFace = new THREE.Mesh(new THREE.PlaneGeometry(CALC_W, CALC_W * 2), holeMaterial());
+  calcFace.rotation.x = -Math.PI / 2;
+  calcFace.position.y = 0.0062;
+  calc.add(calcFace);
+  root.add(shadowed(calc));
+  calcFace.castShadow = calcFace.receiveShadow = false;
+  prop('calc', calc, [0.755, S1 + 0.03, -0.345]);
+  collider(0.755, -0.345, 0.08, 0.155, S1, S1 + 0.018); // he can stand on it
+  // the socials, as a row of books on the lower shelf: each spine is a profile, click one to visit it
+  const socials = new THREE.Group();
+  {
+    const palette: Record<string, [string, string]> = {
+      GitHub: ['#24292f', '#ffffff'], LinkedIn: ['#0a66c2', '#ffffff'], 'Twitter / X': ['#111111', '#ffffff'],
+      Instagram: ['grad', '#ffffff'], Facebook: ['#1877f2', '#ffffff'],
+    };
+    let x = 0.83;
+    SOCIALS.forEach((s, i) => {
+      const w = 0.024 + (i % 2) * 0.004;
+      const h = 0.17 - (i % 3) * 0.012;
+      const d = 0.12;
+      const c = document.createElement('canvas');
+      c.width = 160;
+      c.height = Math.round((160 * h) / w);
+      const g = c.getContext('2d')!;
+      const [bg, ink] = palette[s.label] ?? ['#444', '#fff'];
+      if (bg === 'grad') {
+        const gr = g.createLinearGradient(0, c.height, c.width, 0);
+        gr.addColorStop(0, '#f9ce34');
+        gr.addColorStop(0.5, '#ee2a7b');
+        gr.addColorStop(1, '#6228d7');
+        g.fillStyle = gr;
+      } else g.fillStyle = bg;
+      g.fillRect(0, 0, c.width, c.height);
+      g.fillStyle = 'rgba(255,255,255,0.18)'; // head and tail bands
+      g.fillRect(0, 40, c.width, 10);
+      g.fillRect(0, c.height - 50, c.width, 10);
+      g.save();
+      g.translate(c.width / 2, c.height / 2);
+      g.rotate(-Math.PI / 2);
+      g.fillStyle = ink;
+      g.textAlign = 'center';
+      g.textBaseline = 'middle';
+      g.font = `700 ${Math.round(c.width * 0.42)}px 'Space Grotesk', system-ui, sans-serif`;
+      g.fillText(s.label === 'Twitter / X' ? 'X' : s.label, 0, -c.width * 0.08);
+      g.font = `400 ${Math.round(c.width * 0.2)}px 'Space Mono', monospace`;
+      g.globalAlpha = 0.85;
+      g.fillText(s.handle, 0, c.width * 0.27);
+      g.restore();
+      const tex = new THREE.CanvasTexture(c);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.anisotropy = aniso;
+      const cover = new THREE.MeshStandardMaterial({ color: bg === 'grad' ? 0xc1357a : new THREE.Color(bg).getHex(), roughness: 0.7 });
+      const book = block(w, h, d, cover, x + w / 2, S1, -0.36, 0.002, false, socials);
+      const spine = new THREE.Mesh(new THREE.PlaneGeometry(w * 0.98, h * 0.98), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.65 }));
+      spine.position.z = d / 2 + 0.0006;
+      book.add(markText(spine));
+      book.userData.propId = `social:${s.label}`;
+      book.userData.url = s.url;
+      x += w + 0.002;
+    });
+    root.add(socials);
+  }
+  prop('socials', socials, [0.89, S1 + 0.1, -0.36]);
+  collider(0.895, -0.36, 0.14, 0.12, S1, S1 + 0.17);
   // console + plant on the top shelf
   const gb = new THREE.Group();
   gb.position.set(0.63, S2, -0.43);
@@ -269,17 +368,21 @@ export function buildDesk(M: Materials, aniso: number) {
   root.add(shadowed(gb));
   prop('console', gb, [0.63, S2 + 0.02, -0.43]);
   collider(0.63, -0.43, 0.15, 0.1, S2, S2 + 0.018);
-  const pot2 = block(0.08, 0.08, 0.08, M.pot, 0.9, S2, -0.44, 0.012);
-  void pot2;
-  for (let i = 0; i < 9; i++) {
-    const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), M.plant);
-    leaf.scale.set(0.4, 1.3, 0.2);
-    leaf.position.set(0.9 + Math.cos(i * 1.3) * 0.02, S2 + 0.12 + (i % 3) * 0.015, -0.43 + Math.sin(i * 1.3) * 0.02);
-    leaf.rotation.set(Math.sin(i) * 0.7, i * 0.8, Math.cos(i) * 0.7);
-    leaf.castShadow = true;
-    root.add(leaf);
+  // the potted plant where the plank meets the top shelf: he can shove it off (it breaks where it lands)
+  const plantPot = new THREE.Group(); // origin = the knockable's centre, 0.045 above the shelf
+  {
+    const body = new THREE.Mesh(rbox(0.08, 0.08, 0.08, 0.012), M.pot);
+    body.position.y = -0.005;
+    body.name = 'potbody';
+    plantPot.add(body);
+    for (let i = 0; i < 9; i++) {
+      const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.035, 12, 8), M.plant);
+      leaf.scale.set(0.4, 1.3, 0.2);
+      leaf.position.set(Math.cos(i * 1.3) * 0.02, 0.075 + (i % 3) * 0.015, 0.01 + Math.sin(i * 1.3) * 0.02);
+      leaf.rotation.set(Math.sin(i) * 0.7, i * 0.8, Math.cos(i) * 0.7);
+      plantPot.add(leaf);
+    }
   }
-  collider(0.9, -0.43, 0.1, 0.1, S2, S2 + 0.2);
 
   // ── pinboard on the wall: About, Academics, Tech Stack, Experiences, and a polaroid of the boss ──
   const pin = new THREE.Group();
@@ -318,7 +421,7 @@ export function buildDesk(M: Materials, aniso: number) {
 
   // ── printer on the desk, with the résumé ready to come out ──
   const printer = new THREE.Group();
-  printer.position.set(0.74, 0, 0.02); // right in front of the shelf books: desk → printer → lower shelf
+  printer.position.set(0.74, 0, 0.08); // right in front of the shelf books: desk → printer → lower shelf
   printer.rotation.y = 0;
   block(0.25, 0.085, 0.19, M.whitePlastic, 0, 0, 0, 0.012, false, printer);
   block(0.2, 0.004, 0.1, M.blackPlastic, 0, 0.085, -0.03, 0.001, false, printer); // top lid seam
@@ -333,8 +436,8 @@ export function buildDesk(M: Materials, aniso: number) {
   paper.castShadow = true;
   printer.add(markText(paper));
   root.add(shadowed(printer));
-  prop('printer', printer, [0.74, 0.06, 0.02]);
-  collider(0.74, 0.02, 0.25, 0.19, 0, 0.088);
+  prop('printer', printer, [0.74, 0.06, 0.08]);
+  collider(0.74, 0.08, 0.25, 0.19, 0, 0.088);
   collider(0.74, 0.17, 0.2, 0.12, 0, 0.016); // output tray
 
   // ── desk lamp, notebook, mug ──
@@ -352,8 +455,58 @@ export function buildDesk(M: Materials, aniso: number) {
   lampLight.target.position.set(0.35, 0, 0.05);
   const lampGlow = new THREE.PointLight(0xffa860, 0, 3.2, 1.3);
   lampGlow.position.set(0.18, 0.24, 0.05);
+  // the beam: a soft additive cone from the shade to the desk, brightest near the bulb, edges feathered,
+  // dust motes drifting through it (shown only when the lamp is on)
+  const beamFrom = lampLight.position.clone();
+  const beamTo = lampLight.target.position.clone();
+  const beamLen = beamFrom.distanceTo(beamTo);
+  const beamGeo = new THREE.CylinderGeometry(0.012, Math.tan(0.62) * beamLen, beamLen, 48, 24, true);
+  beamGeo.translate(0, -beamLen / 2, 0); // apex at the origin, opening down -y
+  const lampBeam = new THREE.Mesh(
+    beamGeo,
+    new THREE.ShaderMaterial({
+      uniforms: { uTime: { value: 0 }, uLen: { value: beamLen }, uStrength: { value: 0 }, uColor: { value: new THREE.Color(0xffc98a) } },
+      vertexShader: `
+        varying float vH; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+        uniform float uLen;
+        void main() {
+          vH = -position.y / uLen;
+          vec4 w = modelMatrix * vec4(position, 1.0);
+          vW = w.xyz;
+          vN = normalize(mat3(modelMatrix) * normal);
+          vV = normalize(cameraPosition - w.xyz);
+          gl_Position = projectionMatrix * viewMatrix * w;
+        }`,
+      fragmentShader: `
+        varying float vH; varying vec3 vN; varying vec3 vV; varying vec3 vW;
+        uniform float uTime; uniform float uStrength; uniform vec3 uColor;
+        float h(vec3 p) { p = fract(p * 0.3183 + 0.1); p *= 17.0; return fract(p.x * p.y * p.z * (p.x + p.y + p.z)); }
+        float n3(vec3 x) {
+          vec3 i = floor(x), f = fract(x); f = f * f * (3.0 - 2.0 * f);
+          return mix(mix(mix(h(i), h(i + vec3(1,0,0)), f.x), mix(h(i + vec3(0,1,0)), h(i + vec3(1,1,0)), f.x), f.y),
+                     mix(mix(h(i + vec3(0,0,1)), h(i + vec3(1,0,1)), f.x), mix(h(i + vec3(0,1,1)), h(i + vec3(1,1,1)), f.x), f.y), f.z);
+        }
+        void main() {
+          float edge = pow(abs(dot(normalize(vN), normalize(vV))), 1.6);   // feathered silhouette
+          float fall = (1.0 - smoothstep(0.0, 1.0, vH)) * smoothstep(0.0, 0.06, vH); // bright near the bulb, gone at the desk
+          float haze = 0.75 + 0.5 * n3(vW * 9.0 + vec3(0.0, uTime * 0.05, uTime * 0.03));
+          float motes = smoothstep(0.86, 0.97, n3(vW * 70.0 + vec3(uTime * 0.12, -uTime * 0.08, 0.0))) * 1.6;
+          float a = edge * fall * (haze + motes) * uStrength;
+          gl_FragColor = vec4(uColor * a, a);
+        }`,
+      transparent: true,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide,
+    }),
+  );
+  lampBeam.position.copy(beamFrom);
+  lampBeam.quaternion.setFromUnitVectors(new THREE.Vector3(0, -1, 0), beamTo.clone().sub(beamFrom).normalize());
+  lampBeam.renderOrder = 10;
+  lampBeam.castShadow = lampBeam.receiveShadow = false;
   lamp.add(lb, arm1, arm2, shade, lampLight, lampLight.target, lampGlow);
   root.add(shadowed(lamp));
+  lamp.add(lampBeam); // after shadowed(): the beam casts no shadow
   collider(-0.86, 0.18, 0.13, 0.13, 0, 0.016);
   collider(-0.86, 0.18, 0.03, 0.03, 0, 0.3);
 
@@ -362,19 +515,100 @@ export function buildDesk(M: Materials, aniso: number) {
   nb.rotation.y = 0.18;
   block(0.3, 0.01, 0.21, M.paper, 0, 0, 0, 0.003, false, nb);
   block(0.302, 0.003, 0.212, new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }), 0, -0.002, 0, 0.002, false, nb);
+  // an open exercise book: ruled pages, a gutter, and a pen sketch on each page (traced to vectors)
+  {
+    const cw = 2400;
+    const ch = Math.round((cw * 0.206) / 0.296);
+    const c = document.createElement('canvas');
+    c.width = cw;
+    c.height = ch;
+    const g = c.getContext('2d')!;
+    g.fillStyle = '#f6f1e6';
+    g.fillRect(0, 0, cw, ch);
+    // faint blue rules and a red margin on each page
+    g.strokeStyle = 'rgba(70, 110, 170, 0.28)';
+    g.lineWidth = 2;
+    for (let y = 140; y < ch - 30; y += 52) {
+      g.beginPath();
+      g.moveTo(24, y);
+      g.lineTo(cw - 24, y);
+      g.stroke();
+    }
+    g.strokeStyle = 'rgba(200, 70, 70, 0.4)';
+    for (const x of [150, cw / 2 + 150]) {
+      g.beginPath();
+      g.moveTo(x, 0);
+      g.lineTo(x, ch);
+      g.stroke();
+    }
+    // the gutter: a soft shadow down the middle
+    const gut = g.createLinearGradient(cw / 2 - 60, 0, cw / 2 + 60, 0);
+    gut.addColorStop(0, 'rgba(0,0,0,0)');
+    gut.addColorStop(0.5, 'rgba(60,40,20,0.28)');
+    gut.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = gut;
+    g.fillRect(cw / 2 - 60, 0, 120, ch);
+    // the sketches, in pen
+    // near-black ink, thickened: fill the traced outlines, then stroke them so every line gets bolder
+    g.fillStyle = '#060608';
+    g.strokeStyle = '#060608';
+    g.lineJoin = 'round';
+    g.lineCap = 'round';
+    SCRIBBLES.forEach((s, i) => {
+      const box = [cw / 2 - 260, ch - 200];
+      const k = Math.min(box[0] / s.w, box[1] / s.h);
+      g.save();
+      g.translate(i * (cw / 2) + 200 + (box[0] - s.w * k) / 2, 100 + (box[1] - s.h * k) / 2);
+      g.rotate(i ? 0.02 : -0.04);
+      g.scale(k, k);
+      const path = new Path2D(s.d);
+      g.fill(path, 'evenodd');
+      g.lineWidth = 5.5; // in sketch pixels: adds ~2.75 px of ink either side of every line
+      g.stroke(path);
+      g.restore();
+    });
+    const tex = new THREE.CanvasTexture(c);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = aniso;
+    const page = new THREE.Mesh(new THREE.PlaneGeometry(0.296, 0.206), new THREE.MeshStandardMaterial({ map: tex, roughness: 0.92 }));
+    page.rotation.x = -Math.PI / 2;
+    page.position.y = 0.0102;
+    page.receiveShadow = true;
+    nb.add(markText(page)); // pen lines stay crisp under the paint filter
+  }
   root.add(nb);
   collider(-0.44, 0.3, 0.32, 0.24, 0, 0.01);
   // the mug: knockable in play mode, clickable (it wobbles and clinks) on the tour
   const mug = new THREE.Group();
-  const mugBody = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.038, 0.095, 40), M.ceramic);
+  // open-topped (a capped cylinder hid the coffee), with a rim, an inside wall and a base
+  const mugBody = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.038, 0.095, 40, 1, true), M.ceramic);
   mugBody.position.y = 0.0025;
-  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.025, 0.007, 10, 24), M.ceramic);
-  handle.position.set(0.043, 0.005, 0);
-  handle.rotation.y = Math.PI / 2;
-  const coffee = new THREE.Mesh(new THREE.CircleGeometry(0.036, 32), new THREE.MeshStandardMaterial({ color: 0x3b2316, roughness: 0.15 }));
+  const mugInside = new THREE.Mesh(new THREE.CylinderGeometry(0.0365, 0.0345, 0.09, 40, 1, true), new THREE.MeshStandardMaterial({ color: 0xe6e1d8, roughness: 0.25, side: THREE.BackSide }));
+  mugInside.position.y = 0.005;
+  const mugBase = new THREE.Mesh(new THREE.CircleGeometry(0.038, 40), M.ceramic);
+  mugBase.rotation.x = Math.PI / 2;
+  mugBase.position.y = -0.045;
+  // the inside floor faces up (the outside base faces down): empty, the mug still has a bottom
+  const mugFloor = new THREE.Mesh(new THREE.CircleGeometry(0.0346, 40), mugInside.material);
+  mugFloor.material = new THREE.MeshStandardMaterial({ color: 0xe6e1d8, roughness: 0.25 });
+  mugFloor.rotation.x = -Math.PI / 2;
+  mugFloor.position.y = -0.0398;
+  const mugRim = new THREE.Mesh(new THREE.TorusGeometry(0.0383, 0.0018, 8, 48), M.ceramic);
+  mugRim.rotation.x = Math.PI / 2;
+  mugRim.position.y = 0.05;
+  // the handle: a D-shaped loop standing out from the side, in the plane of the mug's axis
+  const handle = new THREE.Mesh(new THREE.TorusGeometry(0.022, 0.0062, 12, 28, Math.PI), M.ceramic);
+  handle.rotation.z = -Math.PI / 2; // the half-ring opens toward the mug
+  handle.scale.set(1.25, 1, 1);
+  handle.position.set(0.039, 0.004, 0);
+  const coffee = new THREE.Mesh(new THREE.CircleGeometry(0.0362, 40), new THREE.MeshStandardMaterial({ color: 0x3a2214, roughness: 0.08, metalness: 0.05 }));
   coffee.rotation.x = -Math.PI / 2;
-  coffee.position.y = 0.04;
-  mug.add(mugBody, handle, coffee);
+  coffee.position.y = 0.036; // a finger below the rim
+  const crema = new THREE.Mesh(new THREE.RingGeometry(0.03, 0.0362, 40), new THREE.MeshStandardMaterial({ color: 0x8a5a34, roughness: 0.3 }));
+  crema.position.z = 0.0003;
+  coffee.add(crema);
+  coffee.name = 'coffee';
+  mug.add(mugBody, mugInside, mugBase, mugFloor, mugRim, handle, coffee);
   shadowed(mug);
 
   // ── things a cat would knock off a desk ──
@@ -384,8 +618,44 @@ export function buildDesk(M: Materials, aniso: number) {
     root.add(mesh);
     knockables.push({ mesh, radius, name, roll });
   };
-  knock(mug, 0.045, 0.3, 0, 0.26, 'mug', 0.25);
+  knock(mug, 0.045, 0.3, 0, 0.26, 'mug', 0);
   prop('mug', mug, [0.3, 0.05, 0.26]);
+  // a transparent mouse (smoked shell, the insides on show), right of the Victus and in front: knock it
+  // off the desk and it comes apart on the floor
+  const mouse = new THREE.Group();
+  mouse.rotation.y = -0.22;
+  {
+    const r = 0.03; // the knockable's centre sits r above the desk
+    const base = new THREE.Mesh(new THREE.CylinderGeometry(1, 1, 0.005, 48), new THREE.MeshStandardMaterial({ color: 0x3b3e44, roughness: 0.6 }));
+    base.scale.set(0.0295, 1, 0.0555); // the same oval as the shell's rim
+    base.position.y = -r + 0.0025;
+    base.name = 'base';
+    const pcb = new THREE.Mesh(rbox(0.04, 0.006, 0.06, 0.001), new THREE.MeshStandardMaterial({ color: 0x2a2c30, roughness: 0.5 }));
+    pcb.position.set(0, -r + 0.008, 0.008);
+    pcb.name = 'pcb';
+    const strip = new THREE.Mesh(rbox(0.012, 0.004, 0.04, 0.0015), new THREE.MeshStandardMaterial({ color: 0xd9dadc, roughness: 0.25, metalness: 0.8 }));
+    strip.position.set(0, -r + 0.013, 0.026);
+    strip.name = 'strip';
+    const wheel = new THREE.Mesh(new THREE.CylinderGeometry(0.0062, 0.0062, 0.007, 20), new THREE.MeshStandardMaterial({ color: 0xb8b2a6, roughness: 0.35, metalness: 0.85 }));
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(0, -r + 0.017, 0.032);
+    wheel.name = 'wheel';
+    const dongle = new THREE.Mesh(rbox(0.013, 0.005, 0.02, 0.001), new THREE.MeshStandardMaterial({ color: 0xc9c9c9, roughness: 0.3, metalness: 0.9 }));
+    dongle.position.set(0, -r + 0.009, -0.02);
+    dongle.name = 'dongle';
+    const shell = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 40, 16, 0, Math.PI * 2, 0, Math.PI / 2),
+      new THREE.MeshStandardMaterial({ color: 0x9da3aa, roughness: 0.06, metalness: 0.1, transparent: true, opacity: 0.3, depthWrite: false }),
+    );
+    shell.scale.set(0.03, 0.024, 0.056);
+    shell.position.y = -r + 0.004;
+    shell.name = 'shell';
+    shell.renderOrder = 2;
+    mouse.add(base, pcb, strip, wheel, dongle, shell);
+  }
+  knock(mouse, 0.03, 0.25, 0, 0.12, 'mouse', 0);
+  knock(plantPot, 0.045, 0.9, S2, -0.44, 'pot', 0);
+  shadowed(plantPot);
   const pen = new THREE.Mesh(new THREE.CapsuleGeometry(0.0045, 0.13, 6, 16), new THREE.MeshStandardMaterial({ color: 0x1a3d8f, roughness: 0.3 }));
   pen.rotation.set(0, 0.5, Math.PI / 2);
   knock(pen, 0.006, -0.36, 0.01, 0.33);
@@ -395,7 +665,7 @@ export function buildDesk(M: Materials, aniso: number) {
   knock(new THREE.Mesh(rbox(0.05, 0.012, 0.02, 0.003), M.metal), 0.008, 0.28, 0, 0.0);
   knock(new THREE.Mesh(rbox(0.045, 0.016, 0.025, 0.005), new THREE.MeshStandardMaterial({ color: 0xf2a2b0, roughness: 0.8 })), 0.009, -0.7, 0.145, -0.25);
 
-  return { root, props, boxes, knockables, basketSpot, lampLight, lampGlow, keyMat, pinCards, PIN_W, laptopScreen, SCR_W, phoneScreen, PH_W, paper, printer, windowMesh: win };
+  return { root, props, boxes, knockables, shelfBooks, basketSpot, lampLight, lampGlow, lampBeam, fairyLight, keyMat, pinCards, PIN_W, laptopScreen, SCR_W, phoneScreen, PH_W, calcFace, CALC_W, plaqueFace, PLQ_W, paper, printer, windowMesh: win };
 }
 
 function rod(a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material) {

@@ -1,5 +1,6 @@
-// "Punch It Out": a tiny 16-bit boxing game on the desk's handheld console, made for Arshia.
-// Pads pop up left, right or high; punch them to bring the stress meter down. No way to lose.
+// "Punch It Out": a tiny 16-bit boxing game on the desk's handheld console.
+// Pads pop up left, right or high; punch them to bring the stress meter down before the bell.
+// Stress creeps up on its own, misses and wild swings add to it, and red ✕ pads must be left alone.
 import { sfx } from './sound';
 
 const W = 160;
@@ -23,13 +24,13 @@ function build() {
   d.innerHTML = `
     <div class="arcade-shell">
       <canvas width="${W}" height="${H}" aria-label="Punch It Out, a tiny boxing game"></canvas>
-      <p class="arcade-label mono">PUNCH IT OUT · for Arshia</p>
+      <p class="arcade-label mono">PUNCH IT OUT</p>
       <div class="arcade-pad">
         <button type="button" data-dir="left" aria-label="Punch left">◀</button>
         <button type="button" data-dir="up" aria-label="Punch up">▲</button>
         <button type="button" data-dir="right" aria-label="Punch right">▶</button>
       </div>
-      <p class="arcade-help mono">Arrow keys or A W D · Esc to close</p>
+      <p class="arcade-help mono">Arrows or A W D · skip the ✕ pads · 45 s · Esc to close</p>
       <button class="arcade-close" type="button" data-close aria-label="Close game">✕</button>
     </div>`;
   document.body.append(d);
@@ -40,7 +41,10 @@ function build() {
   let stress = 100;
   let streak = 0;
   let best = 0;
-  let pad: { dir: Dir; t: number; life: number } | null = null;
+  let pad: { dir: Dir; t: number; life: number; decoy: boolean } | null = null;
+  const ROUND = 45;
+  let clock = ROUND;
+  let lost = false;
   let punch: { dir: Dir; t: number; hit: boolean } | null = null;
   let pops: { x: number; y: number; t: number; text: string }[] = [];
   let wait = 0.6;
@@ -51,6 +55,8 @@ function build() {
   const reset = () => {
     stress = 100;
     streak = 0;
+    clock = ROUND;
+    lost = false;
     pad = null;
     punch = null;
     pops = [];
@@ -59,28 +65,41 @@ function build() {
   };
 
   const hit = (dir: Dir) => {
-    if (won) {
+    if (won || lost) {
       reset();
       return;
     }
-    const ok = !!pad && pad.dir === dir;
+    const ok = !!pad && pad.dir === dir && !pad.decoy;
     punch = { dir, t: 0.18, hit: ok };
+    if (pad && pad.dir === dir && pad.decoy) {
+      // punched a ✕ pad: that hurts
+      sfx.thud();
+      streak = 0;
+      stress = Math.min(100, stress + 12);
+      const [x, y] = PAD_POS[dir];
+      pops.push({ x, y: y - 10, t: 0.6, text: 'OUCH' });
+      pad = null;
+      wait = 0.35;
+      return;
+    }
     if (ok) {
       sfx.punch();
       streak++;
       best = Math.max(best, streak);
-      stress = Math.max(0, stress - (6 + Math.min(streak, 10) * 0.4));
+      stress = Math.max(0, stress - (3.6 + Math.min(streak, 12) * 0.3));
       const [x, y] = PAD_POS[dir];
       pops.push({ x, y: y - 10, t: 0.6, text: streak > 4 && streak % 5 === 0 ? 'NICE!' : 'POW' });
       pad = null;
-      wait = 0.25 + Math.random() * 0.35;
+      wait = 0.12 + Math.random() * 0.25;
       if (stress <= 0) {
         won = true;
         sfx.win();
       }
     } else {
+      // a wild swing (wrong side, or at nothing) costs you
       sfx.click();
       streak = 0;
+      stress = Math.min(100, stress + (pad ? 5 : 3));
     }
   };
 
@@ -90,7 +109,7 @@ function build() {
     if (dir && !e.repeat) {
       e.preventDefault();
       hit(dir);
-    } else if ((e.key === ' ' || e.key === 'Enter') && won) {
+    } else if ((e.key === ' ' || e.key === 'Enter') && (won || lost)) {
       e.preventDefault();
       reset();
     }
@@ -160,14 +179,21 @@ function build() {
     rect(48, 4, 104, 9, C.dark);
     rect(50, 6, Math.max(0, stress), 5, stress > 50 ? C.glove : stress > 20 ? C.pad : C.mid);
     text(`x${streak}`, 148, 24, C.mid);
+    text(`${Math.ceil(clock)}s`, 14, 24, clock < 10 ? C.glove : C.mid);
     // pad
     if (pad) {
       const [x, y] = PAD_POS[pad.dir];
       const k = pad.t / pad.life;
       const s = k > 0.85 ? Math.round((1 - k) / 0.15 * 12) : 12; // pop-in
       rect(x - s / 2 - 1, y - s / 2 - 1, s + 2, s + 2, C.dark);
-      rect(x - s / 2, y - s / 2, s, s, C.pad);
-      rect(x - 3, y - 3, 6, 6, '#f0d6b0');
+      rect(x - s / 2, y - s / 2, s, s, pad.decoy ? C.dark : C.pad);
+      if (pad.decoy) {
+        // a ✕: leave it alone
+        for (let i = -3; i <= 3; i++) {
+          rect(x + i, y + i, 2, 2, C.glove);
+          rect(x + i, y - i, 2, 2, C.glove);
+        }
+      } else rect(x - 3, y - 3, 6, 6, '#f0d6b0');
       // shrinking timer ring
       rect(x - 8, y + 10, Math.round(16 * k), 2, C.dark);
     }
@@ -180,23 +206,42 @@ function build() {
       text(`best combo x${best}`, 80, 74, C.mid);
       text('press any punch to replay', 80, 86, C.mid, 7);
     }
+    if (lost) {
+      rect(14, 40, 132, 56, C.dark);
+      rect(16, 42, 128, 52, C.bg);
+      text('DING! TIME', 80, 60, C.glove, 12);
+      text(`stress left ${Math.round(stress)}%`, 80, 74, C.mid);
+      text('press any punch to retry', 80, 86, C.mid, 7);
+    }
   }
 
   function frame(now: number) {
     const dt = Math.min(0.05, (now - last) / 1000 || 0);
     last = now;
     const t = now / 1000;
-    if (!won) {
+    if (!won && !lost) {
+      // the clock runs, and stress creeps back up on its own
+      clock -= dt;
+      stress = Math.min(100, stress + dt * 1.6);
+      if (clock <= 0) {
+        clock = 0;
+        lost = true;
+        sfx.thud();
+      }
       if (pad) {
         pad.t -= dt;
         if (pad.t <= 0) {
+          if (!pad.decoy) {
+            streak = 0; // missed a real pad
+            stress = Math.min(100, stress + 6);
+          }
           pad = null;
-          streak = 0;
-          wait = 0.3;
+          wait = 0.2;
         }
       } else if ((wait -= dt) <= 0) {
-        const life = Math.max(0.6, 1.25 - streak * 0.03);
-        pad = { dir: DIRS[Math.floor(Math.random() * 3)], t: life, life };
+        const life = Math.max(0.42, 0.95 - streak * 0.035);
+        const decoy = streak > 2 && Math.random() < 0.22;
+        pad = { dir: DIRS[Math.floor(Math.random() * 3)], t: decoy ? life * 0.9 : life, life, decoy };
       }
     }
     if (punch && (punch.t -= dt) <= 0) punch = null;

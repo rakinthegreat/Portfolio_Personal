@@ -7,6 +7,21 @@ import content from '../content.json';
 
 type Project = (typeof content.projects)[number] & { previewUrl?: string; mobile?: boolean; icon?: string; iconUrl?: string; color?: string; downloadUrl?: string };
 const projects = content.projects as Project[];
+/** Brand-coloured app icons for the socials (used by the phone dock and the sign on the shelf). */
+export const SOCIAL_GLYPH: Record<string, [string, string]> = {
+  GitHub: ['GH', '#24292f'],
+  LinkedIn: ['in', '#0a66c2'],
+  'Twitter / X': ['𝕏', '#000000'],
+  Instagram: ['◎', 'linear-gradient(45deg, #f9ce34, #ee2a7b 50%, #6228d7)'],
+  Facebook: ['f', '#1877f2'],
+};
+export const socialIcons = (labels = false) =>
+  content.socials
+    .map((s) => {
+      const [g, bg] = SOCIAL_GLYPH[s.label] ?? [s.label[0], '#333'];
+      return `<a class="soc" href="${s.url}" target="_blank" rel="noopener me" aria-label="${s.label}"><i style="background:${bg}">${g}</i>${labels ? `<span><b>${s.label}</b>${s.handle}</span>` : ''}</a>`;
+    })
+    .join('');
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** CSS px ↔ metres: the CSS scene is scaled up so the browser's 3D maths stays precise. */
@@ -63,8 +78,8 @@ export class Screens {
     const web = projects.filter((p) => p.previewUrl && !p.mobile);
     el.innerHTML = `
       <div class="browser-tabs" role="tablist">
-        <button class="browser-tab" role="tab" aria-selected="true" data-tab="">Projects · Rakin</button>
-        ${web.map((p) => `<button class="browser-tab" role="tab" aria-selected="false" data-tab="${esc(p.name)}">${esc(p.name)}</button>`).join('')}
+        <button class="browser-tab" role="tab" aria-selected="true" data-tab=""><kbd class="tk">1</kbd>Projects · Rakin</button>
+        ${web.map((p, i) => `<button class="browser-tab" role="tab" aria-selected="false" data-tab="${esc(p.name)}"><kbd class="tk">${i + 2}</kbd>${esc(p.name)}</button>`).join('')}
       </div>
       <div class="browser-bar"><button class="browser-nav" type="button" data-back aria-label="Back to Projects">◀</button><button class="browser-nav" type="button" data-reload aria-label="Reload">⟳</button><span class="browser-url" data-url>rakin-talukder.me/projects</span></div>
       <div class="browser-body" data-body></div>`;
@@ -171,12 +186,12 @@ export class Screens {
       launcher.innerHTML = `<h2 data-big-clock></h2>${projects
         .filter((p) => p.mobile)
         .map(
-          (p) =>
-            `<button class="app" type="button" data-app="${esc(p.name)}"><i style="background:${p.color ?? '#333'}">${esc(p.icon ?? p.name[0])}${
+          (p, n) =>
+            `<button class="app" type="button" data-app="${esc(p.name)}"><kbd class="ak">${n + 1}</kbd><i style="background:${p.color ?? '#333'}">${esc(p.icon ?? p.name[0])}${
               p.iconUrl ? `<img src="${esc(p.iconUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer" onerror="this.remove()">` : ''
             }</i>${esc(p.name)}</button>`,
         )
-        .join('')}`;
+        .join('')}<nav class="dock" aria-label="Social">${socialIcons()}</nav>`;
       launcher.addEventListener('click', (e) => {
         const a = (e.target as HTMLElement).closest<HTMLElement>('[data-app]');
         if (a) this.openApp(a.dataset.app!);
@@ -200,6 +215,29 @@ export class Screens {
       if (all.length > 2) all[0].remove();
     }
     f.hidden = false;
+  }
+
+  /** Keyboard: tab n on the laptop (0 = the Projects home page). */
+  tabAt(i: number) {
+    const web = projects.filter((p) => p.previewUrl && !p.mobile);
+    if (i === 0) this.openTab(null);
+    else if (web[i - 1]) this.openTab(web[i - 1].name);
+  }
+  /** Keyboard: app n on the phone (-1 = home screen). */
+  appAt(i: number) {
+    const apps = projects.filter((p) => p.mobile && p.previewUrl);
+    if (i < 0) this.openApp(null);
+    else if (apps[i]) this.openApp(apps[i].name);
+  }
+  reload() {
+    const f = this.laptopBody.querySelector<HTMLIFrameElement>('iframe:not([hidden])');
+    if (f) f.src = f.src;
+  }
+  get tabCount() {
+    return projects.filter((p) => p.previewUrl && !p.mobile).length + 1;
+  }
+  get appCount() {
+    return projects.filter((p) => p.mobile && p.previewUrl).length;
   }
 
   /** One step back: an open demo goes to its home screen. Returns false when already home. */
