@@ -16,7 +16,7 @@ const KEY_SPOTS: [number, number, number][] = [
   [-0.62, -0.3, 0.144], // on the Pavilion
   [-0.86, -0.45, 0.606], // on the Plassey box, up on the wall shelf
   [-0.66, -0.45, 0.56], // wall shelf
-  [0.74, -0.24, 0.28], // lower shelf, above the printer
+  [0.74, -0.16, 0.28], // lower shelf, on the walkway in front of the calculator
   [0.78, -0.43, 0.58], // top shelf
   [0.02, -0.44, 0.58], // halfway along the plank, under the pinboard
 ];
@@ -30,6 +30,14 @@ const H = Cat.HEIGHT;
 const FRONT = 0.12 * K;
 const BACK = 0.11 * K;
 const NOSE = 0.165 * K; // nose tip (whiskers spread from here)
+// the parts that stick out past the body: the raised tail (~13.5 cm back, 10-18 cm up) and the whisker
+// fans (~4.8 cm either side of the muzzle, 6-11 cm up). Measured off the posed model.
+const TAIL_SAMPLES: [number, number, number, number, number][] = [
+  // [forward, sideways, radius, from height, to height]
+  [-0.118, 0, 0.018, 0.09, 0.19],
+  [0.075, 0.03, 0.016, 0.06, 0.115],
+  [0.075, -0.03, 0.016, 0.06, 0.115],
+];
 const FLOOR = -0.76;
 const STORE = 'desk-progress-v2';
 
@@ -48,11 +56,45 @@ const save = (s: Saved) => {
 interface KeyCap { mesh: THREE.Group; base: THREE.Vector3; got: boolean; anim: number }
 interface Scratched { b: ShelfBook; dmg: number; canvas?: HTMLCanvasElement; tex?: THREE.CanvasTexture; ruined: boolean }
 interface Heart { s: THREE.Sprite; t: number; vx: number; ph: number }
-interface Bit { m: THREE.Object3D; v: THREE.Vector3; w: THREE.Vector3; rest: boolean; h: number; floor: number }
-interface Body { k: Knockable; vel: THREE.Vector3; fallen: boolean; resting: boolean; broken?: boolean; tip?: { axis: THREE.Vector3; a: number; v: number }; spilled?: boolean }
+interface Bit { m: THREE.Object3D; v: THREE.Vector3; w: THREE.Vector3; rest: boolean; h: number; floor: number; flat?: THREE.Vector3; mess?: boolean }
+/** How a loose object lies: a pen-like thing only needs its long axis level (it rolls about it); anything
+ *  else settles back onto the face it started on (local `up`, either way up). */
+type Lie = { long: THREE.Vector3; thick: number } | { up: THREE.Vector3 };
+interface Body { k: Knockable; vel: THREE.Vector3; fallen: boolean; resting: boolean; lie?: Lie; onSurf?: boolean; tilt?: number; broken?: boolean; tip?: { axis: THREE.Vector3; a: number; v: number }; spilled?: boolean }
 interface Puddle { mesh: THREE.Mesh; t: number; delay: number; size: number; x: number; y: number; z: number; drip?: Drip }
 interface Drip { x: number; z: number; nx: number; nz: number; t: number; run: THREE.Mesh; floor: THREE.Mesh | null; drops: { m: THREE.Mesh; vy: number }[]; next: number }
 interface Leap { from: THREE.Vector3; to: THREE.Vector3; t: number; dur: number; apex: number; then: 'play' | 'sleep' }
+
+/** Mugs and the pot tip over on their own; the mouse just slides; everything else gets a resting pose. */
+function lieOf(k: Knockable): Lie | undefined {
+  if (k.name === 'mug' || k.name === 'pot' || k.roll === 0) return undefined;
+  const g = (k.mesh as THREE.Mesh).geometry;
+  if (!g) return undefined;
+  g.computeBoundingBox();
+  const size = g.boundingBox!.getSize(new THREE.Vector3());
+  const dims = [size.x, size.y, size.z];
+  const iL = dims.indexOf(Math.max(...dims));
+  const rest = dims.filter((_, i) => i !== iL);
+  if (dims[iL] > 4 * Math.max(...rest)) {
+    const long = new THREE.Vector3().setComponent(iL, 1);
+    return { long, thick: Math.min(...rest) / 2 };
+  }
+  // the local direction that pointed up when it was placed
+  return { up: new THREE.Vector3(0, 1, 0).applyQuaternion(k.mesh.quaternion.clone().invert()) };
+}
+
+/** The local axis an object is thinnest along (a shard or leaf lies on its flat side). */
+function thinAxis(o: THREE.Object3D) {
+  const g = (o as THREE.Mesh).geometry;
+  if (!g) return undefined;
+  g.computeBoundingBox();
+  const sz = g.boundingBox!.getSize(new THREE.Vector3()).multiply(o.scale);
+  const d = [sz.x, sz.y, sz.z];
+  return new THREE.Vector3().setComponent(d.indexOf(Math.min(...d)), 1);
+}
+
+/** Props whose caption and F prompt need him to actually touch them, not just be nearby. */
+const TOUCH_ONLY = new Set(['calc']);
 
 export class Play {
   active = false;
@@ -72,7 +114,15 @@ export class Play {
   private toastEl: HTMLElement;
   private toastTimer = 0;
   private hissCool = 0;
-  private backoff: { t: number; dir: THREE.Vector2; hissFirst?: boolean; lines?: string[] } | null = null; // reverse-walking away from an edge before the hiss
+  private knockCalm = 0;
+  // he only loses patience (and hisses) after being steered at the same thing 3-4 times in a row
+  private tries = { edge: { n: 0, at: 0, need: 3 }, wet: { n: 0, at: 0, need: 3 } };
+  private tmpBox = new THREE.Box3();
+  private tmpV = new THREE.Vector3();
+  private tmpW = new THREE.Vector3();
+  private tmpQ = new THREE.Quaternion();
+  private tmpQ2 = new THREE.Quaternion(); // just shoved something off: he watches it go, no hissing at the edge
+  private backoff: { t: number; dir: THREE.Vector2; hissFirst?: boolean; lines?: string[]; quiet?: boolean } | null = null; // reverse-walking away from an edge before the hiss
   private meowCool = 0;
   private puddles: Puddle[] = [];
   private wetCool = 0;
@@ -82,6 +132,9 @@ export class Play {
   private heartNext = 0;
   private purrNext = 0;
   private bits: Bit[] = [];
+  // the clean-up mission: whatever broke up on the desk or a shelf has to go over the edge
+  private spills: THREE.Mesh[] = [];
+  private mission = { on: false, left: -1 };
   private books: Scratched[] = [];
   private scratchT = 0;
   private thoughtEl: HTMLElement;
@@ -90,6 +143,7 @@ export class Play {
   onInteract: (id: string) => void = () => {};
   /** The thing F would act on right now: 'book' or a prop id. */
   interactable: string | null = null;
+  private propBounds = new Map<string, THREE.Box3>();
   private leap: Leap | null = null;
   private landing = new THREE.Vector3(-0.78, 0, 0.36);
   private mode: 'free' | 'plank' = 'free';
@@ -109,7 +163,7 @@ export class Play {
     private onNear: (propId: string | null) => void,
     private onToggle: (on: boolean) => void,
   ) {
-    this.bodies = knockables.map((k) => ({ k, vel: new THREE.Vector3(), fallen: false, resting: true }));
+    this.bodies = knockables.map((k) => ({ k, vel: new THREE.Vector3(), fallen: false, resting: true, lie: lieOf(k) }));
     this.zoomies = this.saved.keys.length === WORD.length;
 
     const capGeo = new THREE.BoxGeometry(0.03, 0.018, 0.03);
@@ -136,6 +190,7 @@ export class Play {
         <p>LOST KEYCAPS</p>
         <p class="play-word" data-word></p>
         <p>KNOCKED OFF THE DESK: <b data-knocked>0</b></p>
+        <p class="play-mission" data-mission hidden>MISSION · CLEAN UP THE DESK<br><span>push the bits off: <b data-mess>0</b> left</span></p>
       </div>
       <p class="play-help"><kbd>WASD</kbd> move · <kbd>⇧</kbd> run · <kbd>Space</kbd> jump · <kbd>F</kbd> interact · <kbd>1–9</kbd> caption · <kbd>H</kbd> all keys · <kbd>Esc</kbd> stop</p>
       <button class="btn play-exit" type="button" data-exit>Stop playing</button>
@@ -305,14 +360,59 @@ export class Play {
     return f;
   }
   /** Would the cat's body intersect anything at this pose? */
+  /** A step or turn is refused if it would put any part of him (body, nose, whiskers, tail) into something.
+   *  If he's already in something (a landing put his nose in a wall, say), anything that doesn't make it
+   *  worse is allowed, so he can always back, slide or turn his way out instead of sticking. */
   private blocked(x: number, z: number, yaw: number, y: number) {
+    const after = this.penetration(x, z, yaw, y);
+    if (after <= 1e-6) return false;
+    const now = this.cat.root.position;
+    return after > this.penetration(now.x, now.z, this.yaw, now.y) + 1e-6;
+  }
+  /** Is he standing on this prop, or is some part of his body right up against its edge? */
+  private touchingProp(p: Prop, pos: THREE.Vector3) {
+    let bb = this.propBounds.get(p.id);
+    if (!bb) this.propBounds.set(p.id, (bb = new THREE.Box3().setFromObject(p.object)));
+    if (pos.y < bb.min.y - 0.03 || pos.y > bb.max.y + 0.03) return false;
+    const box: Box = { minX: bb.min.x, maxX: bb.max.x, minY: bb.min.y, maxY: bb.max.y, minZ: bb.min.z, maxZ: bb.max.z };
+    for (const [sx, sz] of this.samples(pos.x, pos.z, this.yaw)) if (this.overlap(box, sx, sz, R + 0.012) > 0) return true;
+    return false;
+  }
+  /** How far a circle at (px, pz) reaches into a box's footprint (0 = clear; more the deeper inside). */
+  private overlap(b: Box, px: number, pz: number, r: number) {
+    const dx = Math.max(b.minX - px, 0, px - b.maxX);
+    const dz = Math.max(b.minZ - pz, 0, pz - b.maxZ);
+    if (dx > 0 || dz > 0) return Math.max(0, r - Math.hypot(dx, dz));
+    return r + Math.min(px - b.minX, b.maxX - px, pz - b.minZ, b.maxZ - pz);
+  }
+  /** Total depth of his body, nose, whiskers and tail inside things, at a given spot and heading. */
+  private penetration(x: number, z: number, yaw: number, y: number) {
+    let pen = 0;
     for (const [sx, sz] of this.samples(x, z, yaw))
-      for (const b of this.boxes) if (b.maxY > y + STEP && b.minY < y + H && this.touches(b, sx, sz, R)) return true;
-    // nose and whiskers: they reach past the chest, so keep them out of tall things (the Victus lid, walls)
+      for (const b of this.boxes) if (b.maxY > y + STEP && b.minY < y + H) pen += this.overlap(b, sx, sz, R);
+    // nose: it reaches past the chest, so keep it out of tall things (the Victus lid, walls)
     const nx = x + Math.sin(yaw) * NOSE;
     const nz = z + Math.cos(yaw) * NOSE;
-    for (const b of this.boxes) if (b.minY < y + H * 0.6 && b.maxY > y + H * 0.55 && this.touches(b, nx, nz, R * 0.75)) return true;
-    return false;
+    for (const b of this.boxes) if (b.minY < y + H * 0.6 && b.maxY > y + H * 0.55) pen += this.overlap(b, nx, nz, R * 0.75);
+    return pen + this.extremityPen(x, z, yaw, y);
+  }
+  /** How deep the tail and whisker tips sit inside any box (0 = clear). */
+  private extremityPen(x: number, z: number, yaw: number, y: number) {
+    const fx = Math.sin(yaw);
+    const fz = Math.cos(yaw);
+    let pen = 0;
+    for (const [f, sd, r, y0, y1] of TAIL_SAMPLES) {
+      const px = x + fx * f + fz * sd;
+      const pz = z + fz * f - fx * sd;
+      for (const b of this.boxes) {
+        if (b.minY >= y + y1 || b.maxY <= y + y0) continue;
+        const dx = Math.max(b.minX - px, 0, px - b.maxX);
+        const dz = Math.max(b.minZ - pz, 0, pz - b.maxZ);
+        const d = Math.hypot(dx, dz);
+        if (d < r) pen += r - d;
+      }
+    }
+    return pen;
   }
   private ceiling(x: number, z: number, yaw: number, y: number) {
     let c = Infinity;
@@ -334,13 +434,14 @@ export class Play {
     return after > 0 && after > this.overhang(x, z, yaw, air) + 1e-6;
   }
 
-  /** At an edge: eyes on the drop, he reverse-walks a few steps toward the middle of the desk, then hisses at it. */
+  /** At an edge: eyes on the drop, he reverse-walks a few steps toward the middle of the desk, then (only sometimes) hisses at it. */
   private tryHiss() {
-    if (this.hissCool > 0 || this.backoff) return;
+    if (this.hissCool > 0 || this.backoff || this.knockCalm > 0) return;
     const pos = this.cat.root.position;
     const back = new THREE.Vector2(-Math.sin(this.yaw), -Math.cos(this.yaw));
     const inward = new THREE.Vector2((DESK.minX + DESK.maxX) / 2 - pos.x, (DESK.minZ + DESK.maxZ) / 2 - pos.z).normalize();
-    this.backoff = { t: 0.65, dir: back.multiplyScalar(0.6).add(inward.multiplyScalar(0.4)).normalize() };
+    // he just heads back, no fuss, until you've tried it 3-4 times in a row
+    this.backoff = { t: 0.65, dir: back.multiplyScalar(0.6).add(inward.multiplyScalar(0.4)).normalize(), quiet: !this.fedUp('edge') };
     this.vel.set(0, 0, 0);
   }
   private hissNow(lines = ['Not leaving the desk.', 'That is a long way down.', 'The desk is home.']) {
@@ -361,7 +462,18 @@ export class Play {
     }
     return false;
   }
-  /** Paw touches coffee: an instant hiss at it, and one step straight back. */
+  /** Paw touches coffee: one step straight back, and now and then a hiss at it. */
+  /** Counts one more refusal of the same kind; true (and the count starts over) once he's had enough. */
+  private fedUp(kind: 'edge' | 'wet') {
+    const c = this.tries[kind];
+    const now = performance.now() / 1000;
+    if (now - c.at > 4) c.n = 0; // a pause long enough that it's not "in a row"
+    c.at = now;
+    if (++c.n < c.need) return false;
+    c.n = 0;
+    c.need = 3 + Math.floor(Math.random() * 2);
+    return true;
+  }
   private refuseWet() {
     if (this.backoff) return;
     const back = new THREE.Vector2(-Math.sin(this.yaw), -Math.cos(this.yaw));
@@ -370,7 +482,9 @@ export class Play {
     this.cat.look.y = 0.35; // eyes on the puddle
     if (this.wetCool <= 0) {
       this.wetCool = 1.2;
-      this.hissNow(['Wet. Absolutely not.', 'Not stepping in that.', 'Coffee is for humans.']);
+      // a step back and a look; only after 3-4 tries in a row does he hiss at it
+      if (this.fedUp('wet')) this.hissNow(['Wet. Absolutely not.', 'Not stepping in that.', 'Coffee is for humans.']);
+      else if (Math.random() < 0.4) this.think(['Ew.', 'Wet.', 'Nope.', 'Not that.'][Math.floor(Math.random() * 4)]);
     }
   }
   /** Now and then, not every time: a meow for something he did. */
@@ -384,6 +498,7 @@ export class Play {
   update(dt: number, t: number, camPos: THREE.Vector3, camLook: THREE.Vector3, narrow: boolean) {
     const pos = this.cat.root.position;
     this.hissCool -= dt;
+    this.knockCalm -= dt;
     this.meowCool -= dt;
     this.wetCool -= dt;
     this.updatePuddles(dt);
@@ -419,7 +534,10 @@ export class Play {
           this.backoff = null;
           want.set(0, 0, 0);
           this.vel.set(0, 0, 0);
-          if (!bo.hissFirst) this.hissNow(bo.lines);
+          if (bo.quiet) {
+            this.hissCool = 1.2; // a moment before he'll eye the edge again
+            if (Math.random() < 0.35) this.think(['Nope.', 'Maybe later.', 'Too far.', 'Not today.'][Math.floor(Math.random() * 4)]);
+          } else if (!bo.hissFirst) this.hissNow(bo.lines);
         }
       }
       this.cat.gaitDir = this.backoff ? -1 : 1;
@@ -530,6 +648,7 @@ export class Play {
     let near: Prop | null = null;
     let best = 0.24;
     for (const p of this.props) {
+      if (TOUCH_ONLY.has(p.id) && !this.touchingProp(p, pos)) continue; // the calculator: only once he's on it or against it
       const dy = p.anchor.y - pos.y;
       if (dy < -0.2 || dy > 0.35) continue; // things on another level aren't 'nearby'
       const d = Math.hypot(p.anchor.x - pos.x, p.anchor.z - pos.z, dy * 0.8);
@@ -553,7 +672,8 @@ export class Play {
     this.interactable = this.active ? (this.facingBook(pos) ? 'book' : this.nearProp) : null;
     if (this.thoughtT > 0 && (this.thoughtT -= dt) <= 0) this.thoughtEl.classList.remove('on');
     this.updateLove(dt, pos, near);
-    this.updateBits(dt);
+    this.updateBits(dt, this.cat.root.position, Math.hypot(this.vel.x, this.vel.z));
+    this.updateMission();
     if (this.toastTimer > 0 && (this.toastTimer -= dt) <= 0) this.toastEl.classList.remove('on');
   }
 
@@ -642,34 +762,154 @@ export class Play {
         rest: false,
         h: Math.max(0.002, (box.max.y - box.min.y) / 2),
         floor: hardFloor,
+        flat: thinAxis(c),
+        mess: hardFloor > FLOOR, // broke up on the desk or a shelf: that's a clean-up job; on the floor it's not his problem
       });
     }
     m.visible = false;
     b.resting = true;
     b.vel.set(0, 0, 0);
     const pot = b.k.name === 'pot';
-    if (pot) sfx.smash();
+    if (pot) {
+      sfx.potBreak();
+      // a spill of soil on whatever it broke on
+      let surface = FLOOR;
+      const { x, y, z } = m.position;
+      for (const box of this.boxes)
+        if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.01 && box.maxY > surface) surface = box.maxY;
+      const shape = new THREE.Shape();
+      const ph = Math.random() * 6;
+      for (let i = 0; i <= 40; i++) {
+        const a = (i / 40) * Math.PI * 2;
+        const rr = 0.045 * (1 + 0.28 * Math.sin(a * 3 + ph) + 0.16 * Math.sin(a * 7 + ph * 2) + 0.1 * Math.sin(a * 11));
+        if (i === 0) shape.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        else shape.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+      }
+      const spill = new THREE.Mesh(new THREE.ShapeGeometry(shape), new THREE.MeshStandardMaterial({ color: 0x3b2a1e, roughness: 1 }));
+      spill.rotation.x = -Math.PI / 2;
+      spill.position.set(x + b.vel.x * 0.04, surface + 0.0012, z + b.vel.z * 0.04);
+      spill.receiveShadow = true;
+      spill.userData.surface = surface;
+      this.scene.add(spill);
+      this.spills.push(spill);
+    }
     else sfx.glass();
     this.meow(0.5);
-    this.toast(pot ? 'The plant is now on the floor. All of it.' : 'The mouse is now several mice.');
+    const where = hardFloor > FLOOR ? 'desk' : 'floor';
+    this.toast(pot ? `The plant is now on the ${where}. All of it.` : 'The mouse is now several mice.');
     this.think(pot ? ['It was in my way.', 'Gardening.', 'The plant looked at me.'][Math.floor(Math.random() * 3)] : ['Got it.', 'It had it coming.', 'Best mouse yet.'][Math.floor(Math.random() * 3)]);
   }
-  private updateBits(dt: number) {
+  /** Debris (shards, soil, leaves, paper shreds): falls onto whatever is really below it (shelf, desk, the
+   *  floor) and over edges, bounces off sides, lies down flat, and gets kicked about when he walks through. */
+  private updateBits(dt: number, catPos: THREE.Vector3, catSpeed: number) {
+    const fx = Math.sin(this.yaw);
+    const fz = Math.cos(this.yaw);
+    let clinked = false;
     for (const bit of this.bits) {
-      if (bit.rest) continue;
-      bit.v.y -= G * 1.6 * dt;
-      bit.m.position.addScaledVector(bit.v, dt);
-      bit.m.rotation.x += bit.w.x * dt;
-      bit.m.rotation.y += bit.w.y * dt;
-      bit.m.rotation.z += bit.w.z * dt;
-      if (bit.m.position.y - bit.h < bit.floor) {
-        bit.m.position.y = bit.floor + bit.h;
-        bit.v.y = Math.abs(bit.v.y) > 0.3 ? -bit.v.y * 0.35 : 0;
-        bit.v.x *= 0.7;
-        bit.v.z *= 0.7;
-        bit.w.multiplyScalar(0.6);
-        if (bit.v.lengthSq() < 0.002) bit.rest = true;
+      const m = bit.m;
+      // paws scatter it
+      if (this.active && catSpeed > 0.05) {
+        const dx = m.position.x - (catPos.x + fx * FRONT * 0.6);
+        const dz = m.position.z - (catPos.z + fz * FRONT * 0.6);
+        const d = Math.hypot(dx, dz);
+        if (d < 0.035 && Math.abs(m.position.y - catPos.y) < 0.03) {
+          const k = (0.35 + catSpeed) / (d || 1);
+          bit.v.set(dx * k + fx * catSpeed * 0.6, 0.25 + Math.random() * 0.2, dz * k + fz * catSpeed * 0.6);
+          bit.w.set((Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14, (Math.random() - 0.5) * 14);
+          if (bit.rest && !clinked) {
+            sfx.clink();
+            clinked = true;
+          }
+          bit.rest = false;
+        }
       }
+      if (bit.rest) continue;
+      const steps = Math.min(6, Math.max(1, Math.ceil((bit.v.length() * dt) / 0.01)));
+      const h = dt / steps;
+      for (let st = 0; st < steps; st++) {
+        bit.v.y -= G * 1.6 * h;
+        const ox = m.position.x;
+        const oz = m.position.z;
+        m.position.addScaledVector(bit.v, h);
+        // sides of things: it can't pass into a box it's below the top of; bounce back off the face it came through
+        for (const box of this.boxes) {
+          const { x, y, z } = m.position;
+          if (x < box.minX || x > box.maxX || z < box.minZ || z > box.maxZ || y < box.minY || y > box.maxY - 0.004) continue;
+          const wasX = ox < box.minX || ox > box.maxX;
+          const wasZ = oz < box.minZ || oz > box.maxZ;
+          if (!wasX && !wasZ) continue; // came down through the top: the landing below handles it
+          if (wasX) {
+            m.position.x = ox;
+            bit.v.x *= -0.3;
+          }
+          if (wasZ) {
+            m.position.z = oz;
+            bit.v.z *= -0.3;
+          }
+        }
+      }
+      m.rotation.x += bit.w.x * dt;
+      m.rotation.y += bit.w.y * dt;
+      m.rotation.z += bit.w.z * dt;
+      // the surface really below it: a shelf, the desk, anything standing on them, or the floor
+      let surface = FLOOR;
+      const { x, y, z } = m.position;
+      for (const box of this.boxes)
+        if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.004 && box.maxY > surface) surface = box.maxY;
+      m.updateMatrixWorld(true);
+      const low = this.tmpBox.setFromObject(m).min.y;
+      if (low < surface + 0.0005) {
+        // landed: bounce a little, skid, tumble less, and lie down on its flattest side
+        bit.v.y = Math.abs(bit.v.y) > 0.3 ? -bit.v.y * 0.3 : 0;
+        bit.v.x *= Math.exp(-dt * 9);
+        bit.v.z *= Math.exp(-dt * 9);
+        bit.w.multiplyScalar(Math.exp(-dt * 12));
+        const flat = (bit.flat ??= thinAxis(m));
+        if (flat) {
+          const U = this.tmpV.copy(flat).applyQuaternion(m.quaternion);
+          const q = this.tmpQ.setFromUnitVectors(U, this.tmpW.set(0, U.y >= 0 ? 1 : -1, 0));
+          m.quaternion.premultiply(q.slerp(this.tmpQ2.identity(), Math.exp(-dt * 10)));
+          m.updateMatrixWorld(true);
+        }
+        m.position.y += surface - this.tmpBox.setFromObject(m).min.y;
+        if (bit.v.lengthSq() < 0.002 && bit.w.lengthSq() < 0.5) bit.rest = true;
+      }
+    }
+  }
+
+  /** Debris left above the floor (on the desk, a shelf, the server...) starts a clean-up; it's done when
+   *  every last bit has been pushed off. */
+  private updateMission() {
+    let left = 0;
+    let settled = false;
+    for (const bit of this.bits) {
+      if (!bit.mess || bit.m.position.y < FLOOR + 0.1) continue;
+      left++;
+      if (bit.rest) settled = true;
+    }
+    const m = this.mission;
+    if (!m.on && left > 0 && settled) {
+      m.on = true;
+      this.toast('New mission: clean up the desk. Push every bit off the edge.');
+      this.think(['Hm. Mess.', 'That needs to go.', 'Not on my desk.'][Math.floor(Math.random() * 3)]);
+    }
+    if (!m.on || left === m.left) return;
+    m.left = left;
+    const el = this.hud.querySelector<HTMLElement>('[data-mission]')!;
+    el.hidden = left === 0;
+    this.hud.querySelector('[data-mess]')!.textContent = String(left);
+    if (left === 0) {
+      m.on = false;
+      m.left = -1;
+      // swept: the soil smudges up there go too
+      this.spills = this.spills.filter((s) => {
+        if (s.userData.surface <= FLOOR + 0.01) return true;
+        this.scene.remove(s);
+        return false;
+      });
+      sfx.win();
+      this.toast('Mission complete: the desk is clean. (The floor is not.)');
+      this.think(['Spotless.', 'Tidy desk, tidy mind.', 'You\'re welcome.'][Math.floor(Math.random() * 3)]);
     }
   }
 
@@ -721,6 +961,7 @@ export class Play {
             sfx.knock();
             this.meow(0.3);
           }
+          this.knockCalm = 2.5;
           const push = catSpeed * 1.3 + 0.22;
           const ux = dx / (d || 1);
           const uz = dz / (d || 1);
@@ -731,44 +972,53 @@ export class Play {
         }
       }
       if (b.resting) continue;
-      b.vel.y -= G * dt;
-      m.position.addScaledVector(b.vel, dt);
-      // collide with boxes: push out along the shallowest axis
+      // small steps, so a fast fall can't skip clean through the desk top or a shelf in one frame
+      const steps = Math.min(8, Math.max(1, Math.ceil((b.vel.length() * dt + G * dt * dt) / Math.max(0.008, r * 0.8))));
+      const h = dt / steps;
       let hard = false;
-      for (const box of this.boxes) {
-        const cx = Math.max(box.minX, Math.min(m.position.x, box.maxX));
-        const cy = Math.max(box.minY, Math.min(m.position.y, box.maxY));
-        const cz = Math.max(box.minZ, Math.min(m.position.z, box.maxZ));
-        const dx = m.position.x - cx;
-        const dy = m.position.y - cy;
-        const dz = m.position.z - cz;
-        const d2 = dx * dx + dy * dy + dz * dz;
-        if (d2 >= r * r) continue;
-        const d = Math.sqrt(d2) || 1e-4;
-        const nx = dx / d;
-        const ny = d2 > 0 ? dy / d : 1;
-        const nz = dz / d;
-        m.position.x += nx * (r - d);
-        m.position.y += ny * (r - d);
-        m.position.z += nz * (r - d);
-        const vn = b.vel.x * nx + b.vel.y * ny + b.vel.z * nz;
-        if (b.k.name === 'pot' && !b.broken && ny > 0.6 && vn < -1.4) hard = true;
-        if (vn < 0) {
-          b.vel.x -= 1.4 * vn * nx;
-          b.vel.y -= 1.4 * vn * ny;
-          b.vel.z -= 1.4 * vn * nz;
-        }
-        if (ny > 0.7) {
-          b.vel.x *= Math.exp(-dt * 7);
-          b.vel.z *= Math.exp(-dt * 7);
+      for (let st = 0; st < steps; st++) {
+        b.vel.y -= G * h;
+        m.position.addScaledVector(b.vel, h);
+        // collide with boxes: push out along the shallowest axis
+        for (const box of this.boxes) {
+          const cx = Math.max(box.minX, Math.min(m.position.x, box.maxX));
+          const cy = Math.max(box.minY, Math.min(m.position.y, box.maxY));
+          const cz = Math.max(box.minZ, Math.min(m.position.z, box.maxZ));
+          const dx = m.position.x - cx;
+          const dy = m.position.y - cy;
+          const dz = m.position.z - cz;
+          const d2 = dx * dx + dy * dy + dz * dz;
+          if (d2 >= r * r) continue;
+          const d = Math.sqrt(d2) || 1e-4;
+          const nx = dx / d;
+          const ny = d2 > 0 ? dy / d : 1;
+          const nz = dz / d;
+          m.position.x += nx * (r - d);
+          m.position.y += ny * (r - d);
+          m.position.z += nz * (r - d);
+          const vn = b.vel.x * nx + b.vel.y * ny + b.vel.z * nz;
+          if (b.k.name === 'pot' && !b.broken && ny > 0.6 && vn < -1.4) hard = true;
+          if (vn < 0) {
+            b.vel.x -= 1.4 * vn * nx;
+            b.vel.y -= 1.4 * vn * ny;
+            b.vel.z -= 1.4 * vn * nz;
+          }
+          if (ny > 0.7) {
+            b.vel.x *= Math.exp(-h * 7);
+            b.vel.z *= Math.exp(-h * 7);
+          }
         }
       }
-      if (hard || ((b.k.name === 'mouse' || b.k.name === 'pot') && !b.broken && m.position.y - r < FLOOR)) {
-        if (!hard) m.position.y = FLOOR + r;
+      // hitting the floor: by its real shape too (a tipped mug or pot reaches lower than its collision sphere,
+      // and would otherwise come to rest a hair above the floor without ever breaking)
+      m.updateMatrixWorld(true);
+      const floorHit = m.position.y - r < FLOOR || this.tmpBox.setFromObject(m).min.y < FLOOR + 0.002;
+      if (hard || ((b.k.name === 'mouse' || b.k.name === 'pot') && !b.broken && floorHit)) {
+        if (!hard) m.position.y = Math.max(m.position.y, FLOOR + r);
         this.shatter(b);
         continue;
       }
-      if (b.k.name === 'mug' && !b.broken && m.position.y - r < FLOOR) {
+      if (b.k.name === 'mug' && !b.broken && floorHit) {
         b.broken = true;
         sfx.glass();
       }
@@ -797,12 +1047,55 @@ export class Play {
           m.userData.tipped = true;
           if (b.k.name === 'mug' && !b.spilled && tp.a > 0.75) this.spill(b);
         }
-      } else {
-        const roll = b.k.roll ?? 1; // pens and pots roll
-        m.rotation.x += b.vel.z * dt * 10 * roll;
-        m.rotation.z -= b.vel.x * dt * 10 * roll;
+      } else if (b.lie) {
+        const sp = Math.hypot(b.vel.x, b.vel.z);
+        if (sp > 1e-4) {
+          const ax = this.tmpV.set(b.vel.z / sp, 0, -b.vel.x / sp); // the axis it would roll about: up × velocity
+          if (!b.onSurf) m.rotateOnWorldAxis(ax, (sp / 0.02) * dt); // tumbling through the air
+          else if ('long' in b.lie) {
+            // on a surface a pen rolls about its own length, by the part of its motion across it
+            const L = this.tmpW.copy(b.lie.long).applyQuaternion(m.quaternion).setY(0).normalize();
+            const across = ax.dot(L);
+            m.rotateOnWorldAxis(L, (across * sp * dt) / b.lie.thick);
+          } else m.rotateOnWorldAxis(this.tmpW.set(0, 1, 0), sp * dt * 3); // flat things slide with a little spin
+        }
       }
-      if (b.vel.lengthSq() < 4e-4 && Math.abs(b.vel.y) < 0.05) {
+      // long, thin things (pen, clip, eraser, a mug on its side) have small collision spheres but tumble:
+      // find the surface under it, and if its actual lowest point has reached it, it rests there (no end
+      // sinking into the desk, and no bobbing between sphere contact and shape contact)
+      {
+        let surface = FLOOR;
+        const { x, y, z } = m.position;
+        for (const box of this.boxes)
+          if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.002 && box.maxY > surface) surface = box.maxY;
+        m.updateMatrixWorld(true);
+        const low = this.tmpBox.setFromObject(m).min.y;
+        b.onSurf = low < surface + 0.0015;
+        if (b.onSurf && b.lie) {
+          // settle flat: a pen's long axis back to level, anything else back onto its face
+          const q = this.tmpQ;
+          if ('long' in b.lie) {
+            const L = this.tmpV.copy(b.lie.long).applyQuaternion(m.quaternion);
+            const lv = this.tmpW.copy(L).setY(0);
+            if (lv.lengthSq() < 1e-6) lv.set(1, 0, 0); // landed dead upright: topple it any way
+            q.setFromUnitVectors(L, lv.normalize());
+          } else {
+            const U = this.tmpV.copy(b.lie.up).applyQuaternion(m.quaternion);
+            q.setFromUnitVectors(U, this.tmpW.set(0, U.y >= 0 ? 1 : -1, 0));
+          }
+          b.tilt = 2 * Math.acos(Math.min(1, Math.abs(q.w)));
+          m.quaternion.premultiply(q.slerp(this.tmpQ2.identity(), Math.exp(-dt * 14)));
+          m.updateMatrixWorld(true);
+        }
+        const low2 = b.onSurf ? this.tmpBox.setFromObject(m).min.y : low;
+        if (low2 < surface + 0.0005) {
+          m.position.y += surface - low2;
+          if (b.vel.y < 0) b.vel.y = Math.abs(b.vel.y) > 0.4 ? -b.vel.y * 0.3 : 0;
+          b.vel.x *= Math.exp(-dt * 7);
+          b.vel.z *= Math.exp(-dt * 7);
+        }
+      }
+      if (b.vel.lengthSq() < 4e-4 && Math.abs(b.vel.y) < 0.05 && !((b.tilt ?? 0) > 0.02)) { // still, and lying flat
         b.vel.set(0, 0, 0);
         b.resting = true;
       }

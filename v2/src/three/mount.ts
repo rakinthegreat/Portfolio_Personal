@@ -315,7 +315,7 @@ export async function mount(tour: HTMLElement) {
     desk.lampGlow.intensity = d ? 4.5 : 0;
     desk.lampLight.intensity = d ? 7 : 0;
     (desk.lampBeam.material as THREE.ShaderMaterial).uniforms.uStrength.value = d ? 0.32 : 0;
-    desk.keyMat.emissiveIntensity = d ? 0.35 : 0;
+    desk.keyMat.emissiveIntensity = d ? 1.6 : 0; // backlit legends
     (desk.windowMesh.material as THREE.MeshBasicMaterial).color.set(d ? 0x2c3550 : 0xc4a8d8); // dusk sky
     renderer.toneMappingExposure = d ? 1.0 : 0.95;
   };
@@ -881,6 +881,8 @@ export async function mount(tour: HTMLElement) {
     }
     play.placeThought(camera, sticky.clientWidth, sticky.clientHeight);
     (desk.lampBeam.material as THREE.ShaderMaterial).uniforms.uTime.value = t;
+    // the Pavilion's drive light: bursts of Docker writes
+    desk.serverLed.emissiveIntensity = Math.sin(t * 23) * Math.sin(t * 3.7) > 0.25 ? 2.2 : 0.05;
     // purring while he rests: lying down in play, or curled up in the basket while you're looking at him
     const restingInView = !focused && cat.resting && (play.active || (!play.busy && Math.abs(progress - 1) < 0.5));
     if (restingInView && soundOn()) {

@@ -21,6 +21,6 @@ export function buildStops(): Stop[] {
     { id: 'pinboard', num: '04', title: 'About · Academics · Tech Stack', text: 'Everything on one corkboard, right above the plank the cat uses to cross the desk.', pos: v(0.0, 0.9, 0.44), look: v(0.0, 0.82, -0.54) },
     { id: 'server', num: '05', title: 'The warm server', text: 'An old HP Pavilion running Docker 24/7. The cat approves of the exhaust vent.', pos: v(-0.34, 0.4, 0.24), look: v(-0.62, 0.14, -0.32) },
     { id: 'console', num: '06', title: 'Punch It Out', text: 'A tiny 16-bit boxing game I made. Beat the bell. Click the console to play.', pos: v(0.56, 0.86, 0.06), look: v(0.64, 0.6, -0.43) },
-    { id: 'printer', num: '07', title: 'Résumé', text: 'Click the printer to print my résumé.', pos: v(0.5, 0.4, 0.76), look: v(0.74, 0.06, 0.1) },
+    { id: 'printer', num: '07', title: 'Résumé', text: 'Click the printer to print my résumé.', pos: v(0.5, 0.4, 0.84), look: v(0.74, 0.06, 0.18) },
   ];
 }

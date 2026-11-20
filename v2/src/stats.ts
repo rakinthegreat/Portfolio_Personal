@@ -21,7 +21,7 @@ export async function fetchServerStats(): Promise<ServerStats | null> {
 }
 
 export function describeStats(s: ServerStats | null) {
-  if (!s) return 'Live stats are offline right now. The server is napping, and so is the cat.';
+  if (!s) return '';
   const d = Math.floor(s.uptime_s / 86400);
   const h = Math.floor((s.uptime_s % 86400) / 3600);
   const up = d > 0 ? `${d} d ${h} h` : `${h} h`;

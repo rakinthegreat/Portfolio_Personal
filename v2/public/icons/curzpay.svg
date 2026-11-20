@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <!-- CurzPay: a fintech wallet. A card tilted over a purple field, a contactless mark on it. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7a5cf0"/>
+      <stop offset="1" stop-color="#3f25a8"/>
+    </linearGradient>
+    <linearGradient id="card" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset="1" stop-color="#e4defc"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" fill="url(#bg)"/>
+  <circle cx="160" cy="28" r="70" fill="#ffffff" opacity="0.07"/>
+  <g transform="rotate(-12 96 100)">
+    <rect x="30" y="58" width="132" height="86" rx="14" fill="#2a1877" opacity="0.35" transform="translate(4 6)"/>
+    <rect x="30" y="58" width="132" height="86" rx="14" fill="url(#card)"/>
+    <rect x="30" y="76" width="132" height="14" fill="#5b3fd1"/>
+    <rect x="44" y="104" width="22" height="17" rx="4" fill="#f2c14e"/>
+    <path d="M51 104v17M59 104v17M44 112.5h22" stroke="#c99a28" stroke-width="1.6"/>
+    <g fill="none" stroke="#5b3fd1" stroke-width="4.5" stroke-linecap="round">
+      <path d="M118 104a9 9 0 0 1 0 17"/>
+      <path d="M127 99a17 17 0 0 1 0 27"/>
+      <path d="M136 94a25 25 0 0 1 0 37"/>
+    </g>
+  </g>
+</svg>

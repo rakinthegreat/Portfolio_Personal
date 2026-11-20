@@ -69,7 +69,7 @@
       "mobile": true,
       "icon": "C",
       "color": "#5b3fd1",
-      "iconUrl": "https://curzpaydemo.vercel.app/icons/Icon-192.png"
+      "iconUrl": "/icons/curzpay.svg"
     },
     {
       "name": "Plassey 1757",
@@ -91,7 +91,7 @@
       "downloadUrl": "https://github.com/rakinthegreat/loaf/releases",
       "icon": "L",
       "color": "#e08a3c",
-      "iconUrl": "https://loaf-pi.vercel.app/icons/Icon-192.png"
+      "iconUrl": "/icons/loaf.svg"
     },
     {
       "name": "IIT Indoor Games",

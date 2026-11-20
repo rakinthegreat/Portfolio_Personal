@@ -264,6 +264,24 @@ dialog.info::backdrop { background: rgba(0, 0, 0, 0.5); }
 .scr { overflow: hidden; background: #111; font-family: var(--sans); color: #111; }
 .scr iframe { display: block; width: 100%; border: 0; background: #fff; }
 .browser { display: flex; flex-direction: column; background: #dfe1e5; }
+/* the Victus desktop: wallpaper, a browser window floating over it, a Windows 11 style taskbar */
+.desktop { position: relative; background: #0b1830 url('/wallpapers/victus.png') center / cover no-repeat; }
+.desktop .win { position: absolute; left: 22px; right: 22px; top: 18px; bottom: 70px; border-radius: 10px; overflow: hidden; box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.taskbar { position: absolute; left: 0; right: 0; bottom: 0; height: 52px; display: flex; align-items: center; justify-content: center; background: rgba(16, 24, 44, 0.72); backdrop-filter: blur(18px); border-top: 1px solid rgba(255, 255, 255, 0.08); color: #e8ecf6; }
+.tb-apps { display: flex; gap: 6px; }
+.tb-apps i { position: relative; width: 40px; height: 40px; border-radius: 6px; display: grid; place-items: center; }
+.tb-apps i.on { background: rgba(255, 255, 255, 0.1); }
+.tb-apps i.on::after { content: ''; position: absolute; bottom: 2px; left: 50%; width: 14px; height: 3px; margin-left: -7px; border-radius: 2px; background: #8fb4ff; }
+.tb-start { grid-template-columns: 10px 10px; gap: 2px; place-content: center; }
+.tb-start b { width: 10px; height: 10px; border-radius: 1px; background: linear-gradient(135deg, #7fd0ff, #2a7ee8); }
+.tb-search::before { content: ''; width: 13px; height: 13px; border: 2.5px solid #e8ecf6; border-radius: 50%; transform: translate(-2px, -2px); }
+.tb-search::after { content: ''; position: absolute; width: 7px; height: 2.5px; background: #e8ecf6; transform: translate(7px, 7px) rotate(45deg); }
+.tb-browser::before { content: ''; width: 24px; height: 24px; border-radius: 50%; background: conic-gradient(#e94235 0 33%, #fbbc04 0 66%, #34a853 0); box-shadow: inset 0 0 0 5px transparent; }
+.tb-browser::after { content: ''; position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #4285f4; box-shadow: 0 0 0 2px #fff; }
+.tb-files::before { content: ''; width: 24px; height: 18px; border-radius: 3px; background: linear-gradient(#ffd25e, #f5b52e); box-shadow: inset 0 4px 0 #e8a422; }
+.tb-tray { position: absolute; right: 14px; display: flex; align-items: center; gap: 10px; font: 500 12px var(--sans); }
+.tb-tray svg { width: 16px; height: 16px; fill: currentColor; }
+.tb-clock { display: flex; flex-direction: column; align-items: flex-end; line-height: 1.35; margin-left: 4px; }
 .browser-tabs { display: flex; gap: 2px; padding: 10px 12px 0; }
 .browser-tab { padding: 10px 18px; border: 0; border-radius: 10px 10px 0 0; background: transparent; color: #333; font: 500 15px var(--sans); cursor: pointer; white-space: nowrap; }
 .browser-tab[aria-selected='true'] { background: #fff; color: #000; }
@@ -280,16 +298,20 @@ dialog.info::backdrop { background: rgba(0, 0, 0, 0.5); }
 .home-card b { display: block; font-size: 22px; letter-spacing: -0.4px; }
 .home-card span { display: block; margin-top: 6px; font: 400 11px var(--mono); letter-spacing: 1px; color: #888; text-transform: uppercase; }
 .home-card p { margin: 10px 0 0; font-size: 14px; color: #666; }
-.phone { display: flex; flex-direction: column; background: #0d0d0d; border-radius: 46px; }
-.phone-status { display: flex; justify-content: space-between; padding: 18px 30px 8px; color: #fff; font: 600 15px var(--sans); }
-.phone-screen { position: relative; flex: 1; margin: 0 4px; overflow: hidden; border-radius: 0 0 40px 40px; background: radial-gradient(120% 80% at 30% 0%, #3a3a3a, #111); }
+.phone { display: flex; flex-direction: column; background: #0d0d0d url('/wallpapers/phone.jpg') center / cover no-repeat; border-radius: 40px; position: relative; }
+.phone-punch { position: absolute; top: 14px; left: 50%; width: 15px; height: 15px; margin-left: -7.5px; border-radius: 50%; background: radial-gradient(circle at 40% 40%, #1b2030, #000 60%); z-index: 3; pointer-events: none; }
+.phone-status .ps-right { display: flex; align-items: center; gap: 6px; }
+.phone-status svg { width: 15px; height: 15px; fill: currentColor; }
+.phone-status .ps-batt { font-size: 13px; }
+.phone-status { display: flex; justify-content: space-between; align-items: center; padding: 12px 26px 8px; color: #fff; font: 600 14px var(--sans); }
+.phone-screen { position: relative; flex: 1; margin: 0; overflow: hidden; border-radius: 0 0 36px 36px; background: transparent; }
 .phone-screen iframe { position: absolute; inset: 0; height: 100%; }
 .scr [hidden] { display: none !important; }
 .launcher { position: absolute; inset: 0; padding: 40px 28px; display: grid; grid-template-columns: repeat(4, 1fr); align-content: start; gap: 28px 14px; }
 .launcher h2 { grid-column: 1 / -1; margin: 0 0 4px; color: #fff; font: 300 64px/1 var(--sans); letter-spacing: -2px; }
 .app { display: flex; flex-direction: column; align-items: center; gap: 8px; border: 0; background: none; color: #fff; font: 500 13px var(--sans); cursor: pointer; }
-.app i { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; font: 800 28px var(--sans); font-style: normal; color: #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
-.phone-home { flex: none; align-self: center; width: 140px; height: 6px; margin: 12px 0 14px; border: 0; border-radius: 3px; background: #fff; cursor: pointer; }
+.app i { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 50%; font: 800 28px var(--sans); font-style: normal; color: #fff; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35); }
+.phone-home { flex: none; align-self: center; width: 108px; height: 4px; margin: 9px 0 10px; border: 0; border-radius: 2px; background: #f2f2f2; cursor: pointer; } /* One UI gesture bar */
 
 /* play mode */
 .play-btn { position: absolute; right: clamp(16px, 3vw, 40px); bottom: 32px; z-index: 4; gap: 10px; }
@@ -300,6 +322,9 @@ dialog.info::backdrop { background: rgba(0, 0, 0, 0.5); }
 .playing .play-hud { display: block; }
 .play-stats { position: absolute; top: 74px; right: clamp(16px, 3vw, 40px); z-index: 4; padding: 14px 18px; text-align: right; background: var(--bg); border: 1.5px solid var(--ink); }
 .play-stats p { margin: 0; font: 400 11px var(--mono); letter-spacing: 1px; }
+.play-stats .play-mission { margin-top: 10px; padding-top: 8px; border-top: 1px dashed currentColor; font-weight: 700; }
+.play-stats .play-mission span { font-weight: 400; }
+.play-stats .play-mission[hidden] { display: none; }
 .play-word { margin: 4px 0 8px !important; font: 700 26px var(--sans) !important; letter-spacing: 0.2em !important; color: var(--grey); }
 .play-word .got { color: var(--ink); }
 .play-help { position: absolute; left: 50%; bottom: 12px; z-index: 4; margin: 0; transform: translateX(-50%); padding: 6px 12px; background: var(--bg); font: 400 11px var(--mono); letter-spacing: 1px; white-space: nowrap; }
@@ -398,7 +423,7 @@ dialog.arcade { padding: 0; border: 0; background: transparent; overflow: visibl
   flex-direction: column;
   gap: 14px;
   padding: 18px 16px 20px;
-  border-radius: 22px;
+  border-radius: 18px;
   background: linear-gradient(175deg, #34383f, #22252b 40%, #1b1d22);
   font-family: 'Space Grotesk', system-ui, sans-serif;
   color: #e9e6df;
@@ -479,7 +504,7 @@ dialog.arcade { padding: 0; border: 0; background: transparent; overflow: visibl
 /* phone: a frosted dock of social apps along the bottom of the home screen */
 .launcher .dock { position: absolute; left: 16px; right: 16px; bottom: 18px; display: flex; justify-content: space-around; padding: 12px 10px; border-radius: 30px; background: rgba(255, 255, 255, 0.14); backdrop-filter: blur(14px); }
 .soc { display: inline-flex; align-items: center; gap: 12px; color: inherit; text-decoration: none; }
-.soc i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 16px; font: 800 24px/1 var(--sans); font-style: normal; color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
+.soc i { display: grid; place-items: center; width: 56px; height: 56px; border-radius: 50%; font: 800 24px/1 var(--sans); font-style: normal; color: #fff; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35); }
 
 /* the glass plaque by the Victus: ribbed frosted glass, their photo, the song and its Spotify code */
 .plaque {

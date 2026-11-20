@@ -71,18 +71,49 @@ export class Screens {
 
   // ── the Victus: a small browser ──────────────────────
   private buildLaptop() {
+    // a Windows desktop: the wallpaper, the browser in a window over it, the taskbar along the bottom
     const el = document.createElement('div');
-    el.className = 'scr browser';
+    el.className = 'scr desktop';
     el.style.width = '1280px';
     el.style.height = '800px';
     const web = projects.filter((p) => p.previewUrl && !p.mobile);
     el.innerHTML = `
+      <div class="win browser">
       <div class="browser-tabs" role="tablist">
         <button class="browser-tab" role="tab" aria-selected="true" data-tab=""><kbd class="tk">1</kbd>Projects · Rakin</button>
         ${web.map((p, i) => `<button class="browser-tab" role="tab" aria-selected="false" data-tab="${esc(p.name)}"><kbd class="tk">${i + 2}</kbd>${esc(p.name)}</button>`).join('')}
       </div>
       <div class="browser-bar"><button class="browser-nav" type="button" data-back aria-label="Back to Projects">◀</button><button class="browser-nav" type="button" data-reload aria-label="Reload">⟳</button><span class="browser-url" data-url>rakin-talukder.me/projects</span></div>
-      <div class="browser-body" data-body></div>`;
+      <div class="browser-body" data-body></div>
+      </div>
+      <div class="taskbar" aria-hidden="true">
+        <span class="tb-apps">
+          <i class="tb-start"><b></b><b></b><b></b><b></b></i>
+          <i class="tb-search"></i>
+          <i class="tb-browser on"></i>
+          <i class="tb-files"></i>
+        </span>
+        <span class="tb-tray">
+          <svg viewBox="0 0 24 24"><path d="M12 20.5 1.5 9a15 15 0 0 1 21 0z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M3 9v6h4l5 5V4L7 9zm13.5 3A4.5 4.5 0 0 0 14 8v8a4.5 4.5 0 0 0 2.5-4z"/></svg>
+          <svg viewBox="0 0 24 24"><path d="M2 8h17v8H2zm18 2h2v4h-2z" fill="none" stroke="currentColor" stroke-width="1.6"/><path d="M4 10h11v4H4z"/></svg>
+          <span class="tb-clock"><time data-desk-clock></time><time data-desk-date></time></span>
+        </span>
+      </div>`;
+    {
+      const tz = content.person.timezone;
+      const t = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: tz });
+      const d = new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: tz });
+      const clock = el.querySelector<HTMLElement>('[data-desk-clock]')!;
+      const date = el.querySelector<HTMLElement>('[data-desk-date]')!;
+      const tick = () => {
+        const now = new Date();
+        clock.textContent = t.format(now);
+        date.textContent = d.format(now);
+      };
+      tick();
+      setInterval(tick, 30_000);
+    }
     this.tabs = el.querySelector('.browser-tabs')!;
     this.laptopBody = el.querySelector('[data-body]')!;
     this.laptopUrl = el.querySelector('[data-url]')!;
@@ -161,7 +192,8 @@ export class Screens {
     el.style.width = '390px';
     el.style.height = '844px';
     el.innerHTML = `
-      <div class="phone-status"><time data-phone-clock>9:41</time><span>●●● 5G</span></div>
+      <span class="phone-punch" aria-hidden="true"></span>
+      <div class="phone-status"><time data-phone-clock>9:41</time><span class="ps-right" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 20.5 1.5 9a15 15 0 0 1 21 0z"/></svg><svg viewBox="0 0 24 24"><path d="M2 21h3v-4H2zm5 0h3v-8H7zm5 0h3V9h-3zm5 0h3V4h-3z"/></svg><span class="ps-batt">87%</span></span></div>
       <div class="phone-screen" data-phone></div>
       <button class="phone-home" type="button" aria-label="Home" data-home></button>`;
     this.phoneScreen = el.querySelector('[data-phone]')!;

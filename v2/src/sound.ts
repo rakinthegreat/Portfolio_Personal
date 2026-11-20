@@ -74,7 +74,20 @@ function noise(dur: number, freq: number, q: number, gain: number, delay = 0) {
   src.start(t);
 }
 
-export const sfx = {
+// the hiss yields: any other sound cuts a hiss that's still going
+let hissing: { src: AudioBufferSourceNode; g: GainNode } | null = null;
+function cutHiss() {
+  if (!hissing || !ctx) return;
+  const now = ctx.currentTime;
+  const { src, g } = hissing;
+  hissing = null;
+  g.gain.cancelScheduledValues(now);
+  g.gain.setValueAtTime(Math.min(g.gain.value, 0.26), now);
+  g.gain.linearRampToValueAtTime(0, now + 0.03);
+  try { src.stop(now + 0.035); } catch { /* already stopped */ }
+}
+
+const fx = {
   click: () => tone(1800, 0.05, 'square', 0.05),
   keycap: () => {
     tone(880, 0.09, 'triangle', 0.12);
@@ -176,8 +189,35 @@ export const sfx = {
   scratch: () => [0, 0.17, 0.34, 0.51, 0.68].forEach((d, i) => noise(0.11, 2600 + (i % 2) * 900, 1.4, 0.16, d)),
   /** One drop landing in a puddle. */
   drip: () => tone(1400 + Math.random() * 500, 0.06, 'sine', 0.03, 600),
-  /** A cat hiss: a burst of band-passed noise with a fast attack. */
-  hiss: () => noise(0.9, 3800, 1.2, 0.22),
+  /** A cat hiss: one short, sharp burst, timed to land as his back arches (the pose takes ~0.06 s to rise). */
+  hiss: () => {
+    if (!enabled) return;
+    const a = ac();
+    const t = a.currentTime + 0.05;
+    const dur = 0.42;
+    const buf = a.createBuffer(1, Math.floor(a.sampleRate * dur), a.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+    const src = a.createBufferSource();
+    src.buffer = buf;
+    const hp = a.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 2200;
+    const bp = a.createBiquadFilter();
+    bp.type = 'bandpass';
+    bp.frequency.setValueAtTime(4200, t);
+    bp.frequency.exponentialRampToValueAtTime(3200, t + dur); // a slight drop as the breath runs out
+    bp.Q.value = 1.1;
+    const g = a.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.26, t + 0.025); // snaps on with the arch
+    g.gain.setValueAtTime(0.26, t + 0.12);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(hp).connect(bp).connect(g).connect(toMaster());
+    src.start(t);
+    hissing = { src, g };
+    src.onended = () => { if (hissing?.src === src) hissing = null; };
+  },
   /** Printer: stepper-motor whirr in short pulses for `secs`. */
   print: (secs: number) => {
     for (let t = 0; t < secs; t += 0.32) {
@@ -191,9 +231,28 @@ export const sfx = {
     tone(2600, 0.35, 'sine', 0.06);
     tone(3900, 0.25, 'sine', 0.03, undefined, 0.01);
   },
+  /** A terracotta pot hitting the floor: a dull body thump, the clay cracking apart, shards skittering,
+   *  and the soil spilling out in a soft hiss of grit. */
+  potBreak: () => {
+    tone(140, 0.22, 'sine', 0.3, 60); // the thump
+    noise(0.09, 900, 0.9, 0.42); // the crack
+    noise(0.16, 1800, 1.2, 0.26, 0.015);
+    for (let i = 0; i < 9; i++) {
+      const d = 0.05 + Math.pow(Math.random(), 1.4) * 0.55;
+      noise(0.03 + Math.random() * 0.04, 1200 + Math.random() * 1800, 3, 0.1 + Math.random() * 0.08, d); // shards
+      if (i % 3 === 0) tone(700 + Math.random() * 600, 0.06, 'triangle', 0.03, 400, d); // dull clay tinks
+    }
+    noise(0.6, 600, 0.5, 0.08, 0.08); // soil
+  },
   smash: () => {
     noise(0.45, 5200, 0.8, 0.25);
     tone(1800, 0.2, 'triangle', 0.05, 900);
   },
   win: () => [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.18, 'triangle', 0.1, undefined, i * 0.1)),
 };
+
+type Fx = typeof fx;
+/** Every sound (bar the hiss itself and the background purr) first cuts a hiss that's still playing. */
+export const sfx = Object.fromEntries(
+  Object.entries(fx).map(([k, f]) => [k, k === 'hiss' || k === 'purr' ? f : (...args: unknown[]) => { cutHiss(); return (f as (...a: unknown[]) => unknown)(...args); }]),
+) as Fx;

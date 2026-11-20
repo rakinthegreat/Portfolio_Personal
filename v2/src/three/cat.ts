@@ -7,6 +7,9 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+const ROLL_ANG = Math.PI * 0.6; // belly-up roll: over onto his side, belly to you
+const ROLL_Y = -0.068; // how far the body settles once he's over
+const ROLL_NECK = -0.8; // neck turns against the roll: head stays up off the desk, looking at you
 export type CatState = 'sleep' | 'idle' | 'walk' | 'roll' | 'hiss';
 type V3 = THREE.Vector3;
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
@@ -473,7 +476,7 @@ export class Cat {
     if (this.state === 'hiss') return;
     if (this.state !== 'roll') this.prev = this.state === 'walk' ? 'idle' : this.state;
     this.state = 'hiss';
-    this.timer = 1.1;
+    this.timer = 0.6; // brief: arch, hiss, done (the sound is ~0.45 s)
   }
 
   setState(s: CatState) {
@@ -523,7 +526,7 @@ export class Cat {
     const sleeping = s === 'sleep';
     const idling = s === 'idle' && !this.airborne;
     p.tuck = damp(p.tuck, sleeping ? 1 : s === 'roll' ? 0.38 : 0, 5, dt);
-    p.curl = damp(p.curl, sleeping ? 1 : 0, 3, dt);
+    p.curl = damp(p.curl, sleeping ? 1 : 0, s === 'roll' ? 9 : 3, dt); // rolling over uncurls him fast
     p.roll = damp(p.roll, s === 'roll' ? 1 : 0, 6, dt);
     p.walk = damp(p.walk, s === 'walk' && !this.airborne ? 1 : 0, 8, dt);
     p.air = damp(p.air, this.airborne ? 1 : 0, 12, dt);
@@ -559,7 +562,9 @@ export class Cat {
     const lookYaw = this.look.x * p.awake * (1 - p.hiss) * (1 - G);
     const bob = Math.sin(this.gait * 2) * 0.03 * p.walk;
     const lick = Math.sin(t * 9) * 0.09 * G;
-    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.52 * S + 0.55 * Sc - 0.12 * Lp - 0.3 * St + 0.3 * G + bob, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, 0);
+    // rolled onto his side he keeps his head up off the desk, turned to look at you
+    const R = p.roll;
+    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.52 * S + 0.55 * Sc - 0.12 * Lp - 0.3 * St + 0.3 * G + bob, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, ROLL_NECK * R);
     B.head.rotation.set(0.12 * p.curl + this.look.y * p.awake + 0.15 * p.hiss + 0.15 * S + 0.25 * G + lick, 0.55 * p.curl + lookYaw * 0.6 + 0.35 * G, -0.3 * p.curl + 0.15 * G);
 
     // ── legs ──
@@ -594,23 +599,23 @@ export class Cat {
       }
     }
     this.rig.position.y = -0.12 - 0.1 * low - 0.099 * S + Math.abs(Math.sin(this.gait)) * 0.006 * p.walk + 0.012 * p.hiss - 0.02 * St - 0.018 * p.land + 0.0075 * Sc;
-    this.pivot.rotation.z = Math.PI * 0.6 * p.roll; // over onto his side, belly to you, paws up and kneading
-    this.pivot.position.y = 0.12 - 0.068 * p.roll;
+    this.pivot.rotation.z = ROLL_ANG * p.roll; // over onto his side, belly to you, paws up and kneading
+    this.pivot.position.y = 0.12 + ROLL_Y * p.roll * p.roll; // settles as he turns, not before (or the near paw goes through the desk)
     this.rig.rotation.y = 0.5 * p.hiss; // turns side-on to look bigger
 
     // ── tail: up awake, wrapped round the feet sitting, along his side asleep or lying, bottle-brush to hiss ──
-    const rest = Math.max(p.curl, S, Lp);
+    const rest = Math.max(p.curl, S, Lp, p.roll * 0.8);
     for (let i = 0; i < 9; i++) {
       const b = B[`tail${i}`];
       const wave = Math.sin(this.tailPhase - i * 0.5) * (0.1 + 0.14 * (1 - rest)) * (1 - p.hiss * 0.8);
       const upAwake = i === 0 ? 0.75 : i < 5 ? 0.08 : -0.06; // up with a soft hook
       const upHiss = i === 0 ? 1.25 : 0.04;
       const upLow = i === 0 ? -0.6 : i === 1 ? 0.35 : 0.04; // down to the ground, then flat
-      const awakeUp = p.awake * (1 - p.hiss) * (1 - Math.max(S, Lp));
-      b.rotation.x = upAwake * awakeUp + upHiss * p.hiss + upLow * Math.max(1 - p.awake, S, Lp);
+      const awakeUp = p.awake * (1 - p.hiss) * (1 - Math.max(S, Lp, p.roll)); // rolled over: the tail lies out flat along the desk
+      b.rotation.x = upAwake * awakeUp + upHiss * p.hiss + upLow * Math.max(1 - p.awake, S, Lp, p.roll);
       const wrapSleep = i === 0 ? 1.15 : i === 1 ? 0.45 : 0.13;
       const wrapSit = i === 0 ? 1.0 : i === 1 ? 0.4 : 0.17;
-      b.rotation.y = wave * (1 - 0.8 * rest) - p.curl * wrapSleep - Math.max(S, Lp * 0.7) * wrapSit;
+      b.rotation.y = wave * (1 - 0.8 * rest) - p.curl * wrapSleep - Math.max(S, Lp * 0.7) * wrapSit - 0.05 * p.roll; // rolled: a lazy curl up off the desk
     }
     const puff = 1 + 0.7 * p.hiss;
     B.tail0.scale.set(puff, puff, 1);
