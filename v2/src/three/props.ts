@@ -880,6 +880,78 @@ export function buildDesk(M: Materials, aniso: number) {
   }
   root.add(nb);
   collider(-0.44, 0.3, 0.32, 0.24, 0, 0.01);
+
+  // ── a box of tissues, left of the notebook: he can pull them out, scrunch them into balls, mop up coffee ──
+  const tissues = new THREE.Group();
+  tissues.position.set(-0.62, 0, -0.035);
+  tissues.rotation.y = 0.12;
+  {
+    const TW = 0.22;
+    const TH = 0.085;
+    const TD = 0.115;
+    // printed carton: sage with little white sprigs, the same print on every face
+    const cv = document.createElement('canvas');
+    cv.width = 256;
+    cv.height = 128;
+    const g = cv.getContext('2d')!;
+    g.fillStyle = '#a9bfa3';
+    g.fillRect(0, 0, 256, 128);
+    g.strokeStyle = 'rgba(255,255,255,0.85)';
+    g.fillStyle = 'rgba(255,255,255,0.85)';
+    g.lineWidth = 2;
+    for (let i = 0; i < 14; i++) {
+      const x = ((i * 53) % 256) + 8;
+      const y = ((i * 37) % 112) + 8;
+      g.beginPath();
+      g.moveTo(x, y + 12);
+      g.quadraticCurveTo(x + 4, y + 4, x + 2, y - 8);
+      g.stroke();
+      for (const k of [-1, 1]) {
+        g.beginPath();
+        g.ellipse(x + 2 + k * 5, y + 1, 4, 2, k * 0.6, 0, Math.PI * 2);
+        g.fill();
+      }
+    }
+    g.fillStyle = '#4f6b4a';
+    g.fillRect(0, 100, 256, 28);
+    g.fillStyle = '#f4f1ea';
+    g.font = '700 18px "Space Grotesk", Arial, sans-serif';
+    g.textAlign = 'center';
+    g.fillText('SOFT  ·  3-PLY', 128, 120);
+    const tex = new THREE.CanvasTexture(cv);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = aniso;
+    block(TW, TH, TD, new THREE.MeshStandardMaterial({ map: tex, roughness: 0.75 }), 0, 0, 0, 0.004, false, tissues);
+    // the opening on top: a dark oval with a clear film round it
+    const hole = new THREE.Mesh(new THREE.CircleGeometry(1, 40), new THREE.MeshStandardMaterial({ color: 0x1c1a17, roughness: 0.9 }));
+    hole.scale.set(0.07, 0.022, 1);
+    hole.rotation.x = -Math.PI / 2;
+    hole.position.y = TH + 0.0006;
+    const film = new THREE.Mesh(new THREE.RingGeometry(1, 1.25, 40), new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.1, transparent: true, opacity: 0.35 }));
+    film.scale.set(0.07, 0.022, 1);
+    film.rotation.x = -Math.PI / 2;
+    film.position.y = TH + 0.0008;
+    // the next tissue, standing up out of the slot in a soft peak
+    const peekGeo = new THREE.PlaneGeometry(0.11, 0.06, 10, 6);
+    const pp = peekGeo.attributes.position;
+    for (let i = 0; i < pp.count; i++) {
+      const x = pp.getX(i);
+      const y = pp.getY(i) + 0.03; // 0 at the slot, 0.06 at the top
+      const w = 1 - Math.abs(x) / 0.055;
+      pp.setY(i, y * (0.35 + 0.65 * w)); // a peak in the middle, low at the corners
+      pp.setZ(i, Math.sin(x * 60) * 0.004 * (y / 0.06) + Math.sin(y * 90) * 0.002);
+    }
+    peekGeo.computeVertexNormals();
+    const peek = new THREE.Mesh(peekGeo, new THREE.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.95, side: THREE.DoubleSide }));
+    peek.name = 'tissuePeek';
+    peek.position.y = TH;
+    peek.castShadow = true;
+    tissues.add(hole, film, peek);
+  }
+  root.add(shadowed(tissues));
+  collider(-0.62, -0.035, 0.235, 0.135, 0, 0.085); // he can hop up on it, too
+  prop('tissues', tissues, [-0.62, 0.09, -0.035]);
+
   // the mug: knockable in play mode, clickable (it wobbles and clinks) on the tour
   const mug = new THREE.Group();
   // open-topped (a capped cylinder hid the coffee), with a rim, an inside wall and a base

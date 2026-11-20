@@ -187,6 +187,12 @@ const fx = {
   },
   /** Claws raking a book spine: quick rasps, alternating paws. */
   scratch: () => [0, 0.17, 0.34, 0.51, 0.68].forEach((d, i) => noise(0.11, 2600 + (i % 2) * 900, 1.4, 0.16, d)),
+  /** A tissue pulled from the box: one soft papery swish. */
+  tissue: () => noise(0.22, 4200, 0.7, 0.07),
+  /** Paper scrunched into a ball: a quick run of crinkles. */
+  crumple: () => [0, 0.05, 0.11, 0.16, 0.24, 0.3].forEach((d, i) => noise(0.05, 3000 + (i % 3) * 1400, 1.1, 0.09, d)),
+  /** Dabbing up a spill: soft, damp pats. */
+  wipe: () => [0, 0.22, 0.44, 0.66, 0.88].forEach((d) => noise(0.12, 900, 0.8, 0.08, d)),
   /** One drop landing in a puddle. */
   drip: () => tone(1400 + Math.random() * 500, 0.06, 'sine', 0.03, 600),
   /** A cat hiss: one short, sharp burst, timed to land as his back arches (the pose takes ~0.06 s to rise). */

@@ -9,7 +9,9 @@ import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js
 
 const ROLL_ANG = Math.PI * 0.6; // belly-up roll: over onto his side, belly to you
 const ROLL_Y = -0.068; // how far the body settles once he's over
-const ROLL_NECK = -0.8; // neck turns against the roll: head stays up off the desk, looking at you
+const ROLL_NECK = -0.8;
+/** Head down to the desk: chest dips, neck and head pitch down, front elbows give (radians, and metres for the drop). */
+const BEND = { chest: 0.4, neck: 0.75, head: -0.05, upper: 0.5, fore: -1.1, drop: 0, hips: 0.18 }; // neck turns against the roll: head stays up off the desk, looking at you
 export type CatState = 'sleep' | 'idle' | 'walk' | 'roll' | 'hiss';
 type V3 = THREE.Vector3;
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
@@ -209,6 +211,7 @@ function furMaterial(shell: number, density: number) {
 interface Leg { front: boolean; side: number; a: THREE.Bone; b: THREE.Bone; c: THREE.Bone; d: THREE.Bone; phase: number }
 
 export class Cat {
+  static BEND = BEND;
   readonly root = new THREE.Group();
   private pivot = new THREE.Group();
   private rig = new THREE.Group();
@@ -217,6 +220,14 @@ export class Cat {
   private ears: THREE.Group[] = [];
   private eyes: THREE.Group[] = [];
   private mouth!: THREE.Mesh;
+  /** Where something held in his mouth sits, in world space. */
+  mouthWorld(target: THREE.Vector3) {
+    return this.mouth.getWorldPosition(target);
+  }
+  /** The head's orientation in world space (it turns and pitches as he looks about and walks). */
+  mouthQuat(target: THREE.Quaternion) {
+    return this.mouth.getWorldQuaternion(target);
+  }
   private base!: THREE.SkinnedMesh;
 
   state: CatState = 'sleep';
@@ -235,7 +246,7 @@ export class Cat {
   private breathPhase = 0;
   private blink = 2;
   private twitch = 3;
-  private pose = { tuck: 1, curl: 1, roll: 0, walk: 0, air: 0, hiss: 0, awake: 0, sit: 0, lie: 0, groom: 0, stretch: 0, land: 0, scratch: 0 };
+  private pose = { tuck: 1, curl: 1, roll: 0, walk: 0, air: 0, hiss: 0, awake: 0, sit: 0, lie: 0, groom: 0, stretch: 0, land: 0, scratch: 0, bend: 0 };
   /** In play mode he idles like a cat: stand, then sit (grooming now and then), then lie down sphinx-style. */
   autonomous = false;
   private idle: 'stand' | 'sit' | 'groom' | 'lie' = 'stand';
@@ -488,6 +499,8 @@ export class Cat {
   stretch() {
     this.stretchT = 1.5;
   }
+  /** 0..1: head down to the desk in front of his paws (picking something up, or putting it down). Set by play. */
+  bend = 0;
   /** Up on his hind legs, front paws raking whatever is in front of him. */
   scratch() {
     this.scratchT = 1.05;
@@ -499,7 +512,7 @@ export class Cat {
 
   /** Idle behaviour: what a cat does when nobody is steering it. */
   private think(dt: number) {
-    const idle = this.state === 'idle' && !this.airborne;
+    const idle = this.state === 'idle' && !this.airborne && this.bend === 0; // busy with his mouth: no sitting down
     if (!idle || !this.autonomous) {
       this.idle = 'stand';
       this.idleT = 0;
@@ -538,7 +551,9 @@ export class Cat {
     p.stretch = damp(p.stretch, this.stretchT > 0.25 ? 1 : 0, 6, dt);
     p.land = damp(p.land, this.landT > 0 ? 1 : 0, 25, dt);
     p.scratch = damp(p.scratch, this.scratchT > 0.12 ? 1 : 0, 12, dt);
+    p.bend = damp(p.bend, this.bend, 10, dt);
     const Sc = p.scratch;
+    const Bd = p.bend;
     const S = p.sit;
     const Lp = p.lie;
     const G = p.groom;
@@ -552,9 +567,9 @@ export class Cat {
     const breath = Math.sin(this.breathPhase) * 0.5 + 0.5;
     // pelvis rolls and sways with the hind legs when walking
     const pelvis = Math.sin(this.gait + Math.PI * 0.9) * p.walk;
-    B.hips.rotation.set(-0.28 * p.hiss - 0.78 * S + 0.3 * St - 0.75 * Sc, 0.14 * p.curl + pelvis * 0.07, pelvis * 0.05);
+    B.hips.rotation.set(-0.28 * p.hiss - 0.78 * S + 0.3 * St - 0.75 * Sc + BEND.hips * p.bend, 0.14 * p.curl + pelvis * 0.07, pelvis * 0.05);
     B.spine.rotation.set(-0.08 * p.hiss - 0.05 * S, 0.16 * p.curl, 0);
-    B.chest.rotation.set(0.34 * p.hiss - 0.05 * p.air + 0.05 * S - 0.15 * St, 0.16 * p.curl, 0);
+    B.chest.rotation.set(0.34 * p.hiss - 0.05 * p.air + 0.05 * S - 0.15 * St + BEND.chest * Bd, 0.16 * p.curl, 0);
     B.chest.scale.set(1 + breath * 0.025, 1 + breath * 0.03, 1);
 
     // ── head and neck ──
@@ -564,8 +579,8 @@ export class Cat {
     const lick = Math.sin(t * 9) * 0.09 * G;
     // rolled onto his side he keeps his head up off the desk, turned to look at you
     const R = p.roll;
-    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.52 * S + 0.55 * Sc - 0.12 * Lp - 0.3 * St + 0.3 * G + bob, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, ROLL_NECK * R);
-    B.head.rotation.set(0.12 * p.curl + this.look.y * p.awake + 0.15 * p.hiss + 0.15 * S + 0.25 * G + lick, 0.55 * p.curl + lookYaw * 0.6 + 0.35 * G, -0.3 * p.curl + 0.15 * G);
+    B.neck.rotation.set(0.3 * p.curl - 0.12 * p.awake + 0.25 * p.hiss + 0.52 * S + 0.55 * Sc - 0.12 * Lp - 0.3 * St + 0.3 * G + bob + BEND.neck * Bd, 0.35 * p.curl + lookYaw * 0.4 + 0.25 * G, ROLL_NECK * R);
+    B.head.rotation.set(0.12 * p.curl + this.look.y * p.awake + 0.15 * p.hiss + 0.15 * S + 0.25 * G + lick + BEND.head * Bd, 0.55 * p.curl + lookYaw * 0.6 + 0.35 * G, -0.3 * p.curl + 0.15 * G);
 
     // ── legs ──
     this.gait += dt * 10 * p.walk * this.gaitScale * this.gaitDir;
@@ -582,8 +597,8 @@ export class Cat {
         // sit: straight, upright legs, paws under the chest. lie (sphinx): elbows tucked back under the chest,
         // forearms flat along the ground. groom: the elbow flexes the paw forward and up to the mouth.
         const rake = Math.sin(t * 15 + (L.side > 0 ? 0 : Math.PI)) * Sc; // alternate paws, down the spine
-        L.a.rotation.x = 1.35 * p.tuck + swing - 0.85 * p.air + knead + 0.84 * S + 1.02 * Lp - 1.2 * St - 1.75 * g - 0.55 * Sc + 0.35 * rake;
-        L.b.rotation.x = -2.45 * p.tuck - 0.6 * lift + 0.3 * p.air - 2.55 * Lp + 0.2 * St - 1.35 * g;
+        L.a.rotation.x = 1.35 * p.tuck + swing - 0.85 * p.air + knead + 0.84 * S + 1.02 * Lp - 1.2 * St - 1.75 * g - 0.55 * Sc + 0.35 * rake + BEND.upper * Bd;
+        L.b.rotation.x = -2.45 * p.tuck - 0.6 * lift + 0.3 * p.air - 2.55 * Lp + 0.2 * St - 1.35 * g + BEND.fore * Bd;
         L.c.rotation.x = 1.0 * p.tuck + 0.45 * lift + 0.95 * Lp + 0.3 * St - 0.5 * g + 0.6 * Sc;
         L.a.rotation.z = -L.side * 0.06 * p.hiss - L.side * 0.25 * p.tuck - 0.22 * g;
         L.d.rotation.x = 0.5 * lift; // paw flicks forward as it swings through
@@ -598,7 +613,7 @@ export class Cat {
         L.a.rotation.z = -L.side * 0.05 * p.hiss - L.side * 0.55 * low - L.side * 0.12 * S;
       }
     }
-    this.rig.position.y = -0.12 - 0.1 * low - 0.099 * S + Math.abs(Math.sin(this.gait)) * 0.006 * p.walk + 0.012 * p.hiss - 0.02 * St - 0.018 * p.land + 0.0075 * Sc;
+    this.rig.position.y = -0.12 - 0.1 * low - 0.099 * S + Math.abs(Math.sin(this.gait)) * 0.006 * p.walk + 0.012 * p.hiss - 0.02 * St - 0.018 * p.land + 0.0075 * Sc + BEND.drop * Bd;
     this.pivot.rotation.z = ROLL_ANG * p.roll; // over onto his side, belly to you, paws up and kneading
     this.pivot.position.y = 0.12 + ROLL_Y * p.roll * p.roll; // settles as he turns, not before (or the near paw goes through the desk)
     this.rig.rotation.y = 0.5 * p.hiss; // turns side-on to look bigger

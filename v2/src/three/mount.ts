@@ -341,7 +341,6 @@ export async function mount(tour: HTMLElement) {
     basket: `<button class="btn btn-solid" data-act="play">Play as the cat</button>`,
     laptop: `<button class="btn btn-solid" data-act="use-laptop">Use the laptop</button><button class="btn" data-act="use-plaque">♥ Our song</button>${web.map((p) => `<button class="btn" data-act="tab" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}`,
     phone: `<button class="btn btn-solid" data-act="use-phone">Use the phone</button>${apps.map((p) => `<button class="btn" data-act="app" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}<button class="btn" data-act="use-calc">Calculator</button><button class="btn" data-act="socials">Socials</button>`,
-    pinboard: `<a class="btn" href="#about">About</a><a class="btn" href="#academics">Academics</a><a class="btn" href="#expertise">Tech Stack</a>`,
     server: `<p class="tour-stats" data-stats>Checking on the server…</p>`,
     console: `<button class="btn btn-solid" data-act="arcade">Play Punch It Out</button>`,
     printer: `<button class="btn btn-solid" data-act="print">Print résumé</button>`,
@@ -518,7 +517,18 @@ export async function mount(tour: HTMLElement) {
     mug: ['Clink the mug', false],
     socials: ['Visit a profile (1–4 for the rest)', true],
     book: ['Scratch the book', true],
+    pickup: ['Pick it up', true],
+    drop: ['Drop it', true],
+    tissues: ['Pull out a tissue', true],
+    wipe: ['Wipe up the coffee', true],
   };
+  // two things to do with it: [key, label] pairs
+  const DUAL: Record<string, [string, string][]> = {
+    tissue: [['F', 'Scrunch it into a ball'], ['G', 'Pick it up']], // the first is what tapping the hint does
+    ball: [['F', 'Bat it'], ['G', 'Pick it up']],
+    wipe: [['F', 'Wipe up the coffee'], ['G', 'Drop it']],
+  };
+  const PLAY_ONLY_IDS = new Set(['tissues']); // nothing happens clicking these on the tour
   const PLAY_ONLY: Record<string, string> = { mug: 'Walk into the mug to knock it over', basket: 'Press E to stop playing and nap', pinboard: 'Read the pinboard from the plank' };
   const hintEl = document.createElement('button');
   hintEl.type = 'button';
@@ -526,20 +536,35 @@ export async function mount(tour: HTMLElement) {
   sticky.append(hintEl);
   let hintKey = '';
   const setHint = (id: string | null, mode: 'click' | 'key') => {
-    const k = id ? `${mode}:${id}` : '';
+    const k = id ? `${mode}:${id}${id === 'mug' && mug.userData.tipped ? ':over' : ''}` : ''; // the hint drops once it tips
     if (k === hintKey) return;
     hintKey = k;
+    if (id && mode === 'key' && DUAL[id]) {
+      hintEl.innerHTML = DUAL[id].map(([key, label]) => `<kbd>${key}</kbd><span>${label}</span>`).join('');
+      hintEl.classList.add('on');
+      return;
+    }
+    // a mug that's already over has nothing more to offer; tissues only do anything while playing
+    if ((id === 'mug' && mug.userData.tipped) || (id && mode === 'click' && PLAY_ONLY_IDS.has(id))) id = null;
     const h = id ? HINTS[id] ?? (id.startsWith('social:') ? ([`Visit ${id.slice(7)}`, false] as [string, boolean]) : null) : null;
     if (!h) {
       hintEl.classList.remove('on');
       return;
     }
     const label = mode === 'key' && !h[1] ? PLAY_ONLY[id!] ?? h[0] : h[0];
-    const key = mode === 'click' ? 'CLICK' : h[1] ? 'F' : '';
+    const key = mode === 'click' ? 'CLICK' : id === 'pickup' || id === 'drop' ? 'G' : h[1] ? 'F' : '';
     hintEl.innerHTML = `${key ? `<kbd>${key}</kbd>` : ''}<span>${label}</span>`;
     hintEl.classList.add('on');
   };
-  hintEl.addEventListener('click', () => play.interact()); // touch: the hint is the button
+  // touch: the hint is the button
+  hintEl.addEventListener('click', () => (hintKey === 'key:pickup' || hintKey === 'key:drop' ? play.carry() : play.interact()));
+  hintEl.addEventListener('contextmenu', (e) => {
+    // touch and hold on a two-way hint: the other action (pick it up / drop it)
+    if (hintKey === 'key:tissue' || hintKey === 'key:ball' || hintKey === 'key:wipe') {
+      e.preventDefault();
+      play.carry();
+    }
+  });
   const debug: { cam: { pos: THREE.Vector3; look: THREE.Vector3 } | null } = { cam: null };
   if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug } });
 
@@ -618,7 +643,7 @@ export async function mount(tour: HTMLElement) {
     plaque: () => focus('plaque'),
     // F by the books opens the first profile; on the tour, clicking the shelf shows the socials caption
     socials: () => (play.active ? socialsCap.querySelector<HTMLElement>('.cap-btns > a')?.click() : showSocials()),
-    pinboard: () => document.getElementById('about')?.scrollIntoView({ behavior: 'smooth' }),
+    pinboard: () => {}, // nothing to open: it's read where it hangs
     basket: () => {
       cat.poke();
       sfx.purr();
@@ -672,7 +697,7 @@ export async function mount(tour: HTMLElement) {
       <section><h3>Touring</h3><ul>
         <li><kbd>←</kbd> <kbd>→</kbd> previous / next stop</li><li><kbd>F</kbd> or <kbd>Enter</kbd> the caption's main button</li><li><kbd>1</kbd>–<kbd>9</kbd> its other buttons</li></ul></section>
       <section><h3>Playing</h3><ul>
-        <li><kbd>WASD</kbd> / arrows walk · <kbd>⇧</kbd> run</li><li><kbd>Space</kbd> jump</li><li><kbd>F</kbd> use / scratch what's in front of him</li><li><kbd>1</kbd>–<kbd>9</kbd> the nearby caption's buttons</li></ul></section>
+        <li><kbd>WASD</kbd> / arrows walk · <kbd>⇧</kbd> run</li><li><kbd>Space</kbd> jump</li><li><kbd>F</kbd> use / scratch what's in front of him</li><li><kbd>G</kbd> pick up a small thing / drop it</li><li>Tissue box: <kbd>F</kbd> pull one out · on a tissue <kbd>F</kbd> scrunch it · on a ball <kbd>F</kbd> bat it · tissue in his mouth by a coffee spill <kbd>F</kbd> wipe it up</li><li><kbd>1</kbd>–<kbd>9</kbd> the nearby caption's buttons</li></ul></section>
       <section><h3>Devices</h3><ul>
         <li>Victus: <kbd>1</kbd>–<kbd>9</kbd> tabs · <kbd>R</kbd> reload · <kbd>⌫</kbd> projects</li><li>Phone: <kbd>1</kbd>–<kbd>9</kbd> apps · <kbd>0</kbd> home</li><li>Calculator: just type · <kbd>Enter</kbd> EXE</li><li>Plaque: <kbd>Space</kbd> play · <kbd>←</kbd> <kbd>→</kbd> skip</li><li>Résumé: <kbd>P</kbd> PDF · <kbd>I</kbd> PNG</li><li>Punch It Out: arrows / <kbd>A</kbd><kbd>W</kbd><kbd>D</kbd></li></ul></section>
     </div>
@@ -872,6 +897,7 @@ export async function mount(tour: HTMLElement) {
     hint.style.transform = `translate(-50%, -100%) translate(${(hintPos.x * 0.5 + 0.5) * sticky.clientWidth}px, ${(-hintPos.y * 0.5 + 0.5) * sticky.clientHeight}px)`;
 
     cat.update(dt, t);
+    play.afterPose(dt); // whatever's in his mouth follows this frame's head pose
     if (play.active && !focused) setHint(play.interactable, 'key');
     else if (focused || hintKey.startsWith('key:')) setHint(null, 'key');
     if (hintEl.classList.contains('on')) {

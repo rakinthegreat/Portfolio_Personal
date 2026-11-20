@@ -1,6 +1,7 @@
 // Renders the page (and resume.html) from content.json at build time, in the original
 // portfolio's design: neo-brutalist black/white, Space Grotesk + Space Mono, numbered sections
-// with a ghost number behind each heading. The 3D desk is layered on top by src/three/.
+// with a ghost number behind each heading. Visitors pick Standard (a 1:1 port of the original
+// Flutter site) or 3D Interactive (the desk on its own) on the entry screen.
 import type contentJson from './content.json';
 
 type Content = typeof contentJson;
@@ -8,72 +9,238 @@ type Project = Content['projects'][number] & { previewUrl?: string; downloadUrl?
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 export const slug = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
-const ext = (href: string, label: string, cls = 'btn') =>
-  `<a class="${cls}" href="${esc(href)}" target="_blank" rel="noopener">${esc(label)}</a>`;
 
-const NAV: [string, string][] = [
-  ['about', 'About'], ['academics', 'Academics'], ['expertise', 'Expertise'], ['projects', 'Projects'],
-  ['experiences', 'Experiences'], ['socials', 'Socials'], ['contact', 'Contact'],
-];
+const NAV = ['About', 'Academics', 'Expertise', 'Projects', 'Experiences', 'Socials', 'Contact'];
+const IDS = ['about', 'academics', 'expertise', 'projects', 'experiences', 'socials', 'contact'];
 
-/** "01 · ABOUT" label + ghost number with the heading laid over it (original layout). */
-function sectionHead(n: string, label: string, heading: string) {
+// Material icons the original used on the project buttons (code, visibility, download)
+const ICON = {
+  code: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.4 16.6 4.8 12l4.6-4.6L8 6l-6 6 6 6zm5.2 0 4.6-4.6-4.6-4.6L16 6l6 6-6 6z"/></svg>',
+  visibility: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4.5C7 4.5 2.7 7.6 1 12c1.7 4.4 6 7.5 11 7.5s9.3-3.1 11-7.5c-1.7-4.4-6-7.5-11-7.5M12 17a5 5 0 1 1 0-10 5 5 0 0 1 0 10m0-8a3 3 0 1 0 0 6 3 3 0 0 0 0-6"/></svg>',
+  download: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 9h-4V3H9v6H5l7 7zM5 18v2h14v-2z"/></svg>',
+  dark: '<svg class="s-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.37 5.51A7.35 7.35 0 0 0 9.1 7.5c0 4.08 3.32 7.4 7.4 7.4.68 0 1.35-.09 1.99-.27A7.01 7.01 0 0 1 12 19c-3.86 0-7-3.14-7-7 0-2.93 1.81-5.45 4.37-6.49M12 3a9 9 0 1 0 9 9c0-.46-.04-.92-.1-1.36a5.39 5.39 0 0 1-4.4 2.26 5.4 5.4 0 0 1-3.14-9.8c-.44-.06-.9-.1-1.36-.1"/></svg>',
+  light: '<svg class="s-sun" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9c1.65 0 3 1.35 3 3s-1.35 3-3 3-3-1.35-3-3 1.35-3 3-3m0-2a5 5 0 1 0 0 10 5 5 0 0 0 0-10M2 13h2a1 1 0 0 0 0-2H2a1 1 0 0 0 0 2m18 0h2a1 1 0 0 0 0-2h-2a1 1 0 0 0 0 2M11 2v2a1 1 0 0 0 2 0V2a1 1 0 0 0-2 0m0 18v2a1 1 0 0 0 2 0v-2a1 1 0 0 0-2 0M5.99 4.58a1 1 0 0 0-1.41 1.41l1.06 1.06a1 1 0 0 0 1.41-1.41zm12.37 12.37a1 1 0 0 0-1.41 1.41l1.06 1.06a1 1 0 0 0 1.41-1.41zm1.06-10.96a1 1 0 0 0-1.41-1.41l-1.06 1.06a1 1 0 0 0 1.41 1.41zM7.05 18.36a1 1 0 0 0-1.41-1.41l-1.06 1.06a1 1 0 0 0 1.41 1.41z"/></svg>',
+  close: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>',
+};
+
+/** "01  ·  ABOUT" label row, then the ghost number with the heading laid over it (the original's layout). */
+function head(n: string, label: string, heading: string) {
   return `
-    <p class="section-label reveal">${n}  ·  ${esc(label.toUpperCase())}</p>
-    <div class="ghost-wrap reveal">
-      <span class="ghost-num" aria-hidden="true">${n}</span>
-      <h2 class="section-heading">${heading}</h2>
+    <p class="s-label s-rev"><i class="s-dot"></i>${n}  ·  ${esc(label.toUpperCase())}</p>
+    <div class="s-ghost s-rev" style="--d:80ms">
+      <span class="s-ghost-num" aria-hidden="true">${n}</span>
+      <h2 class="s-heading">${heading}</h2>
     </div>`;
 }
 
-function projectCard(p: Project) {
+const section = (id: string, body: string) => `
+  <section class="s-section" id="${id}" data-sec>
+    <div class="s-inner">${body}</div>
+  </section>`;
+
+function projectCard(p: Project, i: number) {
   const btns = [
-    p.url && ext(p.url, 'Source'),
+    p.url && `<a class="s-pill" href="${esc(p.url)}" target="_blank" rel="noopener">${ICON.code}Source</a>`,
     p.previewUrl &&
-      `<a class="btn btn-solid" href="${esc(p.previewUrl)}" target="_blank" rel="noopener" data-preview="${esc(p.name)}" data-mobile="${p.mobile ? 'true' : 'false'}">Live Preview</a>`,
-    p.downloadUrl && ext(p.downloadUrl, 'Download App'),
+      `<a class="s-pill" href="${esc(p.previewUrl)}" target="_blank" rel="noopener" data-preview="${esc(p.name)}" data-mobile="${p.mobile ? 'true' : 'false'}">${ICON.visibility}Live Preview</a>`,
+    p.downloadUrl && `<a class="s-pill" href="${esc(p.downloadUrl)}" target="_blank" rel="noopener">${ICON.download}Download App</a>`,
   ].filter(Boolean);
   return `
-    <article class="proj-card reveal" id="p-${slug(p.name)}">
-      <p class="proj-meta">${esc(p.type)}  ·  ${esc(p.year)}</p>
-      <h3 class="proj-name">${esc(p.name)}</h3>
-      <p class="proj-desc">${esc(p.description)}</p>
-      <div class="proj-btns">${btns.join('')}</div>
+    <article class="s-card s-rev" id="p-${slug(p.name)}" style="--d:${100 + i * 80}ms">
+      <h3 class="s-card-name">${esc(p.name)}</h3>
+      <p class="s-card-desc">${esc(p.description)}</p>
+      <p class="s-card-meta"><span>${esc(p.type.toUpperCase())}</span><b>${esc(p.year)}</b></p>
+      <div class="s-pills">${btns.join('')}</div>
     </article>`;
 }
 
-const infoDialog = (id: string, title: string, rows: string) => `
-  <dialog class="info" id="${id}">
-    <div class="info-head"><h3>${esc(title.toUpperCase())}</h3><button type="button" class="info-close" data-close aria-label="Close">✕</button></div>
-    <div class="info-body">${rows}</div>
+const dialog = (id: string, title: string, rows: string) => `
+  <dialog class="info s-dlg" id="${id}">
+    <div class="s-dlg-head"><h3>${esc(title.toUpperCase())}</h3><button type="button" class="s-dlg-x" data-close aria-label="Close">${ICON.close}</button></div>
+    <hr />
+    <div class="s-dlg-body">${rows}</div>
   </dialog>`;
 
-export function renderLite(c: Content): string {
+/** The entry screen: every visitor picks a way in. */
+function renderGate(c: Content) {
+  return `
+  <div class="gate" data-gate role="dialog" aria-modal="true" aria-labelledby="gate-title">
+    <div class="gate-inner">
+      <p class="s-label"><i class="s-dot"></i>${esc(c.person.name.toUpperCase())}  ·  PORTFOLIO</p>
+      <h1 class="gate-title" id="gate-title">How would you<br>like to look around?</h1>
+      <div class="gate-options">
+        <button class="gate-opt" type="button" data-pick="standard">
+          <span class="gate-num">01</span>
+          <span class="gate-name">Standard</span>
+          <span class="gate-desc">The streamlined portfolio. Scroll through about, academics, projects and contact on one clean page.</span>
+          <span class="gate-go">ENTER  →</span>
+        </button>
+        <button class="gate-opt" type="button" data-pick="desk">
+          <span class="gate-num">02</span>
+          <span class="gate-name">3D Interactive</span>
+          <span class="gate-desc">My desk in 3D, seen through my cat's eyes. Use the laptop and phone, print the résumé, or play as the cat.</span>
+          <span class="gate-go" data-desk-note>ENTER  →</span>
+        </button>
+      </div>
+      <p class="gate-foot">You can switch any time.</p>
+    </div>
+  </div>`;
+}
+
+/** The streamlined portfolio: a 1:1 port of the original Flutter site. */
+function renderStandard(c: Content) {
   const p = c.person;
   const projects = c.projects as Project[];
-  const tick = esc(p.ticker).repeat(4);
+  const name = p.heroLines
+    .map((line, li) => `<span class="s-hero-line">${[...line].map((ch, i) => `<span class="ch" style="--d:${(li * p.heroLines[0].length + i) * 80}ms">${esc(ch)}</span>`).join('')}</span>`)
+    .join('');
+  const metaDelay = p.heroLines.join('').length * 80 + 100;
 
   return `
-  <a class="skip" href="#about">Skip the desk</a>
-  <header class="topbar">
-    <a class="topbar-name" href="#top">${esc(p.name)}</a>
-    <nav class="topbar-nav" aria-label="Sections">
-      ${NAV.map(([id, label]) => `<a href="#${id}">${label}</a>`).join('')}
-    </nav>
-    <div class="topbar-tools">
-      <button class="tool" type="button" data-theme-toggle hidden aria-label="Toggle dark mode">◐</button>
-      <button class="tool" type="button" data-sound hidden aria-pressed="false">Sound off</button>
-    </div>
-  </header>
+  <div class="std" data-std>
+    <div class="s-progress" aria-hidden="true"><i data-progress></i></div>
 
-  <main id="top">
-    <section class="tour" data-tour aria-label="Rakin's desk">
+    <section class="s-hero" id="top" data-sec>
+      <div class="s-dots" aria-hidden="true" data-dots>${'<i></i>'.repeat(6)}</div>
+      <div class="s-clock" data-bigclock>
+        <svg class="s-rings" viewBox="0 0 100 100" aria-hidden="true">
+          <circle class="s-track" cx="50" cy="50" r="50" /><circle class="s-track" cx="50" cy="50" r="42.5" /><circle class="s-track" cx="50" cy="50" r="35" />
+          <circle class="s-arc s-sec" cx="50" cy="50" r="50" pathLength="1" data-arc="s" />
+          <circle class="s-arc s-min" cx="50" cy="50" r="42.5" pathLength="1" data-arc="m" />
+          <circle class="s-arc s-hr" cx="50" cy="50" r="35" pathLength="1" data-arc="h" />
+        </svg>
+        <div class="s-clock-text">
+          <p>BINDING INTO THE<br>LOOM  OF  TIME</p>
+          <button class="s-theme" type="button" data-theme-toggle aria-label="Toggle dark mode">${ICON.dark}${ICON.light}</button>
+        </div>
+      </div>
+      <div class="s-hero-copy" data-parallax>
+        <h1 class="s-name" aria-label="${esc(p.name)}">${name}</h1>
+        <div class="s-hero-meta" style="--d:${metaDelay}ms">
+          <i class="s-dot s-pulse"></i>
+          <div>
+            <p class="s-meta-strong">${esc(p.heroMeta[0])}</p>
+            <p class="s-meta">${esc(p.heroMeta[1])}</p>
+          </div>
+        </div>
+        <a class="s-scroll" href="#about" style="--d:${metaDelay}ms" aria-label="Scroll to About">
+          <span class="s-scroll-in">
+            <span class="s-scroll-label"><i class="s-dot"></i>SCROLL</span>
+            <svg viewBox="0 0 14 27" aria-hidden="true"><path d="M1 1l6 6 6-6" opacity=".25"/><path d="M1 11l6 6 6-6" opacity=".55"/><path d="M1 21l6 6 6-6"/></svg>
+          </span>
+        </a>
+      </div>
+    </section>
+
+    ${section('about', `
+      ${head('01', 'About', p.aboutHeading.map(esc).join('<br>'))}
+      <p class="s-body s-bio s-rev" style="--d:200ms">${esc(p.about)}</p>`)}
+
+    ${section('academics', `
+      ${head('02', 'Academics', 'Educational<br>Background')}
+      <div class="s-edu s-rev" style="--d:200ms">
+        ${c.academics
+          .map(
+            (a) => `<div class="s-edu-row">
+              <h3>${esc(a.degree)}</h3>
+              <p class="s-edu-batch">${esc(a.batch)}</p>
+              <p class="s-edu-inst">${esc(a.inst)}</p>
+              <p class="s-edu-period">${esc(a.period)}</p>
+            </div>`,
+          )
+          .join('')}
+      </div>
+      <div class="s-outlined s-rev" style="--d:300ms">
+        <button class="s-obtn" type="button" data-open="dlg-scores">TEST SCORES</button>
+        <button class="s-obtn" type="button" data-open="dlg-accept">OTHER UNDERGRADUATE ACCEPTANCES</button>
+        <button class="s-obtn" type="button" data-open="dlg-mentor">MENTORSHIP AREAS</button>
+      </div>
+      ${dialog('dlg-scores', 'Academic Credentials', c.testScores.map(([k, v], i) => `<p class="s-dlg-row${k.startsWith(' ') ? ' indent' : i ? ' gap' : ''}"><b>${esc(k.trim())}</b><span>${esc(v)}</span></p>`).join(''))}
+      ${dialog('dlg-accept', 'Undergrad Acceptances', c.acceptances.map((a) => `<p class="s-dlg-bullet"><b>•</b><span>${esc(a)}</span></p>`).join(''))}
+      ${dialog('dlg-mentor', 'Mentorship Areas', c.mentorship.map((a) => `<p class="s-dlg-bullet"><b>•</b><span>${esc(a)}</span></p>`).join(''))}`)}
+
+    ${section('expertise', `
+      ${head('03', 'Expertise', 'Tech Stack')}
+      <ul class="s-skills">
+        ${c.skills.map(([n, cat], i) => `<li class="s-skill s-rev" style="--d:${50 + (i % 3) * 50}ms"><i class="s-skill-dot"></i><span class="s-skill-name">${esc(n)}</span><span class="s-skill-cat">${esc(cat)}</span></li>`).join('')}
+      </ul>`)}
+
+    ${section('projects', `
+      ${head('04', 'Projects & Apps', 'Featured Projects')}
+      <div class="s-grid">${projects.map(projectCard).join('')}</div>`)}
+
+    ${section('experiences', `
+      ${head('05', 'Experiences', 'Experiences')}
+      <ol class="s-acts">
+        ${c.experiences.map((e, i) => `<li class="s-act s-rev" style="--d:${80 + i * 70}ms"><p class="s-act-role">${esc(e.role.toUpperCase())}</p><h3 class="s-act-title">${esc(e.title)}</h3><p class="s-act-period"><i></i>${esc(e.period)}</p></li>`).join('')}
+      </ol>`)}
+
+    ${section('socials', `
+      ${head('06', 'Socials', 'Find me Online')}
+      <ul class="s-socials">
+        ${c.socials.map((s, i) => `<li class="s-rev" style="--d:${80 + i * 80}ms"><a class="s-social" href="${esc(s.url)}" target="_blank" rel="noopener me"><span class="s-social-name">${esc(s.label)}</span><span class="s-social-handle">${esc(s.handle)}</span><span class="s-social-arrow" aria-hidden="true">↗</span></a></li>`).join('')}
+      </ul>`)}
+
+    ${section('contact', `
+      ${head('07', 'Contact', "Let's build<br>something.")}
+      <p class="s-body s-sub s-rev" style="--d:200ms">${esc(p.contactSub)}</p>
+      <div class="s-blocks s-rev" style="--d:280ms">
+        <div class="s-block">
+          <p class="s-block-label">EMAIL</p>
+          <a class="s-block-value s-mail" href="mailto:${esc(p.contactEmail)}">${esc(p.contactEmail)}</a>
+          <div class="s-block-btns">
+            <button class="s-abtn" type="button" data-copy="${esc(p.contactEmail)}">COPY</button>
+            <a class="s-abtn filled" href="mailto:${esc(p.contactEmail)}">SEND EMAIL</a>
+          </div>
+        </div>
+        <div class="s-block">
+          <p class="s-block-label">RESUME</p>
+          <p class="s-block-value">Preview Resume</p>
+          <div class="s-block-btns">
+            <a class="s-abtn filled" href="/resume.html" data-resume="">GENERATE</a>
+          </div>
+        </div>
+      </div>`)}
+
+    <footer class="s-footer" data-sec>
+      <div class="s-inner s-foot">
+        <p><i class="s-dot grey"></i>${esc(p.name.toUpperCase())}</p>
+        <button class="s-switch" type="button" data-switch="desk">VIEW THE 3D DESK  →</button>
+        <p><span>© ${new Date().getFullYear()}</span><span>${esc(p.location.toUpperCase())}</span></p>
+      </div>
+    </footer>
+
+    <nav class="s-nav" aria-label="Sections" data-sidenav>
+      ${NAV.map((l, i) => `<a href="#${IDS[i]}" data-i="${i}"><span>${l.toUpperCase()}</span><i></i></a>`).join('')}
+    </nav>
+    <div class="s-radial" data-radial>
+      <button class="s-radial-knob" type="button" aria-label="Sections menu" aria-expanded="false" data-radial-open><span data-radial-label></span></button>
+      <div class="s-radial-items">
+        ${NAV.map((l, i) => `<a href="#${IDS[i]}" data-i="${i}" style="--a:${(-(-0.43 * Math.PI + (i * 0.86 * Math.PI) / (NAV.length - 1))).toFixed(4)}rad"><span>${l.toUpperCase()}</span></a>`).join('')}
+      </div>
+      <button class="s-radial-x" type="button" aria-label="Close menu" data-radial-close>${ICON.close}</button>
+    </div>
+    <div class="s-cursor" aria-hidden="true"><i data-cur-lag></i><i data-cur></i></div>
+  </div>`;
+}
+
+/** The 3D desk on its own: the environment, nothing else on the page. */
+function renderDesk(c: Content) {
+  const p = c.person;
+  return `
+  <div class="desk" data-desk>
+    <div class="desk-bar">
+      <button class="tool" type="button" data-theme-toggle aria-label="Day or night">◐</button>
+      <button class="tool" type="button" data-sound hidden aria-pressed="false">Sound off</button>
+      <button class="tool" type="button" data-switch="standard">Standard view</button>
+    </div>
+    <section class="tour" data-tour aria-label="${esc(p.name)}'s desk">
       <div class="hero" data-sticky>
         <div class="hero-stage" aria-hidden="true" data-stage></div>
         <div class="hero-copy">
-          <h1 class="hero-name">${p.heroLines
+          <p class="hero-name">${p.heroLines
             .map((line, li) => `<span class="hero-line">${[...line].map((ch, i) => `<span class="ch" style="--d:${(li * 5 + i) * 80}ms">${esc(ch)}</span>`).join('')}</span>`)
-            .join('')}</h1>
+            .join('')}</p>
           <div class="hero-meta">
             ${p.heroMeta.map((m) => `<p>${esc(m)}</p>`).join('')}
             <p class="hero-clock"><span class="live-dot" aria-hidden="true"></span>DHAKA · <time data-clock data-tz="${esc(p.timezone)}">--:--</time></p>
@@ -82,93 +249,11 @@ export function renderLite(c: Content): string {
         </div>
       </div>
     </section>
+  </div>`;
+}
 
-    <div class="ticker" aria-hidden="true"><div class="ticker-track"><span>${tick}</span><span>${tick}</span></div></div>
-
-    <section class="section" id="about">
-      ${sectionHead('01', 'About', p.aboutHeading.map(esc).join('<br>'))}
-      <p class="body-text about-bio reveal">${esc(p.about)}</p>
-    </section>
-
-    <section class="section" id="academics">
-      ${sectionHead('02', 'Academics', 'Educational<br>Background')}
-      <ol class="edu-list">
-        ${c.academics
-          .map(
-            (a) => `<li class="edu-row reveal">
-              <p class="edu-period">${esc(a.period)}</p>
-              <h3 class="edu-degree">${esc(a.degree)}</h3>
-              <p class="edu-inst">${esc(a.inst)}</p>
-              <p class="edu-batch">Batch ${esc(a.batch)}</p>
-            </li>`,
-          )
-          .join('')}
-      </ol>
-      <div class="outlined-btns reveal">
-        <button class="btn" type="button" data-open="dlg-scores">TEST SCORES</button>
-        <button class="btn" type="button" data-open="dlg-accept">OTHER UNDERGRADUATE ACCEPTANCES</button>
-        <button class="btn" type="button" data-open="dlg-mentor">MENTORSHIP AREAS</button>
-      </div>
-      ${infoDialog('dlg-scores', 'Academic Credentials', c.testScores.map(([k, v]) => `<p class="dlg-row${k.startsWith(' ') ? ' indent' : ''}"><span>${esc(k.trim())}</span><b>${esc(v)}</b></p>`).join(''))}
-      ${infoDialog('dlg-accept', 'Undergrad Acceptances', c.acceptances.map((a) => `<p class="dlg-item">→ ${esc(a)}</p>`).join(''))}
-      ${infoDialog('dlg-mentor', 'Mentorship Areas', c.mentorship.map((a) => `<p class="dlg-item">→ ${esc(a)}</p>`).join(''))}
-    </section>
-
-    <section class="section" id="expertise">
-      ${sectionHead('03', 'Expertise', 'Tech Stack')}
-      <ul class="skills">
-        ${c.skills.map(([name, cat]) => `<li class="skill reveal"><span class="skill-dot" aria-hidden="true"></span><span class="skill-name">${esc(name)}</span><span class="skill-cat">${esc(cat)}</span></li>`).join('')}
-      </ul>
-    </section>
-
-    <section class="section" id="projects">
-      ${sectionHead('04', 'Projects & Apps', 'Featured Projects')}
-      <div class="proj-grid">${projects.map(projectCard).join('')}</div>
-    </section>
-
-    <section class="section" id="experiences">
-      ${sectionHead('05', 'Experiences', 'Experiences')}
-      <ol class="exp-list">
-        ${c.experiences.map((e) => `<li class="exp-row reveal"><div><h3 class="exp-title">${esc(e.title)}</h3><p class="exp-role">${esc(e.role)}</p></div><p class="exp-period">${esc(e.period)}</p></li>`).join('')}
-      </ol>
-    </section>
-
-    <section class="section" id="socials">
-      ${sectionHead('06', 'Socials', 'Find me Online')}
-      <ul class="social-list">
-        ${c.socials.map((s) => `<li class="reveal"><a class="social" href="${esc(s.url)}" target="_blank" rel="noopener"><span class="social-label">${esc(s.label)}</span><span class="social-handle">${esc(s.handle)}</span><span class="social-arrow" aria-hidden="true">↗</span></a></li>`).join('')}
-      </ul>
-    </section>
-
-    <section class="section" id="contact">
-      ${sectionHead('07', 'Contact', "Let's build<br>something.")}
-      <p class="body-text reveal">${esc(p.contactSub)}</p>
-      <div class="contact-blocks reveal">
-        <div class="contact-block">
-          <p class="block-label">EMAIL</p>
-          <p class="block-value">${esc(p.contactEmail)}</p>
-          <div class="block-btns">
-            <button class="btn" type="button" data-copy="${esc(p.contactEmail)}">COPY</button>
-            <a class="btn btn-solid" href="mailto:${esc(p.contactEmail)}">SEND EMAIL</a>
-          </div>
-        </div>
-        <div class="contact-block">
-          <p class="block-label">RESUME</p>
-          <p class="block-value">Preview Resume</p>
-          <div class="block-btns">
-            <a class="btn btn-solid" href="/resume.html" data-resume="">PREVIEW</a>
-            <a class="btn" href="/resume.html?print=1" data-resume="pdf">DOWNLOAD PDF</a>
-          </div>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <span>RAKIN TALUKDER</span>
-    <span>© ${new Date().getFullYear()}</span>
-    <span>DHAKA, BD</span>
-  </footer>`;
+export function renderLite(c: Content): string {
+  return renderGate(c) + renderStandard(c) + renderDesk(c);
 }
 
 /** Printable résumé, same structure as the original generated PDF. */
@@ -176,7 +261,7 @@ export function renderResume(c: Content): string {
   const p = c.person;
   const r = p.resume;
   return `
-  <div class="cv-actions"><a href="/">← Back to the desk</a><button type="button" data-print>Download PDF</button></div>
+  <div class="cv-actions"><a href="/">← Back to the portfolio</a><button type="button" data-print>Download PDF</button></div>
   <article class="cv">
     <header class="cv-top">
       <h1>${esc(p.fullName)}.</h1>

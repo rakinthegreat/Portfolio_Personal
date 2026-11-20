@@ -56,11 +56,13 @@ const save = (s: Saved) => {
 interface KeyCap { mesh: THREE.Group; base: THREE.Vector3; got: boolean; anim: number }
 interface Scratched { b: ShelfBook; dmg: number; canvas?: HTMLCanvasElement; tex?: THREE.CanvasTexture; ruined: boolean }
 interface Heart { s: THREE.Sprite; t: number; vx: number; ph: number }
-interface Bit { m: THREE.Object3D; v: THREE.Vector3; w: THREE.Vector3; rest: boolean; h: number; floor: number; flat?: THREE.Vector3; mess?: boolean }
+interface Bit { m: THREE.Object3D; v: THREE.Vector3; w: THREE.Vector3; rest: boolean; h: number; floor: number; flat?: THREE.Vector3; mess?: boolean; carried?: boolean }
+/** Whatever's in his mouth: a desk thing (a Body) or a piece of debris (a Bit). */
+interface Held { m: THREE.Object3D; r: number; lie?: Lie; body?: Body; bit?: Bit }
 /** How a loose object lies: a pen-like thing only needs its long axis level (it rolls about it); anything
  *  else settles back onto the face it started on (local `up`, either way up). */
 type Lie = { long: THREE.Vector3; thick: number } | { up: THREE.Vector3 };
-interface Body { k: Knockable; vel: THREE.Vector3; fallen: boolean; resting: boolean; lie?: Lie; onSurf?: boolean; tilt?: number; broken?: boolean; tip?: { axis: THREE.Vector3; a: number; v: number }; spilled?: boolean }
+interface Body { k: Knockable; vel: THREE.Vector3; fallen: boolean; carried?: boolean; resting: boolean; lie?: Lie; onSurf?: boolean; tilt?: number; broken?: boolean; tip?: { axis: THREE.Vector3; a: number; v: number }; spilled?: boolean; soaked?: boolean }
 interface Puddle { mesh: THREE.Mesh; t: number; delay: number; size: number; x: number; y: number; z: number; drip?: Drip }
 interface Drip { x: number; z: number; nx: number; nz: number; t: number; run: THREE.Mesh; floor: THREE.Mesh | null; drops: { m: THREE.Mesh; vy: number }[]; next: number }
 interface Leap { from: THREE.Vector3; to: THREE.Vector3; t: number; dur: number; apex: number; then: 'play' | 'sleep' }
@@ -138,6 +140,20 @@ export class Play {
   private books: Scratched[] = [];
   private scratchT = 0;
   private thoughtEl: HTMLElement;
+  // small things he can pick up in his mouth (G), carry about, and drop (G again): anywhere, or over the edge
+  private carrying: Held | null = null;
+  private carryFrom = new THREE.Vector3(); // where it was picked up from: it eases into his mouth
+  private carryT = 1;
+  // the pick-up / put-down: step up to it, bend, take it (or let go), straighten up
+  private pick: { b: Held | null; phase: 'approach' | 'down' | 'up'; t: number; bend: number; stuck: number } | null = null;
+  private mouthP = new THREE.Vector3();
+  private mouthQ = new THREE.Quaternion();
+  // the tissue box: pull one out (F), scrunch a loose one into a ball (F), bat the ball (F), mop up coffee (F, tissue in mouth)
+  private act: { kind: 'pull' | 'scrunch' | 'bat' | 'wipe'; t: number; dur: number; did: boolean; bend: number; b?: Body; puddle?: Puddle } | null = null;
+  private tissuesLeft = 12;
+  private tissuesPulled = 0;
+  private tissueMat = new THREE.MeshStandardMaterial({ color: 0xfbfaf7, roughness: 0.95, side: THREE.DoubleSide });
+  private soakedMat = new THREE.MeshStandardMaterial({ color: 0x9c6b45, roughness: 0.8, side: THREE.DoubleSide });
   private thoughtT = 0;
   /** Called with the nearby prop's id when F is pressed (and it isn't a book to scratch). */
   onInteract: (id: string) => void = () => {};
@@ -192,7 +208,7 @@ export class Play {
         <p>KNOCKED OFF THE DESK: <b data-knocked>0</b></p>
         <p class="play-mission" data-mission hidden>MISSION · CLEAN UP THE DESK<br><span>push the bits off: <b data-mess>0</b> left</span></p>
       </div>
-      <p class="play-help"><kbd>WASD</kbd> move · <kbd>⇧</kbd> run · <kbd>Space</kbd> jump · <kbd>F</kbd> interact · <kbd>1–9</kbd> caption · <kbd>H</kbd> all keys · <kbd>Esc</kbd> stop</p>
+      <p class="play-help"><kbd>WASD</kbd> move · <kbd>⇧</kbd> run · <kbd>Space</kbd> jump · <kbd>F</kbd> interact · <kbd>G</kbd> carry · <kbd>1–9</kbd> caption · <kbd>H</kbd> all keys · <kbd>Esc</kbd> stop</p>
       <button class="btn play-exit" type="button" data-exit>Stop playing</button>
       <div class="play-stick" data-stick aria-hidden="true"><span></span></div>
       <button class="play-jump" type="button" data-jump aria-label="Jump">JUMP</button>`;
@@ -225,6 +241,7 @@ export class Play {
       if ([' ', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) e.preventDefault();
       if (e.key === ' ' && !e.repeat) this.jumpQueued = true;
       if ((e.key === 'f' || e.key === 'F') && !e.repeat) this.interact();
+      if ((e.key === 'g' || e.key === 'G') && !e.repeat) this.carry();
       this.keys.add(e.key.toLowerCase());
     });
     addEventListener('keyup', (e) => this.keys.delete(e.key.toLowerCase()));
@@ -277,6 +294,10 @@ export class Play {
 
   exit() {
     if (!this.active) return;
+    this.dropCarried();
+    this.pick = null;
+    this.act = null;
+    this.cat.bend = 0;
     this.active = false;
     this.keys.clear();
     this.stick.set(0, 0);
@@ -504,7 +525,9 @@ export class Play {
     this.updatePuddles(dt);
     const leaping = this.updateLeap(dt);
 
-    if (!leaping && this.active) {
+    if (!leaping && this.active && this.pick) this.updatePick(dt);
+    else if (!leaping && this.active && this.act) this.updateAct(dt);
+    else if (!leaping && this.active) {
       const k = this.keys;
       const ix = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0) + this.stick.x;
       const iz = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0) + this.stick.y;
@@ -551,10 +574,23 @@ export class Play {
       const fx = this.vel.x;
       const fz = onPlank ? 0 : this.vel.z;
       if (!this.backoff && !hissing && Math.hypot(fx, fz) > 0.03) {
-        let d = Math.atan2(fx, fz) - this.yaw;
-        d = Math.atan2(Math.sin(d), Math.cos(d));
-        const ny = this.yaw + d * Math.min(1, dt * 10);
-        if (!this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
+        const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
+        let d = wrap(Math.atan2(fx, fz) - this.yaw);
+        // turning right round on the plank: always swing through facing out (the open side), never into the
+        // wall behind it, where the turn is refused and he'd go on walking backwards
+        // (the plank and the other high shelves along the wall: all narrower than he is long)
+        const ledge = onPlank || (pos.y > 0.5 && pos.z < -0.3);
+        if (ledge && Math.abs(d) > Math.PI / 2 + 0.25) d = wrap(0 - this.yaw); // slack, or it keeps re-aiming at 'out'
+        const ny = this.yaw + d * Math.min(1, dt * (ledge ? 14 : 10));
+        // turning round on a ledge, head or tail always brushes the wall: the turn isn't refused for it
+        // (a cat curls round on a ledge)
+        if (ledge || !this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
+        else if (Math.abs(d) > Math.PI / 2) {
+          // a big turn blocked one way round: try the other way
+          const alt = d - Math.sign(d) * Math.PI * 2;
+          const ny2 = this.yaw + alt * Math.min(1, dt * 10) * 0.6;
+          if (!this.blocked(pos.x, pos.z, ny2, pos.y)) this.yaw = ny2;
+        }
       }
 
       // move one axis at a time so he slides along things; refuse to step off the desk
@@ -669,7 +705,7 @@ export class Play {
         this.onNear(id);
       }
     }
-    this.interactable = this.active ? (this.facingBook(pos) ? 'book' : this.nearProp) : null;
+    this.interactable = !this.active || this.act || this.pick ? null : this.hintFor(pos);
     if (this.thoughtT > 0 && (this.thoughtT -= dt) <= 0) this.thoughtEl.classList.remove('on');
     this.updateLove(dt, pos, near);
     this.updateBits(dt, this.cat.root.position, Math.hypot(this.vel.x, this.vel.z));
@@ -806,6 +842,7 @@ export class Play {
     const fz = Math.cos(this.yaw);
     let clinked = false;
     for (const bit of this.bits) {
+      if (bit.carried) continue; // in his mouth
       const m = bit.m;
       // paws scatter it
       if (this.active && catSpeed > 0.05) {
@@ -950,6 +987,7 @@ export class Play {
     const fz = Math.cos(this.yaw);
     const paw = new THREE.Vector3(catPos.x + fx * FRONT, catPos.y, catPos.z + fz * FRONT);
     for (const b of this.bodies) {
+      if (b.carried) continue; // in his mouth: it goes where he goes
       const m = b.k.mesh;
       const r = b.k.radius;
       if (this.active && !b.fallen) {
@@ -965,7 +1003,7 @@ export class Play {
           const push = catSpeed * 1.3 + 0.22;
           const ux = dx / (d || 1);
           const uz = dz / (d || 1);
-          b.vel.set(ux * push, 0.3, uz * push);
+          b.vel.set(ux * push, b.k.name === 'ball' ? 0.06 : b.k.name === 'tissue' ? 0.12 : 0.3, uz * push); // a ball rolls off, it doesn't hop
           b.resting = false;
           // a proper shove tips the mug over, toward where it was pushed
           if ((b.k.name === 'mug' || b.k.name === 'pot') && !b.tip && push > 0.5) b.tip = { axis: new THREE.Vector3(uz, 0, -ux), a: 0, v: 0 };
@@ -978,6 +1016,12 @@ export class Play {
       let hard = false;
       for (let st = 0; st < steps; st++) {
         b.vel.y -= G * h;
+        if (b.k.name === 'tissue' && !b.onSurf) {
+          // paper floats: it drifts down slowly, and the air takes its speed
+          if (b.vel.y < -0.45) b.vel.y = -0.45;
+          b.vel.x *= Math.exp(-h * 2.5);
+          b.vel.z *= Math.exp(-h * 2.5);
+        }
         m.position.addScaledVector(b.vel, h);
         // collide with boxes: push out along the shallowest axis
         for (const box of this.boxes) {
@@ -1004,8 +1048,9 @@ export class Play {
             b.vel.z -= 1.4 * vn * nz;
           }
           if (ny > 0.7) {
-            b.vel.x *= Math.exp(-h * 7);
-            b.vel.z *= Math.exp(-h * 7);
+            const fr = b.k.name === 'ball' ? 1.2 : 7; // a paper ball rolls on
+            b.vel.x *= Math.exp(-h * fr);
+            b.vel.z *= Math.exp(-h * fr);
           }
         }
       }
@@ -1047,6 +1092,10 @@ export class Play {
           m.userData.tipped = true;
           if (b.k.name === 'mug' && !b.spilled && tp.a > 0.75) this.spill(b);
         }
+      } else if (b.k.name === 'ball') {
+        // rolls along the way it's going
+        const sp = Math.hypot(b.vel.x, b.vel.z);
+        if (sp > 1e-4) m.rotateOnWorldAxis(this.tmpV.set(b.vel.z / sp, 0, -b.vel.x / sp), (sp / r) * dt);
       } else if (b.lie) {
         const sp = Math.hypot(b.vel.x, b.vel.z);
         if (sp > 1e-4) {
@@ -1091,8 +1140,9 @@ export class Play {
         if (low2 < surface + 0.0005) {
           m.position.y += surface - low2;
           if (b.vel.y < 0) b.vel.y = Math.abs(b.vel.y) > 0.4 ? -b.vel.y * 0.3 : 0;
-          b.vel.x *= Math.exp(-dt * 7);
-          b.vel.z *= Math.exp(-dt * 7);
+          const fr = b.k.name === 'ball' ? 1.2 : 7;
+          b.vel.x *= Math.exp(-dt * fr);
+          b.vel.z *= Math.exp(-dt * fr);
         }
       }
       if (b.vel.lengthSq() < 4e-4 && Math.abs(b.vel.y) < 0.05 && !((b.tilt ?? 0) > 0.02)) { // still, and lying flat
@@ -1266,9 +1316,381 @@ export class Play {
     return null;
   }
   /** F: scratch the book in front of him, or use whatever he's next to. */
-  interact() {
-    if (!this.active || this.leap || this.backoff || this.scratchT > 0) return;
+  // ── carrying things in his mouth ───────────────────
+  /** The small thing just in front of him, on his level, that he could pick up: a desk thing or a bit of debris. */
+  private reachable(): Held | null {
+    if (this.pick || this.act || !this.grounded || this.backoff || this.cat.state === 'hiss' || this.cat.state === 'roll') return null;
     const pos = this.cat.root.position;
+    const fx = Math.sin(this.yaw);
+    const fz = Math.cos(this.yaw);
+    const mx = pos.x + fx * (FRONT + 0.05);
+    const mz = pos.z + fz * (FRONT + 0.05);
+    let best: Held | null = null;
+    let bd = 0.11; // a short reach: he walks up and takes it
+    const consider = (m: THREE.Object3D, mk: () => Held) => {
+      const p = m.position;
+      if (p.y < pos.y - 0.03 || p.y > pos.y + 0.08) return;
+      const d = Math.hypot(p.x - mx, p.z - mz);
+      if (d < bd) {
+        bd = d;
+        best = mk();
+      }
+    };
+    // mouth-sized things only: not the mug or the pot, and not the computer mouse
+    for (const b of this.bodies)
+      if (!b.broken && b.k.radius <= 0.032 && b.k.name !== 'mug' && b.k.name !== 'pot' && b.k.name !== 'mouse')
+        consider(b.k.mesh, () => ({ m: b.k.mesh, r: b.k.radius, lie: b.lie, body: b }));
+    for (const bit of this.bits)
+      if (!bit.carried) {
+        const flat = (bit.flat ??= thinAxis(bit.m));
+        consider(bit.m, () => ({ m: bit.m, r: Math.min(bit.h, 0.012), lie: flat ? { up: flat } : undefined, bit })); // shards are thin: held by an edge
+      }
+    return best;
+  }
+  /** G: go and pick up the small thing in front of him, or put down what he's carrying. */
+  carry() {
+    if (!this.active || this.leap || this.pick || this.act || !this.grounded) return;
+    this.vel.set(0, 0, 0);
+    if (this.carrying) {
+      // put it down: head down part way, let go, back up
+      this.pick = { b: null, phase: 'down', t: 0, bend: 0.65, stuck: 0 };
+      return;
+    }
+    const b = this.reachable();
+    if (b) this.pick = { b, phase: 'approach', t: 0, bend: 0, stuck: 0 };
+  }
+  /** Measured off the rig: [bend, mouth height above his feet, mouth distance ahead of him]. The deeper he
+   *  bends, the lower and the closer in his mouth comes, so both are read off this for the object's height. */
+  private static BENDS: [number, number, number][] = [[0, 0.103, 0.091], [1, 0.025, 0.075], [1.2, 0.014, 0.064], [1.35, 0.008, 0.054]];
+  private static bendFor(rel: number) {
+    const T = Play.BENDS;
+    if (rel >= T[0][1]) return { bend: 0, ahead: T[0][2] };
+    for (let i = 1; i < T.length; i++)
+      if (rel >= T[i][1]) {
+        const k = (T[i - 1][1] - rel) / (T[i - 1][1] - T[i][1]);
+        return { bend: THREE.MathUtils.lerp(T[i - 1][0], T[i][0], k), ahead: THREE.MathUtils.lerp(T[i - 1][2], T[i][2], k) };
+      }
+    const L = T[T.length - 1];
+    return { bend: L[0], ahead: L[2] };
+  }
+  private updatePick(dt: number) {
+    const P = this.pick!;
+    const c = this.cat;
+    const pos = c.root.position;
+    P.t += dt;
+    c.setState('idle');
+    if (P.phase === 'approach') {
+      // walk up and line up, so his mouth comes down right on it
+      const o = P.b!.m.position;
+      const want = Math.atan2(o.x - pos.x, o.z - pos.z);
+      let d = want - this.yaw;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      const ny = this.yaw + d * Math.min(1, dt * 9);
+      if (!this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
+      const fit = Play.bendFor(o.y - pos.y + 0.003); // lips just over its middle
+      P.bend = Math.max(0.2, fit.bend);
+      const tx = o.x - Math.sin(want) * fit.ahead;
+      const tz = o.z - Math.cos(want) * fit.ahead;
+      const dist = Math.hypot(tx - pos.x, tz - pos.z);
+      let moved = false;
+      if (dist > 0.008) {
+        const sp = Math.min(dist, 0.22 * dt);
+        const nx = pos.x + ((tx - pos.x) / dist) * sp;
+        const nz = pos.z + ((tz - pos.z) / dist) * sp;
+        // forward only if it's clear; backing up a touch (too close) is fine too
+        if (!this.offDesk(nx, nz, pos.x, pos.z, this.yaw) && !this.blocked(nx, nz, this.yaw, pos.y) && this.support(nx, nz, this.yaw, pos.y) >= pos.y - STEP) {
+          pos.x = nx;
+          pos.z = nz;
+          moved = true;
+        }
+      }
+      c.gaitDir = 1;
+      c.gaitScale = 0.7;
+      c.setState(moved ? 'walk' : 'idle');
+      P.stuck = moved || dist <= 0.008 ? 0 : P.stuck + dt;
+      if ((dist <= 0.008 || P.stuck > 0.25) && Math.abs(d) < 0.12) [P.phase, P.t] = ['down', 0];
+      else if (P.t > 1.6) [P.phase, P.t] = ['down', 0]; // can't get any closer: reach for it from here
+    } else if (P.phase === 'down') {
+      c.bend = P.bend;
+      if (P.t > 0.32) {
+        c.root.updateMatrixWorld(true);
+        const reach = P.b ? c.mouthWorld(this.mouthP).distanceTo(P.b.m.position) : 0;
+        if (P.b && reach > 0.05) {
+          // couldn't get his mouth to it (something in the way): he gives up on it
+          if (Math.random() < 0.6) this.think(['Can’t reach.', 'Hmph.', 'Fine, keep it.'][Math.floor(Math.random() * 3)]);
+        } else if (P.b) {
+          // teeth on it: lift it with him
+          const h = P.b;
+          if (h.body) {
+            h.body.carried = true;
+            h.body.resting = false;
+            h.body.vel.set(0, 0, 0);
+            h.body.tip = undefined;
+          }
+          if (h.bit) {
+            h.bit.carried = true;
+            h.bit.rest = false;
+            h.bit.v.set(0, 0, 0);
+            h.bit.w.set(0, 0, 0);
+          }
+          this.carrying = h;
+          this.carryFrom.copy(h.m.position);
+          this.carryT = 0;
+          sfx.click();
+          if (Math.random() < 0.35) this.think(['Mine now.', 'Found it.', 'This is mine.', 'Taking this.'][Math.floor(Math.random() * 4)]);
+        } else this.dropCarried(true);
+        [P.phase, P.t] = ['up', 0];
+      }
+    } else {
+      c.bend = 0;
+      if (P.t > 0.3) this.pick = null;
+    }
+    c.root.rotation.y = this.yaw;
+    c.airborne = false;
+  }
+  /** Let go: it drops from his mouth just ahead of him, with a little of his momentum. */
+  private dropCarried(spoken = false) {
+    const h = this.carrying;
+    if (!h) return;
+    this.carrying = null;
+    // let go of, not thrown: it just drops from his mouth
+    if (h.body) {
+      h.body.carried = false;
+      h.body.resting = false;
+      h.body.vel.set(this.vel.x * 0.5, 0, this.vel.z * 0.5);
+    }
+    if (h.bit) {
+      h.bit.carried = false;
+      h.bit.rest = false;
+      h.bit.v.set(this.vel.x * 0.5, 0, this.vel.z * 0.5);
+      h.bit.w.set((Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4, (Math.random() - 0.5) * 4);
+    }
+    this.knockCalm = 2.5; // he meant to do that: no hissing at the edge while he watches it go
+    if (spoken) this.meow(0.2);
+  }
+  /** Held in his teeth: at the mouth, turned with his head, a long thing crosswise like a bone.
+   *  Runs after the cat's pose for this frame, so it sits in the mouth instead of trailing it. */
+  afterPose(dt: number) {
+    const b = this.carrying;
+    if (!b) return;
+    const m = b.m;
+    this.cat.root.updateMatrixWorld(true);
+    this.cat.mouthWorld(this.mouthP);
+    this.cat.mouthQuat(this.mouthQ);
+    // a touch below and ahead of the lips, in the head's own frame, so it reads as gripped
+    const off = this.tmpV.set(0, -b.r * 0.6, 0.006).applyQuaternion(this.mouthQ);
+    const target = this.tmpW.copy(this.mouthP).add(off);
+    const q = this.tmpQ;
+    if (b.lie && 'long' in b.lie) q.setFromUnitVectors(b.lie.long, this.tmpV.set(1, 0, 0)); // long axis across the jaw
+    else q.setFromUnitVectors(b.lie && 'up' in b.lie ? b.lie.up : this.tmpV.set(0, 1, 0), this.tmpV.set(0, 1, 0));
+    q.premultiply(this.mouthQ);
+    if (this.carryT < 1) {
+      // picked up from a little way off: it comes up to his mouth over a moment
+      this.carryT = Math.min(1, this.carryT + dt / 0.1); // his mouth is already on it: just the last bit
+      const e = 1 - (1 - this.carryT) ** 3;
+      m.position.lerpVectors(this.carryFrom, target, e);
+      m.quaternion.slerp(q, e);
+    } else {
+      m.position.copy(target);
+      m.quaternion.copy(q);
+    }
+  }
+
+  // ── tissues ─────────────────────────────────────────
+  private startAct(kind: 'pull' | 'scrunch' | 'bat' | 'wipe', dur: number, bend: number, b?: Body, puddle?: Puddle) {
+    this.vel.set(0, 0, 0);
+    this.act = { kind, t: 0, dur, did: false, bend, b, puddle };
+    if (b) {
+      // face it first
+      const o = b.k.mesh.position;
+      const pos = this.cat.root.position;
+      const want = Math.atan2(o.x - pos.x, o.z - pos.z);
+      let d = want - this.yaw;
+      d = Math.atan2(Math.sin(d), Math.cos(d));
+      if (Math.abs(d) < 1.2 && !this.blocked(pos.x, pos.z, want, pos.y)) this.yaw = want;
+    }
+  }
+  private updateAct(dt: number) {
+    const A = this.act!;
+    const c = this.cat;
+    A.t += dt;
+    c.setState('idle');
+    const k = A.t / A.dur;
+    // head goes down for the middle of it, back up at the end
+    c.bend = k < 0.75 ? A.bend : 0;
+    if (A.kind === 'pull') {
+      if (!A.did && A.t > 0.28) {
+        A.did = true;
+        this.spawnTissue();
+      }
+    } else if (A.kind === 'scrunch') {
+      c.look.x = Math.sin(A.t * 22) * 0.25 * (k < 0.75 ? 1 : 0); // worrying at it
+      if (!A.did && A.t > 0.45 && A.b) {
+        A.did = true;
+        this.toBall(A.b);
+      }
+    } else if (A.kind === 'bat') {
+      if (!A.did && A.t > 0.16 && A.b) {
+        A.did = true;
+        const fx = Math.sin(this.yaw);
+        const fz = Math.cos(this.yaw);
+        const side = (Math.random() - 0.5) * 0.5;
+        A.b.vel.set(fx * 0.7 + fz * side, 0.08, fz * 0.7 - fx * side);
+        A.b.resting = false;
+        sfx.knock();
+        if (Math.random() < 0.3) this.think(['Got it!', 'Again.', 'Fetch it yourself.'][Math.floor(Math.random() * 3)]);
+      }
+    } else if (A.kind === 'wipe' && A.puddle) {
+      // head scrubs side to side; the coffee shrinks into the tissue
+      c.look.x = Math.sin(A.t * 14) * 0.6 * (k < 0.75 ? 1 : 0);
+      if (!A.did) {
+        A.did = true;
+        sfx.wipe();
+      }
+      const p = A.puddle;
+      const left = Math.max(0, 1 - A.t / (A.dur * 0.7));
+      p.mesh.scale.setScalar(Math.max(0.001, p.size * left));
+      if (left <= 0 && this.puddles.includes(p)) this.clearPuddle(p);
+    }
+    if (A.t >= A.dur) {
+      this.act = null;
+      c.bend = 0;
+      c.look.x = 0;
+    }
+    c.root.rotation.y = this.yaw;
+    c.airborne = false;
+  }
+  /** One tissue out of the box: it floats up and drifts down toward him. */
+  private spawnTissue() {
+    const box = this.props.find((p) => p.id === 'tissues');
+    if (!box) return;
+    const geo = new THREE.PlaneGeometry(0.1, 0.1, 6, 6);
+    const pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) pa.setZ(i, (Math.random() - 0.5) * 0.008 + Math.sin(pa.getX(i) * 50) * 0.003); // crinkled
+    geo.rotateX(-Math.PI / 2);
+    geo.computeVertexNormals();
+    const m = new THREE.Mesh(geo, this.tissueMat);
+    m.castShadow = true;
+    m.receiveShadow = true;
+    const top = box.object.position;
+    m.position.set(top.x, 0.11, top.z);
+    m.rotation.set((Math.random() - 0.5) * 0.8, Math.random() * 6, (Math.random() - 0.5) * 0.8);
+    this.scene.add(m);
+    const pos = this.cat.root.position;
+    const dx = pos.x - top.x;
+    const dz = pos.z - top.z;
+    const dl = Math.hypot(dx, dz) || 1;
+    // tugged out and flung aside: it drifts off to his left or right, so the pile grows round him
+    const side = Math.random() < 0.5 ? -1 : 1;
+    const sx = (-dz / dl) * side;
+    const sz = (dx / dl) * side;
+    const sp = 0.7 + Math.random() * 0.3; // enough to clear the box
+    const k: Knockable = { mesh: m, radius: 0.008, name: 'tissue', roll: 1 };
+    this.bodies.push({ k, vel: new THREE.Vector3(sx * sp + (dx / dl) * 0.3, 0.6, sz * sp + (dz / dl) * 0.3), fallen: false, resting: false, lie: { up: new THREE.Vector3(0, 1, 0) } });
+    sfx.tissue();
+    this.tissuesLeft--;
+    this.tissuesPulled++;
+    if (this.tissuesLeft <= 0) {
+      const peek = box.object.getObjectByName('tissuePeek');
+      if (peek) peek.visible = false;
+      this.think('Empty. Worth it.');
+    } else if (this.tissuesPulled === 1) this.think(['Ooh. Another one?', 'There’s more in there.'][Math.floor(Math.random() * 2)]);
+    else if (this.tissuesPulled % 4 === 0) this.think(['Wasting them. On purpose.', 'They keep coming!', 'Snow.'][Math.floor(Math.random() * 3)]);
+  }
+  /** Scrunched up: a loose tissue becomes a little paper ball that rolls. */
+  private toBall(b: Body) {
+    const m = b.k.mesh as THREE.Mesh;
+    const geo = new THREE.IcosahedronGeometry(0.017, 2);
+    const pa = geo.attributes.position;
+    for (let i = 0; i < pa.count; i++) {
+      const v = this.tmpV.fromBufferAttribute(pa, i);
+      v.multiplyScalar(0.8 + Math.random() * 0.35); // lumpy, creased
+      pa.setXYZ(i, v.x, v.y, v.z);
+    }
+    geo.computeVertexNormals();
+    m.geometry.dispose();
+    m.geometry = geo;
+    if (b.soaked) m.material = this.soakedMat;
+    m.quaternion.identity();
+    b.k.name = 'ball';
+    b.k.radius = 0.017;
+    b.lie = undefined;
+    b.tilt = 0;
+    b.vel.set(0, 0.05, 0);
+    b.resting = false;
+    m.position.y += 0.012;
+    sfx.crumple();
+    if (Math.random() < 0.5) this.think(['A ball!', 'Now it’s a toy.', 'Much better.'][Math.floor(Math.random() * 3)]);
+  }
+  /** A coffee puddle on his level, under his chin: something to mop up. */
+  private puddleAhead() {
+    const pos = this.cat.root.position;
+    const mx = pos.x + Math.sin(this.yaw) * 0.08;
+    const mz = pos.z + Math.cos(this.yaw) * 0.08;
+    for (const p of this.puddles) {
+      const r = p.mesh.scale.x;
+      if (r < 0.015 || Math.abs(p.y - pos.y) > 0.03) continue;
+      if (Math.hypot(p.x - mx, p.z - mz) < r + 0.05) return p;
+    }
+    return null;
+  }
+  /** Mopped up: the puddle's gone, the drip down the edge stops, and the tissue's soaked through. */
+  private clearPuddle(p: Puddle) {
+    this.scene.remove(p.mesh);
+    this.puddles.splice(this.puddles.indexOf(p), 1);
+    if (p.drip) {
+      p.drip.t = 99; // no more pouring
+      this.scene.remove(p.drip.run);
+    }
+    const h = this.carrying?.body;
+    if (h) {
+      h.soaked = true;
+      (h.k.mesh as THREE.Mesh).material = this.soakedMat;
+    }
+    sfx.purr();
+    this.think(['All clean.', 'You’re welcome.', 'Cleaned it. Sort of.'][Math.floor(Math.random() * 3)]);
+  }
+
+  /** Near the tissue box and looking at it: F pulls another one, whatever's lying about. */
+  private facingBox(pos: THREE.Vector3) {
+    if (this.nearProp !== 'tissues' || this.tissuesLeft <= 0) return false;
+    const box = this.props.find((p) => p.id === 'tissues')!.anchor;
+    let d = Math.atan2(box.x - pos.x, box.z - pos.z) - this.yaw;
+    d = Math.atan2(Math.sin(d), Math.cos(d));
+    return Math.abs(d) < 0.7;
+  }
+  /** What the hint should offer right now (and what F / G will do). */
+  private hintFor(pos: THREE.Vector3): string | null {
+    if (!this.carrying && this.facingBox(pos)) return 'tissues';
+    if (this.carrying) return this.carrying.body?.k.name === 'tissue' && !this.carrying.body.soaked && this.puddleAhead() ? 'wipe' : 'drop';
+    const r = this.reachable();
+    if (r?.body?.k.name === 'tissue' && !r.body.soaked) return 'tissue'; // G pick up · F scrunch
+    if (r?.body?.k.name === 'ball') return 'ball'; // G pick up · F bat
+    if (r) return 'pickup';
+    if (this.facingBook(pos)) return 'book';
+    if (this.nearProp === 'tissues' && this.tissuesLeft <= 0) return null;
+    return this.nearProp;
+  }
+
+  interact() {
+    if (!this.active || this.leap || this.backoff || this.scratchT > 0 || this.pick || this.act) return;
+    const pos = this.cat.root.position;
+    // the tissue things come first: they're whatever's right under his nose
+    if (this.carrying?.body?.k.name === 'tissue' && !this.carrying.body.soaked) {
+      const pd = this.puddleAhead();
+      if (pd) return this.startAct('wipe', 1.5, 1, undefined, pd);
+    }
+    if (!this.carrying && this.facingBox(pos)) return this.startAct('pull', 0.55, 0.15);
+    if (!this.carrying) {
+      const r = this.reachable();
+      if (r?.body?.k.name === 'tissue' && !r.body.soaked) return this.startAct('scrunch', 0.75, Play.bendFor(r.m.position.y - pos.y).bend, r.body);
+      if (r?.body?.k.name === 'ball') return this.startAct('bat', 0.4, 0.45, r.body);
+    }
+    if (this.nearProp === 'tissues' && !this.facingBook(pos)) {
+      if (this.tissuesLeft > 0) this.startAct('pull', 0.55, 0.15);
+      else this.think(['Empty. Worth it.', 'All gone.', 'Out of tissues.'][Math.floor(Math.random() * 3)]);
+      return;
+    }
     const s = this.facingBook(pos);
     if (s) return this.scratchBook(s);
     if (this.nearProp) this.onInteract(this.nearProp);

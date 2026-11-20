@@ -10,7 +10,7 @@ function ensureDialog() {
     <div class="preview-bar">
       <p class="preview-title" data-title></p>
       <a class="preview-open mono" data-open target="_blank" rel="noopener">Open in new tab ↗</a>
-      <button class="preview-close" type="button" data-close aria-label="Close preview">✕</button>
+      <button class="preview-close" type="button" data-close aria-label="Close preview"><span class="x-text">✕</span><svg class="x-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     </div>
     <div class="preview-frame" data-frame>
       <p class="preview-loading mono">Loading the live demo…</p>
