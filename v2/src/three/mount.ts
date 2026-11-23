@@ -780,10 +780,22 @@ export async function mount(tour: HTMLElement) {
   // a click inside a demo on the laptop or phone moves the keyboard into that page (another site, whose keys we
   // can't hear), so 1–9, 0, Esc stopped working. As soon as the pointer leaves the demo, the keys come back here
   // (typing in the demo still works while you're pointing at it)
-  sticky.addEventListener('pointermove', () => {
+  // And a demo that grabs the keyboard by itself as it loads (some do, the Flutter ones especially) while you're
+  // not pointing at it gives it straight back, so opening an app with 1–4 doesn't swallow the next key.
+  let overFrame = false;
+  const reclaimKeys = () => {
     const a = document.activeElement as HTMLElement | null;
-    if (focused && a?.tagName === 'IFRAME') a.blur();
+    if (focused && !overFrame && a?.tagName === 'IFRAME') {
+      a.blur();
+      window.focus();
+    }
+  };
+  sticky.addEventListener('pointerover', (e) => (overFrame = (e.target as HTMLElement).tagName === 'IFRAME'));
+  sticky.addEventListener('pointermove', () => {
+    overFrame = false; // moves only reach this page when the pointer isn't over a demo
+    reclaimKeys();
   });
+  addEventListener('blur', () => setTimeout(reclaimKeys, 0)); // focus just went into a frame
 
   // ── keyboard: almost everything works without a mouse ──
   const keysHelp = document.createElement('div');

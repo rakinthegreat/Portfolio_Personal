@@ -64,8 +64,6 @@ a.tool { display: inline-flex; align-items: center; text-decoration: none; }
 @media (prefers-reduced-motion: reduce) { .hero-name .ch { animation: none; transform: none; opacity: 1; } }
 .hero-meta { margin-top: 22px; font: 400 12px/1.9 var(--mono); letter-spacing: 2px; color: var(--grey); }
 .hero-meta p { margin: 0; }
-.hero-clock { display: flex; align-items: center; gap: 8px; color: var(--ink); }
-.live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--ink); animation: pulse 1.5s ease-in-out infinite alternate; }
 @keyframes pulse { from { transform: scale(0.7); } to { transform: scale(1); } }
 .hero-hint { margin: 26px 0 0; font: 400 11px var(--mono); letter-spacing: 2px; text-transform: uppercase; color: var(--grey); }
 

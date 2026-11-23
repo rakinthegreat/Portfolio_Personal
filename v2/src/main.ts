@@ -161,15 +161,3 @@ if (soundBtn) {
   });
 }
 
-// Local Dhaka time on the desk's opening shot
-const clock = document.querySelector<HTMLTimeElement>('[data-clock]');
-if (clock) {
-  const fmt = new Intl.DateTimeFormat('en-GB', {
-    hour: '2-digit',
-    minute: '2-digit',
-    timeZone: clock.dataset.tz || 'Asia/Dhaka',
-  });
-  const tick = () => (clock.textContent = fmt.format(new Date()));
-  tick();
-  setInterval(tick, 15_000);
-}

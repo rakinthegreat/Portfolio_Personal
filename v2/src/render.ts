@@ -289,7 +289,6 @@ function renderDesk(c: Content) {
             .join('')}</p>
           <div class="hero-meta">
             ${p.heroMeta.map((m) => `<p>${esc(m)}</p>`).join('')}
-            <p class="hero-clock"><span class="live-dot" aria-hidden="true"></span>DHAKA · <time data-clock data-tz="${esc(p.timezone)}">--:--</time></p>
           </div>
           <p class="hero-hint">Scroll to explore the desk ↓</p>
         </div>
