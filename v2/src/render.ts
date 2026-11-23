@@ -61,29 +61,60 @@ const dialog = (id: string, title: string, rows: string) => `
     <div class="s-dlg-body">${rows}</div>
   </dialog>`;
 
-/** The entry screen: every visitor picks a way in. */
+/** The entry screen: the two real views, live underneath, torn corner to corner. Each half is a way in. */
+/** The way back to the entry screen: a square torn corner to corner, like the screen itself. */
+const PICK_ICON = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="13" height="13" rx="2.5"/><path d="M1.5 14.5 14.5 1.5"/></svg>';
+
 function renderGate(c: Content) {
+  const title = c.person.name
+    .toUpperCase()
+    .split(' ')
+    .map((w) => `<span>${esc(w)}</span>`)
+    .join('');
+  // glass flung off the tear: position along it (t), offset from it, size, spin, drift time
+  const shards = [
+    [0.06, -26, 10, 22, 40, 3.4], [0.11, 18, -6, 12, -20, 2.8], [0.17, -8, -30, 16, 70, 3.9], [0.24, 34, 14, 9, 15, 2.6],
+    [0.3, -40, -12, 26, -55, 4.2], [0.37, 22, 30, 11, 110, 3.1], [0.45, -18, 26, 8, 5, 2.4], [0.55, 44, -8, 18, -80, 3.6],
+    [0.62, -30, -36, 13, 35, 3.0], [0.69, 12, 38, 24, 150, 4.4], [0.76, -46, 4, 10, -30, 2.7], [0.83, 28, -26, 17, 60, 3.3],
+    [0.9, -14, 22, 12, -100, 2.9], [0.95, 38, 10, 20, 20, 3.8],
+  ]
+    .map(([t, ox, oy, z, r, d]) => `<i style="--t:${t};--ox:${ox}px;--oy:${oy}px;--z:${z}px;--r:${r}deg;--d:${d}s"></i>`)
+    .join('');
   return `
-  <div class="gate" data-gate role="dialog" aria-modal="true" aria-labelledby="gate-title">
-    <div class="gate-inner">
-      <p class="s-label"><i class="s-dot"></i>${esc(c.person.name.toUpperCase())}  ·  PORTFOLIO</p>
-      <h1 class="gate-title" id="gate-title">How would you<br>like to look around?</h1>
-      <div class="gate-options">
-        <button class="gate-opt" type="button" data-pick="standard">
-          <span class="gate-num">01</span>
-          <span class="gate-name">Standard</span>
-          <span class="gate-desc">The streamlined portfolio. Scroll through about, academics, projects and contact on one clean page.</span>
-          <span class="gate-go">ENTER  →</span>
-        </button>
-        <button class="gate-opt" type="button" data-pick="desk">
-          <span class="gate-num">02</span>
-          <span class="gate-name">3D Interactive</span>
-          <span class="gate-desc">My desk in 3D, seen through my cat's eyes. Use the laptop and phone, print the résumé, or play as the cat.</span>
-          <span class="gate-go" data-desk-note>ENTER  →</span>
-        </button>
-      </div>
-      <p class="gate-foot">You can switch any time.</p>
+  <div class="gate" data-gate role="dialog" aria-modal="true" aria-labelledby="gate-label">
+    <h1 class="sr-only" id="gate-label">${esc(c.person.name)}: pick a way to look around</h1>
+    <button class="gate-face gate-face-desk" type="button" data-pick="desk">
+      <span class="gate-opt">
+        <span class="gate-num">01</span>
+        <span class="gate-name">3D Interactive</span>
+        <span class="gate-desc">Sneak onto my desk as Mi Mao, my cat. Poke the laptop and phone, grab the résumé, or just roam around.</span>
+        <span class="gate-tag">Know me as a person.</span>
+        <span class="gate-go" data-desk-note>ENTER  ↖</span>
+        <span class="gate-keys">or press <kbd>1</kbd> / <kbd>D</kbd></span>
+      </span>
+    </button>
+    <button class="gate-face gate-face-std" type="button" data-pick="standard">
+      <span class="gate-opt">
+        <span class="gate-num">02</span>
+        <span class="gate-name">Standard</span>
+        <span class="gate-desc">The streamlined portfolio, on one clean page.</span>
+        <span class="gate-tag">Know about me.</span>
+        <span class="gate-go">ENTER  ↘</span>
+        <span class="gate-keys">or press <kbd>2</kbd> / <kbd>S</kbd></span>
+      </span>
+    </button>
+    <div class="gate-title">${['desk', 'std', 'ctl'].map((k) => `
+      <div class="gate-title-${k}"${k === 'ctl' ? '' : ' aria-hidden="true"'}><p class="gate-name-big">${title}</p><p class="gate-sub">PICK A SIDE</p><p class="gate-sub2">You can switch any time</p>${
+        k === 'ctl'
+          ? '<label class="gate-remember"><input type="checkbox" data-remember /><i></i>Remember my choice</label>'
+          : '<span class="gate-remember">Remember my choice</span>'
+      }</div>`).join('')}
     </div>
+    <div class="gate-sides" aria-hidden="true">
+      <span class="gate-side gate-side-desk">Know me as a person.</span>
+      <span class="gate-side gate-side-std">Know about me.</span>
+    </div>
+    <div class="gate-seam" aria-hidden="true"><i class="gate-line"></i><span class="gate-shards">${shards}</span></div>
   </div>`;
 }
 
@@ -172,7 +203,14 @@ function renderStandard(c: Content) {
     ${section('experiences', `
       ${head('05', 'Experiences', 'Experiences')}
       <ol class="s-acts">
-        ${c.experiences.map((e, i) => `<li class="s-act s-rev" style="--d:${80 + i * 70}ms"><p class="s-act-role">${esc(e.role.toUpperCase())}</p><h3 class="s-act-title">${esc(e.title)}</h3><p class="s-act-period"><i></i>${esc(e.period)}</p></li>`).join('')}
+        ${c.experiences.map((e, i) => {
+          // a role with a site links to it (role and domain, in the same small caps)
+          const url = 'url' in e ? e.url : '';
+          const role = url
+            ? `<a class="s-act-link" href="${esc(url)}" target="_blank" rel="noopener">${esc(e.role.toUpperCase())} · ${esc(url.replace(/^https?:\/\//, '').toUpperCase())} ↗</a>`
+            : esc(e.role.toUpperCase());
+          return `<li class="s-act s-rev" style="--d:${80 + i * 70}ms"><p class="s-act-role">${role}</p><h3 class="s-act-title">${esc(e.title)}</h3><p class="s-act-period"><i></i>${esc(e.period)}</p></li>`;
+        }).join('')}
       </ol>`)}
 
     ${section('socials', `
@@ -205,21 +243,28 @@ function renderStandard(c: Content) {
     <footer class="s-footer" data-sec>
       <div class="s-inner s-foot">
         <p><i class="s-dot grey"></i>${esc(p.name.toUpperCase())}</p>
-        <button class="s-switch" type="button" data-switch="desk">VIEW THE 3D DESK  →</button>
+        <span class="s-switches"><button class="s-switch" type="button" data-switch="desk">VIEW THE 3D DESK  →</button><a class="s-switch" href="?view=pick">PICK AGAIN</a></span>
         <p><span>© ${new Date().getFullYear()}</span><span>${esc(p.location.toUpperCase())}</span></p>
       </div>
     </footer>
 
     <nav class="s-nav" aria-label="Sections" data-sidenav>
       ${NAV.map((l, i) => `<a href="#${IDS[i]}" data-i="${i}"><span>${l.toUpperCase()}</span><i></i></a>`).join('')}
+      <a class="s-nav-pick" href="?view=pick" aria-label="Pick a view again" title="Pick a view again">${PICK_ICON}</a>
     </nav>
     <div class="s-radial" data-radial>
       <button class="s-radial-knob" type="button" aria-label="Sections menu" aria-expanded="false" data-radial-open><span data-radial-label></span></button>
       <div class="s-radial-items">
-        ${NAV.map((l, i) => `<a href="#${IDS[i]}" data-i="${i}" style="--a:${(-(-0.43 * Math.PI + (i * 0.86 * Math.PI) / (NAV.length - 1))).toFixed(4)}rad"><span>${l.toUpperCase()}</span></a>`).join('')}
+        ${(() => {
+          // the sections, spread round the dial
+          const n = NAV.length;
+          const a = (i: number) => `--a:${(-(-0.43 * Math.PI + (i * 0.86 * Math.PI) / (n - 1))).toFixed(4)}rad`;
+          return NAV.map((l, i) => `<a href="#${IDS[i]}" data-i="${i}" style="${a(i)}"><span>${l.toUpperCase()}</span></a>`).join('');
+        })()}
       </div>
       <button class="s-radial-x" type="button" aria-label="Close menu" data-radial-close>${ICON.close}</button>
     </div>
+    <a class="s-pick-knob" href="?view=pick" aria-label="Pick a view again">${PICK_ICON}</a>
     <div class="s-cursor" aria-hidden="true"><i data-cur-lag></i><i data-cur></i></div>
   </div>`;
 }
@@ -233,6 +278,7 @@ function renderDesk(c: Content) {
       <button class="tool" type="button" data-theme-toggle aria-label="Day or night">◐</button>
       <button class="tool" type="button" data-sound hidden aria-pressed="false">Sound off</button>
       <button class="tool" type="button" data-switch="standard">Standard view</button>
+      <a class="tool" href="?view=pick">Pick again</a>
     </div>
     <section class="tour" data-tour aria-label="${esc(p.name)}'s desk">
       <div class="hero" data-sticky>

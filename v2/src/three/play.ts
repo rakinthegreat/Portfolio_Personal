@@ -161,8 +161,12 @@ export class Play {
   interactable: string | null = null;
   private propBounds = new Map<string, THREE.Box3>();
   private leap: Leap | null = null;
+  /** After playing: walking himself back across the desk to the basket (then a short hop in), not a huge leap. */
+  private homing: { t: number; best: number; stuck: number } | null = null;
   private landing = new THREE.Vector3(-0.78, 0, 0.36);
   private mode: 'free' | 'plank' = 'free';
+  private turnWay = 0; // turning round on the spot: which way (+1 / −1), kept until he's round; 0 when not
+  private walking = false; // walk cycle on, by how far he actually moved (not how hard he's pushing)
   private plankZone(p: THREE.Vector3) {
     return p.y > 0.5 && p.z < -0.3 && p.x > -0.46 && p.x < 0.5;
   }
@@ -233,7 +237,8 @@ export class Play {
       if (!this.active) {
         if (e.key === 'e' || e.key === 'E') {
           const r = this.ui.closest('[data-tour]')?.getBoundingClientRect();
-          if (r && r.top <= 0 && r.bottom >= innerHeight) this.enter();
+          // the tour fills (most of) the window; at the very end of the page it stops a hair short of the bottom
+          if (r && r.top <= 1 && r.bottom >= innerHeight * 0.6) this.enter();
         }
         return;
       }
@@ -281,14 +286,17 @@ export class Play {
 
   enter() {
     if (this.active || this.leap) return;
+    const walkingHome = !!this.homing;
+    this.homing = null;
     this.active = true;
     this.caps.forEach((c) => (c.mesh.visible = !c.got));
     this.cat.setState('idle');
     this.cat.autonomous = true;
     this.cat.stretch();
     this.onToggle(true);
-    // wake up, then leap from the basket onto the desk
-    this.startLeap(this.cat.root.position.clone(), this.landing.clone(), 'play', 1.4); // stretch, then leap
+    // wake up, then leap from the basket onto the desk (or, if he was still walking home, just carry on from there)
+    if (walkingHome) this.cat.setState('idle');
+    else this.startLeap(this.cat.root.position.clone(), this.landing.clone(), 'play', 1.4); // stretch, then leap
     this.toast(this.zoomies ? 'Zoomies are on. Go fast.' : 'Find the six lost keycaps. Or just knock things over.');
   }
 
@@ -307,8 +315,23 @@ export class Play {
     this.caps.forEach((c) => (c.mesh.visible = false));
     this.onNear(null);
     this.onToggle(false);
-    // back to the basket for a nap
-    this.startLeap(this.cat.root.position.clone(), this.basketSpot.clone(), 'sleep', 0);
+    // back to the basket for a nap: he walks over to the desk's corner by it, then hops in
+    this.homing = { t: 0, best: Infinity, stuck: 0 };
+  }
+  /** Walking home: done (hop into the basket) once he's at the corner, or if he's stuck or it's taking too long. */
+  private updateHoming(dt: number, pos: THREE.Vector3) {
+    const H0 = this.homing!;
+    H0.t += dt;
+    const d = Math.hypot(this.landing.x - pos.x, this.landing.z - pos.z);
+    if (d < H0.best - 0.01) {
+      H0.best = d;
+      H0.stuck = 0;
+    } else H0.stuck += dt;
+    if (d < 0.08 || H0.stuck > 1.2 || H0.t > 8) {
+      this.homing = null;
+      this.vel.set(0, 0, 0);
+      this.startLeap(pos.clone(), this.basketSpot.clone(), 'sleep', 0);
+    }
   }
 
   private startLeap(from: THREE.Vector3, to: THREE.Vector3, then: Leap['then'], delay: number) {
@@ -377,7 +400,7 @@ export class Play {
   private support(x: number, z: number, yaw: number, y: number) {
     let f = FLOOR;
     for (const [sx, sz] of this.samples(x, z, yaw))
-      for (const b of this.boxes) if (b.maxY <= y + STEP && b.maxY > f && this.touches(b, sx, sz, R * 0.8)) f = b.maxY;
+      for (const b of this.boxes) if (!b.wall && b.maxY <= y + STEP && b.maxY > f && this.touches(b, sx, sz, R * 0.8)) f = b.maxY;
     return f;
   }
   /** Would the cat's body intersect anything at this pose? */
@@ -527,10 +550,17 @@ export class Play {
 
     if (!leaping && this.active && this.pick) this.updatePick(dt);
     else if (!leaping && this.active && this.act) this.updateAct(dt);
-    else if (!leaping && this.active) {
+    else if (!leaping && (this.active || this.homing)) {
       const k = this.keys;
-      const ix = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0) + this.stick.x;
-      const iz = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0) + this.stick.y;
+      let ix = (k.has('d') || k.has('arrowright') ? 1 : 0) - (k.has('a') || k.has('arrowleft') ? 1 : 0) + this.stick.x;
+      let iz = (k.has('s') || k.has('arrowdown') ? 1 : 0) - (k.has('w') || k.has('arrowup') ? 1 : 0) + this.stick.y;
+      if (this.homing) {
+        // walking home: steer himself towards the desk's corner by the basket
+        const len = Math.hypot(this.landing.x - pos.x, this.landing.z - pos.z) || 1;
+        ix = (this.landing.x - pos.x) / len; // a steady walk all the way, not slowing as he nears it
+        iz = (this.landing.z - pos.z) / len;
+        this.updateHoming(dt, pos);
+      }
       const input = new THREE.Vector2(ix, iz);
       if (input.length() > 1) input.normalize();
       // up on the plank (or the shelves at that height): a 2D platformer, left/right only; S hops down
@@ -568,32 +598,44 @@ export class Play {
       if (onPlank) want.z = THREE.MathUtils.clamp((-0.44 - pos.z) * 10, -0.4, 0.4);
       this.vel.lerp(want, 1 - Math.exp(-dt * (this.grounded ? 10 : 5)));
 
-      // turn toward the motion, but only if the body fits at the new heading
-      const hs = Math.hypot(this.vel.x, this.vel.z);
+      // turn toward where he's heading (what you're asking for, not the leftovers of his last step); a small turn
+      // happens only if his body fits at the new heading
       // face along the platform, not toward the small corrective drift
-      const fx = this.vel.x;
-      const fz = onPlank ? 0 : this.vel.z;
+      const aim = want.lengthSq() > 1e-4 ? want : this.vel;
+      const fx = aim.x;
+      const fz = onPlank ? 0 : aim.z;
       if (!this.backoff && !hissing && Math.hypot(fx, fz) > 0.03) {
         const wrap = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
         let d = wrap(Math.atan2(fx, fz) - this.yaw);
         // turning right round on the plank: always swing through facing out (the open side), never into the
-        // wall behind it, where the turn is refused and he'd go on walking backwards
-        // (the plank and the other high shelves along the wall: all narrower than he is long)
+        // wall behind it (the plank and the other high shelves along the wall: all narrower than he is long)
         const ledge = onPlank || (pos.y > 0.5 && pos.z < -0.3);
         if (ledge && Math.abs(d) > Math.PI / 2 + 0.25) d = wrap(0 - this.yaw); // slack, or it keeps re-aiming at 'out'
-        const ny = this.yaw + d * Math.min(1, dt * (ledge ? 14 : 10));
-        // turning round on a ledge, head or tail always brushes the wall: the turn isn't refused for it
-        // (a cat curls round on a ledge)
-        if (ledge || !this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
-        else if (Math.abs(d) > Math.PI / 2) {
-          // a big turn blocked one way round: try the other way
-          const alt = d - Math.sign(d) * Math.PI * 2;
-          const ny2 = this.yaw + alt * Math.min(1, dt * 10) * 0.6;
-          if (!this.blocked(pos.x, pos.z, ny2, pos.y)) this.yaw = ny2;
+        // turning round: like a cat, he stops and curls round on the spot, one way round all the way (whichever
+        // side has more room), and only walks off once he's facing roughly where he's going. Head or tail may
+        // brush something on the way round; refusing the turn for that is what made him judder back and forth
+        // in tight spots (turn refused one way, then the other, stepping to and fro meanwhile)
+        if (this.turnWay || Math.abs(d) > Math.PI / 2 + 0.1) {
+          if (!this.turnWay) {
+            const left = this.penetration(pos.x, pos.z, this.yaw + Math.PI / 2, pos.y);
+            const right = this.penetration(pos.x, pos.z, this.yaw - Math.PI / 2, pos.y);
+            this.turnWay = Math.abs(left - right) < 1e-4 ? Math.sign(d) || 1 : left < right ? 1 : -1;
+          }
+          if (this.turnWay > 0 && d < 0) d += Math.PI * 2;
+          if (this.turnWay < 0 && d > 0) d -= Math.PI * 2;
+          this.yaw += d * Math.min(1, dt * 8);
+          if (Math.abs(d) < 0.45) this.turnWay = 0; // round: back to ordinary walking
+          else this.vel.set(0, 0, 0); // no stepping while he's still facing away
+        } else {
+          const ny = this.yaw + d * Math.min(1, dt * (ledge ? 14 : 10));
+          // on a ledge head or tail always brushes the wall: the turn isn't refused for it
+          if (ledge || !this.blocked(pos.x, pos.z, ny, pos.y)) this.yaw = ny;
         }
-      }
+      } else this.turnWay = 0;
 
       // move one axis at a time so he slides along things; refuse to step off the desk
+      const fromX = pos.x;
+      const fromZ = pos.z;
       const nx = pos.x + this.vel.x * dt;
       if (this.offDesk(nx, pos.z, pos.x, pos.z, this.yaw)) {
         this.vel.x = 0;
@@ -653,11 +695,26 @@ export class Play {
         this.grounded = true;
       } else if (ny - floor > 0.004) this.grounded = false;
       pos.y = ny;
+      // walls he can't stand on (the plushie): if he's come down into one, slide him out the nearest side
+      for (const b of this.boxes) {
+        if (!b.wall || pos.y >= b.maxY || pos.y + H <= b.minY || this.overlap(b, pos.x, pos.z, R) <= 0) continue;
+        const out = [
+          [b.minX - R - pos.x, 0], [b.maxX + R - pos.x, 0], [0, b.minZ - R - pos.z], [0, b.maxZ + R - pos.z],
+        ].sort((p, q) => Math.hypot(p[0], p[1]) - Math.hypot(q[0], q[1]))[0];
+        pos.x += out[0];
+        pos.z += out[1];
+        if (out[0]) this.vel.x = 0;
+        if (out[1]) this.vel.z = 0;
+      }
 
       this.cat.root.rotation.y = this.yaw;
       this.cat.airborne = !this.grounded;
-      this.cat.setState(hs > 0.05 && this.grounded ? 'walk' : 'idle');
-      this.cat.gaitScale = THREE.MathUtils.clamp(hs / 0.32, 0.6, 2.4);
+      // walk or stand by how far he really went this frame: pushed up against something he stands still,
+      // rather than flickering between walking on the spot and standing (with some slack either way)
+      const moved = dt > 0 ? Math.hypot(pos.x - fromX, pos.z - fromZ) / dt : 0;
+      this.walking = this.grounded && (this.walking ? moved > 0.025 : moved > 0.05);
+      this.cat.setState(this.walking ? 'walk' : 'idle');
+      this.cat.gaitScale = THREE.MathUtils.clamp(moved / 0.32, 0.6, 2.4);
     }
 
     // camera: behind and above, looking toward the wall
@@ -687,18 +744,29 @@ export class Play {
       if (TOUCH_ONLY.has(p.id) && !this.touchingProp(p, pos)) continue; // the calculator: only once he's on it or against it
       const dy = p.anchor.y - pos.y;
       if (dy < -0.2 || dy > 0.35) continue; // things on another level aren't 'nearby'
-      const d = Math.hypot(p.anchor.x - pos.x, p.anchor.z - pos.z, dy * 0.8);
+      // the one he's already looking at wins ties, so his head doesn't flick between two close things
+      const d = Math.hypot(p.anchor.x - pos.x, p.anchor.z - pos.z, dy * 0.8) - (p.id === this.nearProp ? 0.03 : 0);
       if (d < best) {
         best = d;
         near = p;
       }
     }
     if (this.active) {
+      // his head turns to whatever's nearby, easing there (not snapping), and only if it's not behind him: a thing
+      // right behind sits at ±180°, and the tiniest wobble of his body flipped the head hard left/right
+      let lx = 0;
+      let ly = 0;
       if (near) {
         const a = Math.atan2(near.anchor.x - pos.x, near.anchor.z - pos.z) - this.yaw;
-        this.cat.look.x = Math.atan2(Math.sin(a), Math.cos(a));
-        this.cat.look.y = THREE.MathUtils.clamp(-(near.anchor.y - pos.y - 0.2) * 1.5, -0.4, 0.4);
-      } else this.cat.look.set(0, 0);
+        const w = Math.atan2(Math.sin(a), Math.cos(a));
+        if (Math.abs(w) < 1.9) {
+          lx = THREE.MathUtils.clamp(w, -0.9, 0.9);
+          ly = THREE.MathUtils.clamp(-(near.anchor.y - pos.y - 0.2) * 1.5, -0.4, 0.4);
+        }
+      }
+      const kl = 1 - Math.exp(-dt * 6);
+      this.cat.look.x += (lx - this.cat.look.x) * kl;
+      this.cat.look.y += (ly - this.cat.look.y) * kl;
       const id = near?.id ?? null;
       if (id !== this.nearProp) {
         this.nearProp = id;
@@ -812,7 +880,7 @@ export class Play {
       let surface = FLOOR;
       const { x, y, z } = m.position;
       for (const box of this.boxes)
-        if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.01 && box.maxY > surface) surface = box.maxY;
+        if (!box.wall && x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.01 && box.maxY > surface) surface = box.maxY;
       const shape = new THREE.Shape();
       const ph = Math.random() * 6;
       for (let i = 0; i <= 40; i++) {
@@ -892,7 +960,7 @@ export class Play {
       let surface = FLOOR;
       const { x, y, z } = m.position;
       for (const box of this.boxes)
-        if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.004 && box.maxY > surface) surface = box.maxY;
+        if (!box.wall && x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.004 && box.maxY > surface) surface = box.maxY;
       m.updateMatrixWorld(true);
       const low = this.tmpBox.setFromObject(m).min.y;
       if (low < surface + 0.0005) {
@@ -1116,7 +1184,7 @@ export class Play {
         let surface = FLOOR;
         const { x, y, z } = m.position;
         for (const box of this.boxes)
-          if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.002 && box.maxY > surface) surface = box.maxY;
+          if (!box.wall && x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= y + 0.002 && box.maxY > surface) surface = box.maxY;
         m.updateMatrixWorld(true);
         const low = this.tmpBox.setFromObject(m).min.y;
         b.onSurf = low < surface + 0.0015;
@@ -1177,7 +1245,7 @@ export class Play {
     const onDesk = x >= DESK.minX && x <= DESK.maxX && z >= DESK.minZ && z <= DESK.maxZ;
     if (onDesk && m.position.y > -0.02) y = 0;
     for (const box of this.boxes)
-      if (x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= m.position.y + 0.01 && box.maxY > y) y = box.maxY;
+      if (!box.wall && x >= box.minX && x <= box.maxX && z >= box.minZ && z <= box.maxZ && box.maxY <= m.position.y + 0.01 && box.maxY > y) y = box.maxY;
     // a lumpy, organic outline
     const shape = new THREE.Shape();
     const ph = Math.random() * 6;
@@ -1786,7 +1854,7 @@ export class Play {
   }
 
   get busy() {
-    return this.active || !!this.leap;
+    return this.active || !!this.leap || !!this.homing;
   }
 }
 

@@ -322,7 +322,11 @@ export class Screens {
       s.anchor.updateWorldMatrix(true, false);
       s.anchor.matrixWorld.decompose(s.obj.position, s.obj.quaternion, this.tmpS);
       s.obj.position.multiplyScalar(S);
-      s.obj.scale.setScalar((s.widthM * S) / s.px);
+      s.obj.scale.setScalar(((s.widthM * S) / s.px) * this.tmpS.x); // follows its mesh if that's scaled
+      // a hidden mesh (or one inside a hidden group) hides its page too
+      let shown = true;
+      for (let o: THREE.Object3D | null = s.anchor; o && shown; o = o.parent) shown = o.visible;
+      s.obj.visible = shown;
     }
     this.renderer.render(this.scene, this.cam);
   }

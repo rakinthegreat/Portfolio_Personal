@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Rakin Talukder</title>
-    <meta name="description" content="Rakin Talukder, a software engineer and hardware tinkerer from Dhaka. Explore his desk from his cat's point of view: apps, games, computer vision, ESP32 builds and a self-hosted home server." />
+    <meta name="description" content="Rakin Talukder, a software engineer and hardware tinkerer from Dhaka. Explore his desk from the point of view of his cat, Mi Mao: apps, games, computer vision, ESP32 builds and a self-hosted home server." />
     <meta name="theme-color" content="#FFFFFF" />
     <link rel="canonical" href="https://rakin-talukder.me/" />
     <link rel="icon" type="image/svg+xml" href="/logo.svg" />
     <link rel="apple-touch-icon" href="/logo.svg" />
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Rakin Talukder · Software engineer & hardware tinkerer" />
-    <meta property="og:description" content="Software engineer and hardware tinkerer from Dhaka. Read the portfolio, or explore the desk in 3D as the cat." />
+    <meta property="og:description" content="Software engineer and hardware tinkerer from Dhaka. Read the portfolio, or explore the desk in 3D as Mi Mao the cat." />
     <meta property="og:url" content="https://rakin-talukder.me/" />
     <meta name="twitter:card" content="summary" />
     <script type="application/ld+json">
@@ -28,10 +28,16 @@
       }
     </script>
     <script>
-      // pick the view before first paint: ?view=standard|desk, or the choice made earlier this visit
+      // pick the view before first paint: ?view=standard|desk, or a choice the visitor asked us to remember;
+      // otherwise every visit starts on the entry screen
       document.documentElement.classList.add('js');
       try {
-        var v = new URLSearchParams(location.search).get('view') || sessionStorage.getItem('view');
+        var q = new URLSearchParams(location.search).get('view');
+        var v = q || localStorage.getItem('view');
+        // ?view=pick: show the entry screen again (a remembered choice stays until it's unticked there)
+        if (q === 'pick') { var u = new URL(location.href); u.searchParams.delete('view'); history.replaceState(null, '', u); v = null; }
+        // no choice yet: both views run underneath the entry screen, one per half
+        if (v !== 'standard' && v !== 'desk') document.documentElement.classList.add('gating');
         if (v === 'standard' || v === 'desk') document.documentElement.dataset.view = v;
         var t = localStorage.getItem('theme');
         if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;

@@ -28,45 +28,92 @@ if (deskPick && !hasWebGL) {
 
 let started = false;
 let standardReady = false;
+let deskMounted = false;
+const startStandard = () => {
+  if (standardReady) return;
+  standardReady = true;
+  initStandard();
+};
+const mountDesk = () => {
+  if (deskMounted || !hasWebGL) return;
+  deskMounted = true;
+  const tour = document.querySelector<HTMLElement>('[data-tour]');
+  if (tour) import('./three/mount').then((m) => m.mount(tour)).catch((err) => console.warn('3D desk unavailable', err));
+};
+// every visit starts on the entry screen, unless the visitor ticked "Remember my choice" there
+const rememberBox = gate?.querySelector<HTMLInputElement>('[data-remember]');
+const remembered = () => { try { return localStorage.getItem('view'); } catch { return null; } };
+if (rememberBox) rememberBox.checked = remembered() === 'desk' || remembered() === 'standard';
+rememberBox?.addEventListener('change', () => {
+  try { if (!rememberBox.checked) localStorage.removeItem('view'); } catch { /* ignore */ }
+});
+function remember(view: View) {
+  const keep = rememberBox ? rememberBox.checked : remembered() !== null;
+  try { if (keep) localStorage.setItem('view', view); } catch { /* ignore */ }
+}
 function enter(view: View) {
   if (view === 'desk' && !hasWebGL) view = 'standard';
-  try {
-    sessionStorage.setItem('view', view);
-  } catch { /* ignore */ }
+  remember(view);
   if (started && root.dataset.view && root.dataset.view !== view) {
     // leaving one view for the other: a fresh load is the cleanest way to stop (or start) the 3D desk
     const url = new URL(location.href);
-    url.searchParams.delete('view');
+    url.searchParams.set('view', view);
     url.hash = '';
     location.replace(url);
     return;
   }
   root.dataset.view = view;
+  root.classList.remove('gating', 'pick-desk', 'pick-standard');
   started = true;
   gate?.remove();
-  if (view === 'standard' && !standardReady) {
-    standardReady = true;
-    initStandard();
-  }
+  if (view === 'standard') startStandard();
   const anchor = view === 'standard' && location.hash.length > 1 ? document.getElementById(location.hash.slice(1)) : null;
   if (anchor) anchor.scrollIntoView({ behavior: 'instant' });
   else scrollTo({ top: 0, behavior: 'instant' });
-  if (view === 'desk') {
-    const tour = document.querySelector<HTMLElement>('[data-tour]');
-    if (tour) import('./three/mount').then((m) => m.mount(tour)).catch((err) => console.warn('3D desk unavailable', err));
-  }
+  if (view === 'desk') mountDesk();
 }
+// picking: the tear sweeps over the side you didn't pick, then that view simply carries on
+let picking = false;
 gate?.addEventListener('click', (e) => {
+  // the page's own theme button (in its clock) still works through the poster
+  const theme = document.querySelector<HTMLElement>('.s-clock [data-theme-toggle]');
+  const tr = theme?.getBoundingClientRect();
+  if (theme && tr && e.clientX >= tr.left && e.clientX <= tr.right && e.clientY >= tr.top && e.clientY <= tr.bottom) return toggleTheme(theme);
   const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-pick]');
-  if (b && !b.disabled) enter(b.dataset.pick as View);
+  if (b) pick(b);
 });
+function pick(b: HTMLButtonElement) {
+  if (b.disabled || picking) return;
+  picking = true;
+  const view = b.dataset.pick as View;
+  root.classList.add(`pick-${view}`);
+  setTimeout(() => enter(view), matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 620);
+}
+// keyboard shortcuts on the entry screen: 1 / D for the desk, 2 / S for the standard page
+const PICK_KEYS: Record<string, View> = { '1': 'desk', d: 'desk', '2': 'standard', s: 'standard' };
 document.addEventListener('click', (e) => {
   const b = (e.target as HTMLElement).closest<HTMLElement>('[data-switch]');
   if (b) enter(b.dataset.switch as View);
 });
 const preset = root.dataset.view as View | undefined;
 if (preset === 'standard' || preset === 'desk') enter(preset);
-else gate?.querySelector<HTMLButtonElement>('[data-pick="standard"]')?.focus({ preventScroll: true });
+else {
+  // the entry screen: both views run live underneath it, one in each half of the tear
+  root.classList.add('gating');
+  startStandard();
+  mountDesk();
+  // while choosing, keys belong to the entry screen (Tab / Enter / Space and the pick keys), not to the views underneath
+  addEventListener('keydown', (e) => {
+    if (!root.classList.contains('gating')) return;
+    const view = e.ctrlKey || e.metaKey || e.altKey ? undefined : PICK_KEYS[e.key.toLowerCase()];
+    if (view) {
+      e.preventDefault();
+      const b = gate?.querySelector<HTMLButtonElement>(`[data-pick="${view}"]`);
+      if (b) pick(b);
+    }
+    if (!['Tab', 'Enter', ' '].includes(e.key)) e.stopImmediatePropagation();
+  }, true);
+}
 
 // Dark / light toggle (the original site had one in its clock); remembered per visitor
 document.addEventListener('click', (e) => {

@@ -257,7 +257,7 @@ export class Cat {
   private scratchT = 0;
 
   /** Collision size for play mode (already scaled). */
-  static readonly SCALE = 0.46; // kitten
+  static readonly SCALE = 0.38; // a small kitten
   static readonly HEIGHT = 0.29 * Cat.SCALE;
   static readonly HALF_LEN = 0.14 * Cat.SCALE;
 

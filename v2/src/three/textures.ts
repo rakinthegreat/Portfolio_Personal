@@ -194,53 +194,6 @@ export const stickyNote = (text: string[], color = '#f6dd7a') =>
     text.forEach((l, i) => g.fillText(l, 20, 62 + i * 40));
   });
 
-export const catPolaroid = () =>
-  canvasTex(260, 300, (g, w, h) => {
-    g.fillStyle = '#fdfcf8';
-    g.fillRect(0, 0, w, h);
-    g.fillStyle = '#d9c7aa';
-    g.fillRect(16, 16, w - 32, 220);
-    // him: slim white cat curled up, tall ears, tabby patch over one ear, tail fading white → dark
-    const tail = g.createLinearGradient(110, 180, 30, 150);
-    tail.addColorStop(0, '#f6f1e8');
-    tail.addColorStop(1, '#35302d');
-    g.fillStyle = tail;
-    g.beginPath();
-    g.ellipse(70, 175, 54, 18, -0.35, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#f6f1e8';
-    g.beginPath();
-    g.ellipse(140, 172, 70, 40, 0, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#9a948d';
-    g.beginPath();
-    g.ellipse(96, 150, 18, 7, -0.3, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#f6f1e8';
-    g.beginPath();
-    g.arc(192, 138, 32, 0, Math.PI * 2);
-    g.fill();
-    g.beginPath();
-    g.moveTo(168, 120); g.lineTo(170, 74); g.lineTo(188, 110);
-    g.fill();
-    g.fillStyle = '#4b4541';
-    g.beginPath();
-    g.moveTo(198, 108); g.lineTo(216, 72); g.lineTo(220, 118);
-    g.fill();
-    g.beginPath();
-    g.ellipse(200, 112, 16, 8, 0.5, 0, Math.PI * 2);
-    g.fill();
-    g.fillStyle = '#ec9fa6';
-    g.beginPath(); g.moveTo(172, 112); g.lineTo(172, 84); g.lineTo(184, 108); g.fill();
-    g.beginPath(); g.arc(192, 150, 3, 0, Math.PI * 2); g.fill();
-    g.strokeStyle = '#26221f';
-    g.lineWidth = 2;
-    [[180, 138], [204, 138]].forEach(([x, y]) => { g.beginPath(); g.arc(x, y, 5, 0.2, Math.PI - 0.2); g.stroke(); });
-    g.fillStyle = '#3b3326';
-    g.font = `italic 22px Georgia, serif`;
-    g.fillText('the boss', 80, 276);
-  });
-
 /** Polashi box art. */
 export const polashiLid = () =>
   canvasTex(512, 512, (g, w, h) => {

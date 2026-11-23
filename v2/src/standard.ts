@@ -71,7 +71,7 @@ export function initStandard() {
   const side = std.querySelector<HTMLElement>('[data-sidenav]')!;
   const radial = std.querySelector<HTMLElement>('[data-radial]')!;
   const radialLabel = radial.querySelector<HTMLElement>('[data-radial-label]')!;
-  const labels = [...side.querySelectorAll('span')].map((s) => s.textContent!);
+  const labels = [...side.querySelectorAll('a[data-i] span')].map((s) => s.textContent!);
   let active = -1;
   const onScroll = () => {
     const max = document.documentElement.scrollHeight - innerHeight;
@@ -86,8 +86,8 @@ export function initStandard() {
       active = a;
       std.classList.toggle('past-hero', a > 0);
       const i = a - 1;
-      side.querySelectorAll('a').forEach((el, j) => el.classList.toggle('on', j === i));
-      radial.querySelectorAll('.s-radial-items a').forEach((el, j) => el.classList.toggle('on', j === i));
+      side.querySelectorAll('a[data-i]').forEach((el, j) => el.classList.toggle('on', j === i));
+      radial.querySelectorAll('.s-radial-items a[data-i]').forEach((el, j) => el.classList.toggle('on', j === i));
       radialLabel.textContent = labels[i] ?? '';
     }
   };
@@ -110,7 +110,7 @@ export function initStandard() {
   };
   knob.addEventListener('click', () => setOpen(true));
   radial.querySelector('[data-radial-close]')!.addEventListener('click', () => setOpen(false));
-  radial.querySelectorAll('.s-radial-items a').forEach((a) => a.addEventListener('click', () => setOpen(false)));
+  radial.querySelectorAll('.s-radial-items > *').forEach((a) => a.addEventListener('click', () => setOpen(false)));
   document.addEventListener('pointerdown', (e) => {
     if (radial.classList.contains('open') && !radial.contains(e.target as Node)) setOpen(false);
   });

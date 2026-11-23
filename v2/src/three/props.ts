@@ -6,12 +6,14 @@ import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeom
 import type { Materials } from './materials';
 import { holeMaterial } from './screens';
 import { archWindow, consoleScreen } from './textures';
-import { catPolaroid, resumeTexture } from './cards';
+import { resumeTexture } from './cards';
 import { SCRIBBLES } from './scribbles';
+import { buildProyashFigure } from './proyash';
 import content from '../content.json';
 const SOCIALS = content.socials;
 
-export interface Box { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number }
+/** A collider. `wall`: solid at the sides, but never something to stand on (he's nudged off if he lands on it). */
+export interface Box { minX: number; maxX: number; minY: number; maxY: number; minZ: number; maxZ: number; wall?: boolean }
 export interface Prop { id: string; object: THREE.Object3D; anchor: THREE.Vector3 }
 export interface ShelfBook { mesh: THREE.Mesh; mat: THREE.MeshStandardMaterial; w: number; h: number; d: number; x: number; front: number }
 export interface Knockable { mesh: THREE.Object3D; radius: number; name?: string; roll?: number }
@@ -357,6 +359,30 @@ export function buildDesk(M: Materials, aniso: number) {
   prop('plaque', plaque, [0.27, 0.12, -0.2]);
   collider(0.27, -0.2, 0.15, 0.06, 0, 1.2); // glass on edge: walk round it, don't stand on it
 
+  // ── in the plaque's place until it's unlocked: an ordinary black desk clock, a plastic brick with a glass
+  // front (the display is real HTML through a hole) and two buttons on top ──
+  const deskClock = new THREE.Group();
+  deskClock.position.copy(plaque.position);
+  deskClock.rotation.y = plaque.rotation.y;
+  const CLK_W = 0.15;
+  const CLK_H = 0.068;
+  const CLK_D = 0.056;
+  const clockMat = new THREE.MeshStandardMaterial({ color: 0x1d1e21, roughness: 0.45, metalness: 0.1 });
+  block(CLK_W, CLK_H, CLK_D, clockMat, 0, 0.003, 0, 0.007, false, deskClock);
+  for (const x of [-0.055, 0.055]) block(0.018, 0.003, 0.04, new THREE.MeshStandardMaterial({ color: 0x0c0c0d, roughness: 0.9 }), x, 0, 0, 0.001, false, deskClock); // rubber feet
+  // on top: the SET button (the one that matters, picked out in red) and a plain one beside it
+  block(0.022, 0.004, 0.012, new THREE.MeshStandardMaterial({ color: 0x2e3034, roughness: 0.35, metalness: 0.2 }), -0.036, 0.003 + CLK_H - 0.001, -0.004, 0.0015, false, deskClock);
+  const clockSetBtn = block(0.03, 0.005, 0.014, new THREE.MeshStandardMaterial({ color: 0xb8321e, roughness: 0.4 }), 0.02, 0.003 + CLK_H - 0.001, -0.004, 0.002, false, deskClock);
+  const CLOCK_FACE_W = CLK_W - 0.016;
+  const CLOCK_FACE_H = CLK_H - 0.016;
+  const clockFace = new THREE.Mesh(new THREE.PlaneGeometry(CLOCK_FACE_W, CLOCK_FACE_H), holeMaterial());
+  clockFace.position.set(0, 0.003 + CLK_H / 2, CLK_D / 2 + 0.0004);
+  clockFace.castShadow = clockFace.receiveShadow = false;
+  deskClock.add(clockFace);
+  root.add(shadowed(deskClock));
+  clockFace.castShadow = clockFace.receiveShadow = false;
+  prop('plaque', deskClock, [0.27, 0.05, -0.2]);
+
   // ── left: the old HP Pavilion on its crate, lid shut, running headless 24/7: brushed-silver lid with the
   //    chrome hp disc, charcoal base, hinge barrel, status LEDs on the front lip, an exhaust grille, a blue
   //    Ethernet cable and the charger lead trailing off the back ──
@@ -446,6 +472,28 @@ export function buildDesk(M: Materials, aniso: number) {
   root.add(server);
   collider(-0.62, -0.32, PW, PD, 0.12, 0.144);
   prop('server', server, [-0.62, 0.2, -0.32]);
+
+  // ── on the Pavilion's lid, back right: Proyash's green cat as a plushie (I co-founded it); only its tablet links out ──
+  const proyashExp = content.experiences.find((e) => 'mascot' in e && e.mascot);
+  if (proyashExp) {
+    const { fig, tablet, sharp } = buildProyashFigure(proyashExp);
+    sharp.forEach(markText); // the wordmark and the tag stay crisp under the paint filter
+    fig.position.set(-0.53, 0.144, -0.37);
+    fig.rotation.y = 0.35;
+    root.add(fig);
+    prop('proyash-cat', fig, [-0.53, 0.26, -0.37]);
+    tablet.userData.url = 'url' in proyashExp ? proyashExp.url : undefined;
+    prop('proyash', tablet, [-0.53, 0.2, -0.33]);
+    // his collision with the plushie follows its shape: a snug box round each piece of it (head, body, haunches,
+    // feet, ears, tail, tablet), not one big box round the lot. They're walls, never floors: if he comes down on
+    // it he slides off rather than standing on its head
+    fig.updateWorldMatrix(true, true);
+    fig.traverse((o) => {
+      if (!(o as THREE.Mesh).isMesh) return;
+      const bb = new THREE.Box3().setFromObject(o).expandByScalar(0.003);
+      boxes.push({ minX: bb.min.x, maxX: bb.max.x, minY: bb.min.y, maxY: bb.max.y, minZ: bb.min.z, maxZ: bb.max.z, wall: true });
+    });
+  }
   // wall shelf with the Plassey box
   block(0.5, 0.025, 0.2, M.shelf, -0.72, 0.535, -0.45, 0.003);
   for (const x of [-0.93, -0.51]) block(0.02, 0.06, 0.16, M.metal, x, 0.475, -0.47, 0.002, false);
@@ -686,7 +734,7 @@ export function buildDesk(M: Materials, aniso: number) {
     }
   }
 
-  // ── pinboard on the wall: About, Academics, Tech Stack, Experiences, and a polaroid of the boss ──
+  // ── pinboard on the wall: About, Academics, Tech Stack, Experiences ──
   const pin = new THREE.Group();
   pin.position.set(0.0, 0.86, -0.545); // just above the plank: the cat can sit and read it
   const board = new THREE.Mesh(rbox(0.84, 0.54, 0.02, 0.004), M.cork);
@@ -714,10 +762,6 @@ export function buildDesk(M: Materials, aniso: number) {
     pin.add(cardMesh, tack);
     pinCards.push({ id, mesh: cardMesh });
   }
-  const pol = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.108), new THREE.MeshStandardMaterial({ map: catPolaroid(aniso), roughness: 0.6 }));
-  pol.position.set(0.37, -0.215, 0.024);
-  pol.rotation.z = -0.12;
-  pin.add(markText(pol));
   root.add(pin);
   prop('pinboard', pin, [0.0, 0.62, -0.47]);
 
@@ -1039,7 +1083,7 @@ export function buildDesk(M: Materials, aniso: number) {
   knock(new THREE.Mesh(rbox(0.05, 0.012, 0.02, 0.003), M.metal), 0.008, 0.28, 0, 0.0);
   knock(new THREE.Mesh(rbox(0.045, 0.016, 0.025, 0.005), new THREE.MeshStandardMaterial({ color: 0xf2a2b0, roughness: 0.8 })), 0.009, -0.7, 0.145, -0.25);
 
-  return { root, props, boxes, knockables, shelfBooks, serverLed, basketSpot, lampLight, lampGlow, lampBeam, fairyLight, keyMat, pinCards, PIN_W, laptopScreen, SCR_W, phoneScreen, PH_W, calcFace, CALC_W, plaqueFace, PLQ_W, paper, printer, windowMesh: win };
+  return { root, props, boxes, knockables, shelfBooks, serverLed, basketSpot, lampLight, lampGlow, lampBeam, fairyLight, keyMat, pinCards, PIN_W, laptopScreen, SCR_W, phoneScreen, PH_W, calcFace, CALC_W, plaqueFace, PLQ_W, plaque, deskClock, clockFace, clockSetBtn, CLOCK_FACE_W, CLOCK_FACE_H, clockMat, paper, printer, windowMesh: win };
 }
 
 function rod(a: THREE.Vector3, b: THREE.Vector3, r: number, mat: THREE.Material) {

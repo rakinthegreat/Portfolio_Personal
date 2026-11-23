@@ -16,7 +16,7 @@ import { Play } from './play';
 import { Screens } from './screens';
 import { buildPinCards, CARD_PX } from './pincards';
 import { buildCalculator, CALC_PX } from './calculator';
-import { buildPlaque, PLAQUE_PX } from './plaque';
+import { buildDeskClock, buildPlaque, CLOCK_PX, PLAQUE_PX, plaqueUnlocked } from './plaque';
 import { sfx, soundOn, setSound } from '../sound';
 import { describeStats, fetchServerStats } from '../stats';
 
@@ -293,6 +293,10 @@ export async function mount(tour: HTMLElement) {
     scene.background = bg;
   };
 
+  // Proyash (from content.json): its mascot sits on the Pavilion, and the server's stop links to it
+  const proyash = content.experiences.find((e) => 'mascot' in e && e.mascot);
+  const proyashUrl = (proyash && 'url' in proyash ? proyash.url : '') ?? '';
+  const proyashLabel = proyash ? `${proyash.role} · ${proyash.title.toLowerCase()}` : '';
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
   const pinEls = buildPinCards();
   for (const c of desk.pinCards) screens.addPanel(c.mesh, desk.PIN_W, CARD_PX, pinEls[c.id as keyof typeof pinEls]);
@@ -300,6 +304,13 @@ export async function mount(tour: HTMLElement) {
   screens.addPanel(desk.calcFace, desk.CALC_W, CALC_PX, calc.el);
   const plaque = buildPlaque();
   screens.addPanel(desk.plaqueFace, desk.PLQ_W, PLAQUE_PX, plaque.el);
+  // until it's unlocked (this browser session), an ordinary desk clock stands where the plaque goes;
+  // setting it to the right word blows it apart (blastClock, below) and the plaque rises in its place
+  let clockLocked = !plaqueUnlocked();
+  const deskClock = clockLocked ? buildDeskClock(Math.round((CLOCK_PX * desk.CLOCK_FACE_H) / desk.CLOCK_FACE_W), () => blastClock()) : null;
+  if (deskClock) screens.addPanel(desk.clockFace, desk.CLOCK_FACE_W, CLOCK_PX, deskClock.el);
+  desk.deskClock.visible = clockLocked;
+  desk.plaque.visible = !clockLocked;
 
   const applyTheme = () => {
     void dark; // the evening, lamp-lit look is used in both page themes
@@ -331,6 +342,20 @@ export async function mount(tour: HTMLElement) {
   const tmpP = new THREE.Vector3();
   const tmpL = new THREE.Vector3();
   let progress = 0;
+  // the entry screen: the desk shows in the top-left of a torn poster, framed on the cat,
+  // which the camera keeps nudged onto a spot set from CSS (--gate-cat-x / -y, 0..1 of the screen)
+  const gating = () => document.documentElement.classList.contains('gating');
+  const GATE_POS = new THREE.Vector3(-1.05, 0.08, 0.85);
+  const gateLook = new THREE.Vector3(-1.2, -0.2, 0.1);
+  const gateAim = new THREE.Vector2(0.22, 0.55);
+  const aimP = new THREE.Vector3();
+  const camRight = new THREE.Vector3();
+  const camUp = new THREE.Vector3();
+  let catPosing = false;
+  if (gating()) {
+    camPos.copy(GATE_POS);
+    camLook.copy(gateLook);
+  }
   tour.style.setProperty('--stops', String(stops.length));
   tour.classList.add('has-3d');
 
@@ -338,12 +363,14 @@ export async function mount(tour: HTMLElement) {
   const web = projects.filter((p) => p.previewUrl && !p.mobile);
   const apps = projects.filter((p) => p.previewUrl && p.mobile);
   const buttons: Record<string, string> = {
-    basket: `<button class="btn btn-solid" data-act="play">Play as the cat</button>`,
-    laptop: `<button class="btn btn-solid" data-act="use-laptop">Use the laptop</button><button class="btn" data-act="use-plaque">♥ Our song</button>${web.map((p) => `<button class="btn" data-act="tab" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}`,
+    basket: `<button class="btn btn-solid" data-act="play">Play as Mi Mao</button>`,
+    laptop: `<button class="btn btn-solid" data-act="use-laptop">Use the laptop</button><button class="btn" data-act="use-plaque">${plaqueUnlocked() ? '♥ Our song' : 'The desk clock'}</button>${web.map((p) => `<button class="btn" data-act="tab" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}`,
     phone: `<button class="btn btn-solid" data-act="use-phone">Use the phone</button>${apps.map((p) => `<button class="btn" data-act="app" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}<button class="btn" data-act="use-calc">Calculator</button><button class="btn" data-act="socials">Socials</button>`,
     server: `<p class="tour-stats" data-stats>Checking on the server…</p>`,
+    proyash: proyashUrl ? `<a class="btn btn-solid" href="${esc(proyashUrl)}" target="_blank" rel="noopener">Visit ${esc(proyashUrl.replace(/^https?:\/\//, ''))} ↗</a>` : '',
     console: `<button class="btn btn-solid" data-act="arcade">Play Punch It Out</button>`,
     printer: `<button class="btn btn-solid" data-act="print">Print résumé</button>`,
+    socials: content.socials.map((s) => `<a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener me">${esc(s.label)}</a>`).join(''),
   };
   const captions = document.createElement('ol');
   captions.className = 'tour-captions';
@@ -355,26 +382,14 @@ export async function mount(tour: HTMLElement) {
     )
     .join('');
   sticky.append(captions);
-  // the socials: not a tour stop, but a caption of their own (by the books, or from the phone's caption)
-  const socialsCap = document.createElement('li');
-  socialsCap.className = 'tour-caption social-cap';
-  socialsCap.innerHTML = `<p class="cap-num">SOCIALS · ON THE SHELF</p><h2>Find me online</h2><p>@rakinthegreat, more or less everywhere.</p><div class="cap-btns">${content.socials
-    .map((s) => `<a class="btn" href="${esc(s.url)}" target="_blank" rel="noopener me">${esc(s.label)}</a>`)
-    .join('')}</div>`;
-  captions.append(socialsCap);
   captions.querySelectorAll('.cap-btns').forEach((row) =>
     [...row.children].forEach((b, i) => b.insertAdjacentHTML('afterbegin', `<kbd class="ck-key">${i === 0 ? 'F' : i}</kbd>`)),
   );
-  const captionEls = ([...captions.children] as HTMLElement[]).filter((el) => el !== socialsCap);
-  const showCaption = (i: number) => {
-    captionEls.forEach((el, j) => el.classList.toggle('on', j === i));
-    socialsCap.classList.remove('on');
-  };
-  /** Only one caption at a time: the socials one replaces whatever was showing. */
-  const showSocials = () => {
-    captionEls.forEach((el) => el.classList.remove('on'));
-    socialsCap.classList.add('on');
-  };
+  const captionEls = [...captions.children] as HTMLElement[];
+  const showCaption = (i: number) => captionEls.forEach((el, j) => el.classList.toggle('on', j === i));
+  // the socials are a stop of their own now (the books on the lower shelf): shown there, or by the books in play
+  const socialsAt = stops.findIndex((s) => s.id === 'socials');
+  const showSocials = () => (play.active ? showCaption(socialsAt) : scrollToStop(socialsAt));
 
   const statsEl = captions.querySelector<HTMLElement>('[data-stats]');
   const refreshStats = async () => {
@@ -385,7 +400,7 @@ export async function mount(tour: HTMLElement) {
 
   const hint = document.createElement('p');
   hint.className = 'tour-hint';
-  hint.textContent = '(click the cat)';
+  hint.textContent = '(click Mi Mao)';
   sticky.append(hint);
   const exitBtn = document.createElement('button');
   exitBtn.className = 'btn btn-solid focus-exit';
@@ -395,7 +410,7 @@ export async function mount(tour: HTMLElement) {
   const playBtn = document.createElement('button');
   playBtn.type = 'button';
   playBtn.className = 'btn btn-solid play-btn';
-  playBtn.innerHTML = 'Play as the cat <kbd>E</kbd>';
+  playBtn.innerHTML = 'Play as Mi Mao <kbd>E</kbd>';
   sticky.append(playBtn);
 
   // ── screen focus: fly up to a screen and hand the pointer to the real page ──
@@ -409,14 +424,17 @@ export async function mount(tour: HTMLElement) {
     calc: { anchor: desk.calcFace, w: desk.CALC_W, h: desk.CALC_W * 2 },
     plaque: { anchor: desk.plaqueFace, w: desk.PLQ_W, h: (desk.PLQ_W * 5) / 3 },
   };
+  const clockDevice = { anchor: desk.clockFace, w: desk.CLOCK_FACE_W, h: desk.CLOCK_FACE_H };
   const focus = (which: Device) => {
     // playing? just pause: the loop stops driving the cat while a screen is focused, and Back resumes the open world
-    const { anchor, w, h } = devices[which];
+    const { anchor, w, h } = which === 'plaque' && clockLocked ? clockDevice : devices[which];
     anchor.getWorldPosition(focusLook);
     const n = new THREE.Vector3(0, 0, 1).applyQuaternion(anchor.getWorldQuaternion(new THREE.Quaternion()));
     if (which === 'calc') n.add(new THREE.Vector3(0, 0, 0.5)).normalize(); // lying flat: look down at it from the front
+    const onClock = which === 'plaque' && clockLocked;
+    if (onClock) n.add(new THREE.Vector3(0, 0.6, 0)).normalize(); // from a little above, so its SET button shows
     const t = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
-    const d = Math.max(h / 2 / t, w / 2 / (t * camera.aspect)) * 1.3;
+    const d = Math.max(h / 2 / t, w / 2 / (t * camera.aspect)) * (onClock ? 1.9 : 1.3);
     focusPos.copy(focusLook).addScaledVector(n, d);
     focused = which;
     focusKeys.innerHTML = FOCUS_KEYS[which]();
@@ -428,11 +446,18 @@ export async function mount(tour: HTMLElement) {
   const focusKeys = document.createElement('p');
   focusKeys.className = 'focus-keys';
   sticky.append(focusKeys);
+  // touch screens: no key hints (the clock's instructions stay, in touch words)
+  const touchOnly = matchMedia('(hover: none)').matches;
   const FOCUS_KEYS: Record<Device, () => string> = {
     laptop: () => `<kbd>1–${screens.tabCount}</kbd> tabs · <kbd>R</kbd> reload · <kbd>⌫</kbd> projects · <kbd>Esc</kbd> back`,
     phone: () => `<kbd>1–${screens.appCount}</kbd> apps · <kbd>0</kbd> home · <kbd>Esc</kbd> back`,
     calc: () => `type to calculate · <kbd>Enter</kbd> EXE · <kbd>⌫</kbd> DEL · <kbd>Del</kbd> AC · <kbd>Esc</kbd> back`,
-    plaque: () => `<kbd>Space</kbd> play / pause · <kbd>←</kbd> <kbd>→</kbd> skip · <kbd>Esc</kbd> back`,
+    plaque: () =>
+      clockLocked
+        ? touchOnly
+          ? `tap <b>SET</b> on top · type the time · tap <b>SET</b> again`
+          : `press <b>SET</b> on top (or <kbd>Enter</kbd>) · type the time · <b>SET</b> again · <kbd>Esc</kbd> back`
+        : `<kbd>Space</kbd> play / pause · <kbd>←</kbd> <kbd>→</kbd> skip · <kbd>Esc</kbd> back`,
   };
   const unfocus = () => {
     if (!focused) return;
@@ -504,13 +529,15 @@ export async function mount(tour: HTMLElement) {
   // ── interaction hint, bottom left: what you can do with the thing under the pointer (or next to him) ──
   // [label, does F do it while playing?]
   const HINTS: Record<string, [string, boolean]> = {
-    cat: ['Pet the cat', false],
-    basket: ['Pet the cat', false],
+    cat: ['Pet Mi Mao', false],
+    basket: ['Pet Mi Mao', false],
     laptop: ['Use the Victus', true],
     phone: ['Use the phone', true],
     calc: ['Use the calculator', true],
-    plaque: ['Look at the plaque', true],
+    plaque: [clockLocked ? 'Look at the clock' : 'Look at the plaque', true],
     printer: ['Print the résumé', true],
+    proyash: [`${proyashLabel} · visit ${proyashUrl.replace(/^https?:\/\//, '')} ↗`, false],
+    'proyash-cat': [`Squeeze ${proyash?.role ?? ''}'s cat`, true],
     console: ['Play Punch It Out', true],
     boardgame: ['Play Plassey 1757 on the Victus', true],
     pinboard: ['Read the pinboard', false],
@@ -529,7 +556,7 @@ export async function mount(tour: HTMLElement) {
     wipe: [['F', 'Wipe up the coffee'], ['G', 'Drop it']],
   };
   const PLAY_ONLY_IDS = new Set(['tissues']); // nothing happens clicking these on the tour
-  const PLAY_ONLY: Record<string, string> = { mug: 'Walk into the mug to knock it over', basket: 'Press E to stop playing and nap', pinboard: 'Read the pinboard from the plank' };
+  const PLAY_ONLY: Record<string, string> = { mug: 'Walk into the mug to knock it over', basket: touchOnly ? 'Tap Stop playing to nap' : 'Press E to stop playing and nap', pinboard: 'Read the pinboard from the plank' };
   const hintEl = document.createElement('button');
   hintEl.type = 'button';
   hintEl.className = 'interact-hint';
@@ -540,7 +567,10 @@ export async function mount(tour: HTMLElement) {
     if (k === hintKey) return;
     hintKey = k;
     if (id && mode === 'key' && DUAL[id]) {
-      hintEl.innerHTML = DUAL[id].map(([key, label]) => `<kbd>${key}</kbd><span>${label}</span>`).join('');
+      // each half is its own target: tapping "G Pick it up" picks it up (it used to always do the F one)
+      hintEl.innerHTML = DUAL[id]
+        .map(([key, label]) => `<span class="ih-act" data-do="${key === 'G' ? 'carry' : 'interact'}"><kbd>${key}</kbd><span>${label}</span></span>`)
+        .join('');
       hintEl.classList.add('on');
       return;
     }
@@ -557,7 +587,12 @@ export async function mount(tour: HTMLElement) {
     hintEl.classList.add('on');
   };
   // touch: the hint is the button
-  hintEl.addEventListener('click', () => (hintKey === 'key:pickup' || hintKey === 'key:drop' ? play.carry() : play.interact()));
+  hintEl.addEventListener('click', (e) => {
+    const part = (e.target as HTMLElement).closest<HTMLElement>('[data-do]')?.dataset.do;
+    if (part) return void (part === 'carry' ? play.carry() : play.interact());
+    if (hintKey === 'key:pickup' || hintKey === 'key:drop') play.carry();
+    else play.interact();
+  });
   hintEl.addEventListener('contextmenu', (e) => {
     // touch and hold on a two-way hint: the other action (pick it up / drop it)
     if (hintKey === 'key:tissue' || hintKey === 'key:ball' || hintKey === 'key:wipe') {
@@ -566,7 +601,7 @@ export async function mount(tour: HTMLElement) {
     }
   });
   const debug: { cam: { pos: THREE.Vector3; look: THREE.Vector3 } | null } = { cam: null };
-  if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug } });
+  if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug, gatePos: GATE_POS, gateLook } });
 
   // caption buttons
   captions.addEventListener('click', (e) => {
@@ -641,8 +676,9 @@ export async function mount(tour: HTMLElement) {
     console: () => void import('../arcade').then((m) => m.openArcade()),
     printer: () => (printT >= PRINT_SECS ? openResume() : startPrint()),
     plaque: () => focus('plaque'),
+    'proyash-cat': () => squeezePlush(),
     // F by the books opens the first profile; on the tour, clicking the shelf shows the socials caption
-    socials: () => (play.active ? socialsCap.querySelector<HTMLElement>('.cap-btns > a')?.click() : showSocials()),
+    socials: () => (play.active ? captionEls[socialsAt]?.querySelector<HTMLElement>('.cap-btns > a')?.click() : showSocials()),
     pinboard: () => {}, // nothing to open: it's read where it hangs
     basket: () => {
       cat.poke();
@@ -653,7 +689,53 @@ export async function mount(tour: HTMLElement) {
       sfx.clink();
     },
   };
-  const stopOf: Record<string, string> = { boardgame: 'laptop', calc: 'phone', socials: 'phone', plaque: 'laptop' };
+  // the clock's physical SET button: while you're looking at the clock the page layer has the pointer,
+  // so clicks there that miss the display are cast into the scene to see if they hit the button
+  const setBtnRay = new THREE.Raycaster();
+  const overSetBtn = (e: MouseEvent) => {
+    if (focused !== 'plaque' || !clockLocked || (e.target as HTMLElement).closest('.pq-lock')) return false;
+    const r = renderer.domElement.getBoundingClientRect();
+    setBtnRay.setFromCamera(new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1), camera);
+    return setBtnRay.intersectObject(desk.clockSetBtn, true).length > 0;
+  };
+  const pressSet = () => {
+    const b = desk.clockSetBtn;
+    const y = b.userData.y0 ?? (b.userData.y0 = b.position.y);
+    b.position.y = y - 0.0025;
+    setTimeout(() => (b.position.y = y), 140);
+    sfx.click();
+    deskClock?.set();
+  };
+  screens.renderer.domElement.addEventListener('click', (e) => {
+    if (overSetBtn(e)) pressSet();
+  });
+  screens.renderer.domElement.addEventListener('pointermove', (e) => {
+    screens.renderer.domElement.style.cursor = overSetBtn(e) ? 'pointer' : '';
+  });
+  // Proyash's plushie gets squeezed: a quick squash and spring back (click it, or Q)
+  const plush = desk.props.find((p) => p.id === 'proyash-cat')?.object;
+  let squeezing = false;
+  const squeezePlush = () => {
+    if (!plush || squeezing) return;
+    squeezing = true;
+    let st = 0;
+    fx.push((dt) => {
+      st += dt;
+      const k = Math.min(1, st / 0.5);
+      const squash = Math.sin(k * Math.PI) * 0.16 * (1 - k * 0.5);
+      plush.scale.set(1 + squash * 0.6, 1 - squash, 1 + squash * 0.6);
+      if (k >= 1) squeezing = false;
+      return k < 1;
+    });
+    sfx.click();
+  };
+  /** Is the plushie in reach: its stop on the tour, or him standing next to it while playing? */
+  const plushInReach = () => {
+    if (!plush) return false;
+    if (play.active) return cat.root.position.distanceTo(plush.getWorldPosition(new THREE.Vector3())) < 0.4;
+    return stops[Math.round(progress)]?.id === 'proyash';
+  };
+  const stopOf: Record<string, string> = { boardgame: 'laptop', calc: 'phone', plaque: 'laptop' };
   renderer.domElement.addEventListener('click', (e) => {
     const hit = pick(e);
     if (hit === 'cat') {
@@ -664,6 +746,17 @@ export async function mount(tour: HTMLElement) {
       return;
     }
     if (!hit) return;
+    // Proyash's plushie: the first click flies up close; after that its tablet goes to the site and the
+    // cat itself gets a squeeze
+    if ((hit === 'proyash' || hit === 'proyash-cat') && !play.active) {
+      const at = stops.findIndex((s) => s.id === 'proyash');
+      if (at >= 0 && at !== Math.round(progress)) return scrollToStop(at);
+    }
+    if (hit === 'proyash') {
+      if (proyashUrl) window.open(proyashUrl, '_blank', 'noopener');
+      return;
+    }
+    if (hit === 'proyash-cat') return squeezePlush();
     // a social book: straight to the profile
     if (hit.startsWith('social:')) {
       let o: THREE.Object3D | null = lastHit?.object ?? null;
@@ -684,6 +777,14 @@ export async function mount(tour: HTMLElement) {
     else scrollToStop(i);
   });
 
+  // a click inside a demo on the laptop or phone moves the keyboard into that page (another site, whose keys we
+  // can't hear), so 1–9, 0, Esc stopped working. As soon as the pointer leaves the demo, the keys come back here
+  // (typing in the demo still works while you're pointing at it)
+  sticky.addEventListener('pointermove', () => {
+    const a = document.activeElement as HTMLElement | null;
+    if (focused && a?.tagName === 'IFRAME') a.blur();
+  });
+
   // ── keyboard: almost everything works without a mouse ──
   const keysHelp = document.createElement('div');
   keysHelp.className = 'keys-help';
@@ -693,7 +794,7 @@ export async function mount(tour: HTMLElement) {
     <h2>Keys</h2>
     <div class="kh-cols">
       <section><h3>Anywhere on the desk</h3><ul>
-        <li><kbd>E</kbd> play as the cat / stop</li><li><kbd>H</kbd> or <kbd>?</kbd> this list</li><li><kbd>M</kbd> sound on / off</li><li><kbd>C</kbd> pet the cat</li><li><kbd>Esc</kbd> back / close</li></ul></section>
+        <li><kbd>E</kbd> play as Mi Mao / stop</li><li><kbd>H</kbd> or <kbd>?</kbd> this list</li><li><kbd>M</kbd> sound on / off</li><li><kbd>C</kbd> pet Mi Mao</li><li><kbd>Q</kbd> squeeze the Proyash plushie (when you're by it)</li><li><kbd>Esc</kbd> back / close</li></ul></section>
       <section><h3>Touring</h3><ul>
         <li><kbd>←</kbd> <kbd>→</kbd> previous / next stop</li><li><kbd>F</kbd> or <kbd>Enter</kbd> the caption's main button</li><li><kbd>1</kbd>–<kbd>9</kbd> its other buttons</li></ul></section>
       <section><h3>Playing</h3><ul>
@@ -719,7 +820,7 @@ export async function mount(tour: HTMLElement) {
   }, true);
   const tourInView = () => {
     const r = tour.getBoundingClientRect();
-    return r.top <= 1 && r.bottom >= innerHeight - 1;
+    return r.top <= 1 && r.bottom >= innerHeight * 0.6; // most of the window: at the page's very end it stops a hair short
   };
   const captionButtons = () => [...(captions.querySelector('.tour-caption.on .cap-btns')?.children ?? [])] as HTMLElement[];
   addEventListener('keydown', (e) => {
@@ -741,7 +842,10 @@ export async function mount(tour: HTMLElement) {
         else if (k === '0') screens.appAt(-1);
         else return;
       } else if (focused === 'plaque') {
-        if (k === ' ' || lower === 'k') plaque.key('play');
+        if (clockLocked) {
+          if (k === 'Enter') pressSet();
+          else return;
+        } else if (k === ' ' || lower === 'k') plaque.key('play');
         else if (k === 'ArrowLeft') plaque.key('prev');
         else if (k === 'ArrowRight') plaque.key('next');
         else return;
@@ -753,6 +857,7 @@ export async function mount(tour: HTMLElement) {
     if (!tourInView()) return;
     if (lower === 'h' || k === '?') return void (e.preventDefault(), toggleHelp());
     if (lower === 'm') return void setSound(!soundOn());
+    if (lower === 'q' && plushInReach()) return void (e.preventDefault(), squeezePlush());
     if (lower === 'c' && cat.root.visible) {
       cat.poke();
       if (Math.random() < 0.35) sfx.meow();
@@ -795,6 +900,8 @@ export async function mount(tour: HTMLElement) {
     camera.aspect = w / h;
     camera.fov = camera.aspect < 0.8 ? 55 : camera.aspect < 1.2 ? 44 : 35;
     camera.updateProjectionMatrix();
+    const cs = getComputedStyle(document.documentElement);
+    gateAim.set(parseFloat(cs.getPropertyValue('--gate-cat-x')) || 0.15, parseFloat(cs.getPropertyValue('--gate-cat-y')) || 0.68);
   };
   new ResizeObserver(resize).observe(sticky);
   resize();
@@ -833,6 +940,83 @@ export async function mount(tour: HTMLElement) {
     downgraded = true;
   };
 
+  // ── the desk clock blowing apart: a flash, its plastic and lit digits flying, then the plaque rising ──
+  const fx: ((dt: number) => boolean)[] = []; // per-frame effects; each returns false when it's finished
+  function blastClock() {
+    const c = desk.deskClock;
+    const parent = c.parent!;
+    c.updateWorldMatrix(true, false);
+    c.visible = false;
+    clockLocked = false;
+    HINTS.plaque[0] = 'Look at the plaque';
+    // the laptop's caption button now names what's there
+    captions.querySelectorAll('[data-act="use-plaque"]').forEach((b) => b.lastChild && (b.lastChild.textContent = '♥ Our song')); // keep its key chip
+    sfx.click();
+    const toParent = (local: THREE.Vector3) => parent.worldToLocal(c.localToWorld(local));
+    const flash = new THREE.PointLight(0xff8a4a, 0, 0.9, 1.5);
+    flash.position.copy(toParent(new THREE.Vector3(0, 0.035, 0.05)));
+    parent.add(flash);
+    const lit = new THREE.MeshStandardMaterial({ color: 0xff7a4a, emissive: 0xff5a1f, emissiveIntensity: 3 });
+    const centre = new THREE.Vector3(0, 0.035, 0);
+    const bits = Array.from({ length: 28 }, (_, i) => {
+      const sz = 0.006 + Math.random() * 0.018;
+      const m = new THREE.Mesh(new THREE.BoxGeometry(sz, sz * (0.4 + Math.random() * 0.8), sz * (0.3 + Math.random() * 0.7)), i < 9 ? lit : desk.clockMat);
+      const local = new THREE.Vector3((Math.random() - 0.5) * 0.14, 0.006 + Math.random() * 0.058, (Math.random() - 0.5) * 0.05);
+      m.position.copy(toParent(local.clone()));
+      m.rotation.set(Math.random() * 6, Math.random() * 6, Math.random() * 6);
+      m.castShadow = true;
+      parent.add(m);
+      const v = local.sub(centre).setY(0).normalize().multiplyScalar(0.35 + Math.random() * 0.6).applyQuaternion(c.quaternion);
+      v.y = 0.7 + Math.random() * 0.9;
+      const spin = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiplyScalar(30);
+      return { m, v, spin, rest: sz * 0.25 };
+    });
+    const pl = desk.plaque;
+    pl.scale.setScalar(0.001);
+    let t = 0;
+    let refocused = false;
+    fx.push((dt) => {
+      t += dt;
+      flash.intensity = t < 0.06 ? (t / 0.06) * 5 : Math.max(0, 5 * (1 - (t - 0.06) / 0.55));
+      for (const b of bits) {
+        b.v.y -= 6 * dt;
+        b.m.position.addScaledVector(b.v, dt);
+        b.m.rotation.x += b.spin.x * dt;
+        b.m.rotation.y += b.spin.y * dt;
+        b.m.rotation.z += b.spin.z * dt;
+        if (b.m.position.y < b.rest) {
+          // land on the desk: a small bounce, then they settle
+          b.m.position.y = b.rest;
+          b.v.y *= -0.3;
+          b.v.x *= 0.55;
+          b.v.z *= 0.55;
+          b.spin.multiplyScalar(0.5);
+        }
+        if (t > 2.4) b.m.scale.setScalar(Math.max(0.001, 1 - (t - 2.4) / 0.6));
+      }
+      if (t > 0.35) {
+        // the plaque grows up out of the wreck, overshooting a touch
+        pl.visible = true;
+        const k = Math.min(1, (t - 0.35) / 0.8);
+        const back = 1 + 2.2 * Math.pow(k - 1, 3) + 1.2 * Math.pow(k - 1, 2);
+        pl.scale.setScalar(Math.max(0.001, back));
+      }
+      if (t > 1.25 && focused === 'plaque' && !refocused) {
+        refocused = true;
+        focus('plaque'); // step back to take in the whole plaque
+      }
+      if (t < 3) return true;
+      bits.forEach((b) => {
+        parent.remove(b.m);
+        b.m.geometry.dispose();
+      });
+      lit.dispose();
+      parent.remove(flash);
+      pl.scale.setScalar(1);
+      return false;
+    });
+  }
+
   renderer.setAnimationLoop(() => {
     const raw = clock.getDelta();
     const dt = Math.min(raw, 0.05);
@@ -846,7 +1030,37 @@ export async function mount(tour: HTMLElement) {
       camLook.lerp(focusLook, k);
     } else if (play.active) {
       play.update(dt, t, camPos, camLook, camera.aspect < 1);
+    } else if (gating()) {
+      // he's up for the poster: sitting in his basket, facing us
+      if (!catPosing) {
+        catPosing = true;
+        cat.setState('idle');
+        cat.autonomous = true;
+      }
+      cat.root.rotation.y = Math.atan2(camPos.x - cat.root.position.x, camPos.z - cat.root.position.z) - 0.35;
+      // turn the camera until the cat's head sits on the aim point
+      aimP.copy(cat.root.position);
+      aimP.y += 0.08;
+      aimP.project(camera);
+      if (Math.abs(aimP.z) < 1) {
+        const tanV = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+        const dist = camPos.distanceTo(gateLook);
+        camRight.setFromMatrixColumn(camera.matrixWorld, 0);
+        camUp.setFromMatrixColumn(camera.matrixWorld, 1);
+        gateLook
+          .addScaledVector(camRight, (aimP.x - (gateAim.x * 2 - 1)) * tanV * camera.aspect * dist * 0.2)
+          .addScaledVector(camUp, (aimP.y - (1 - gateAim.y * 2)) * tanV * dist * 0.2);
+      }
+      camPos.lerp(GATE_POS, k);
+      camLook.lerp(gateLook, Math.max(k, 0.25));
     } else {
+      if (catPosing) {
+        // a view was picked: back to his nap
+        catPosing = false;
+        cat.autonomous = false;
+        cat.setState('sleep');
+        cat.root.rotation.y = 1.1;
+      }
       if (play.busy) play.update(dt, t, junkP, junkL, false); // the leap back to the basket
       readScroll();
       const u = progress / (stops.length - 1);
@@ -892,10 +1106,11 @@ export async function mount(tour: HTMLElement) {
     if (heroCopy) heroCopy.style.opacity = String(introFade);
     const nearBasket = !play.busy && Math.abs(progress - 1) < 0.4;
     hint.style.opacity = String(nearBasket ? 1 : 0);
-    hintPos.copy(cat.root.position).y += 0.32;
+    hintPos.copy(cat.root.position).y += Cat.HEIGHT * 2.4; // just over his head, whatever his size
     hintPos.project(camera);
     hint.style.transform = `translate(-50%, -100%) translate(${(hintPos.x * 0.5 + 0.5) * sticky.clientWidth}px, ${(-hintPos.y * 0.5 + 0.5) * sticky.clientHeight}px)`;
 
+    for (let i = fx.length - 1; i >= 0; i--) if (!fx[i](dt)) fx.splice(i, 1);
     cat.update(dt, t);
     play.afterPose(dt); // whatever's in his mouth follows this frame's head pose
     if (play.active && !focused) setHint(play.interactable, 'key');
