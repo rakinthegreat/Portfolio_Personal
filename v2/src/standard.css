@@ -6,9 +6,10 @@ html:not(.js) .gate, html:not(.js) .desk { display: none; }
 [data-view='desk'] .std, [data-view='desk'] .gate { display: none; }
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 
-/* the standard view has its own side nav and progress line: no browser scrollbar (the page still scrolls) */
-html[data-view='standard'] { scrollbar-width: none; }
-html[data-view='standard']::-webkit-scrollbar { display: none; }
+/* both views have their own progress line (and the standard view its side nav): no browser scrollbar (the page,
+   or on touch the desk's own box, still scrolls) */
+html[data-view], html[data-view] .desk { scrollbar-width: none; }
+html[data-view]::-webkit-scrollbar, html[data-view] .desk::-webkit-scrollbar { display: none; }
 
 /* ── the entry screen: both real views, live, torn corner to corner ─────
    While html.gating: the 3D desk runs in the top-left, the standard page in the bottom-right.

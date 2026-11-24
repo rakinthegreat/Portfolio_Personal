@@ -666,10 +666,15 @@ export async function mount(tour: HTMLElement) {
     const at = panAt >= 0 && i > panAt ? i + PAN_LEN : i; // arriving at the pinboard: its first card
     scrollToY(top + (span * at) / scrollUnits(), 'smooth');
   };
+  // our own scroll line along the top (the browser's scrollbar is hidden in both views)
+  const scrollLine = tour.closest('.desk')?.querySelector<HTMLElement>('[data-desk-progress]') ?? null;
+  let lineAt = -1;
   const readScroll = () => {
     const r = tour.getBoundingClientRect();
     const span = tour.offsetHeight - innerHeight;
-    let x = Math.min(1, Math.max(0, -r.top / span)) * scrollUnits();
+    const f = Math.min(1, Math.max(0, -r.top / span));
+    if (scrollLine && Math.abs(f - lineAt) > 0.0005) scrollLine.style.transform = `scaleX(${(lineAt = f)})`;
+    let x = f * scrollUnits();
     panT = 0;
     if (PAN_LEN && panAt >= 0 && x > panAt) {
       if (x < panAt + PAN_LEN) {

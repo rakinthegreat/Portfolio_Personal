@@ -278,6 +278,7 @@ function renderDesk(c: Content) {
       <button class="tool" type="button" data-switch="standard">Standard view</button>
       <a class="tool" href="?view=pick">Pick again</a>
     </div>
+    <div class="s-progress" aria-hidden="true"><i data-desk-progress></i></div>
     <section class="tour" data-tour aria-label="${esc(p.name)}'s desk">
       <div class="hero" data-sticky>
         <div class="hero-stage" aria-hidden="true" data-stage></div>
