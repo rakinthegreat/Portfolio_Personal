@@ -63,8 +63,8 @@
     } catch (e) { }
   </script>
   <style>
-    /* the loading screen, inline so it's there on the very first paint: the logo assembles (the disc scales in, the
-       three pieces slide into place), then the pieces drift in a gentle wave while a thin arc circles the disc, with a
+    /* the loading screen, inline so it's there on the very first paint: the logo comes in whole (its pieces never move
+       out of line), then a soft glow breathes behind the disc while a thin arc circles it, with a
        short note underneath. Only opacity / transform animate, on separate layers, which the browser runs off the
        main thread: it stays smooth while the 3D desk is built and its shaders compiled behind it. */
     .boot {
@@ -86,14 +86,13 @@
     .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
     .boot-disc { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     .boot-ring { will-change: transform; animation: boot-in 0.7s 0.3s both, boot-spin 2.4s 0.3s linear infinite; }
-    .boot-piece { will-change: transform, opacity; animation: boot-slide 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both, boot-wave 2.4s 1.2s ease-in-out infinite; }
-    .boot-piece:nth-of-type(4) { animation-delay: 0.15s, 1.4s; } /* (the ring and disc come first in the stack) */
-    .boot-piece:nth-of-type(5) { animation-delay: 0.3s, 1.6s; }
+    /* the black pieces never move on their own: they come in with the disc, as one logo */
+    .boot-piece { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .boot-halo { position: absolute; inset: -18%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 179, 71, 0.38), transparent); will-change: opacity, transform; animation: boot-breathe 2.4s 0.6s ease-in-out infinite both; }
     .boot-note { max-width: 32rem; margin: 0; text-align: center; font: 400 16px/1.6 'Space Grotesk', system-ui, sans-serif; color: rgba(244, 230, 204, 0.78); animation: boot-fade 0.8s 0.5s both; }
     .boot-note b { display: block; margin-bottom: 6px; font-size: 22px; font-weight: 700; color: #f4e6cc; }
     @keyframes boot-in { from { opacity: 0; transform: scale(0.82); } }
-    @keyframes boot-slide { from { opacity: 0; transform: translateX(-14%); } }
-    @keyframes boot-wave { 0%, 60%, 100% { transform: none; } 30% { transform: translateX(5%); } }
+    @keyframes boot-breathe { 0%, 100% { opacity: 0.25; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.04); } }
     @keyframes boot-spin { to { transform: rotate(360deg); } }
     @keyframes boot-fade { from { opacity: 0; transform: translateY(6px); } }
     @media (prefers-reduced-motion: reduce) {
@@ -110,6 +109,7 @@
 <body>
   <div class="boot" role="status">
     <div class="boot-art">
+      <i class="boot-halo"></i>
       <svg class="boot-ring" viewBox="35.03 47.64 139.94 139.94"><circle cx="105" cy="117.6" r="76" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="70 408" opacity="0.85"/></svg>
       <svg class="boot-disc" viewBox="35.03 47.64 139.94 139.94"><g fill="#f4e6cc"><circle cx="105" cy="117.60895" r="69.969925"/></g></svg>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z"/></svg>
