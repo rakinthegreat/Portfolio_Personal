@@ -264,7 +264,6 @@ function renderStandard(c: Content) {
       </div>
       <button class="s-radial-x" type="button" aria-label="Close menu" data-radial-close>${ICON.close}</button>
     </div>
-    <a class="s-pick-knob" href="?view=pick" aria-label="Pick a view again">${PICK_ICON}</a>
     <div class="s-cursor" aria-hidden="true"><i data-cur-lag></i><i data-cur></i></div>
   </div>`;
 }

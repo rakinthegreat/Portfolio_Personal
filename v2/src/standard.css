@@ -210,6 +210,9 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   .gating .s-hero { transform: translate(-7vw, 50svh); }
   .gate-line { clip-path: polygon(0 calc(var(--s) + 5.8%), 100% calc(var(--s) - 6.2%), 100% calc(var(--s) - 5.8%), 0 calc(var(--s) + 6.2%)); animation: none; }
   .gate-shards i { left: calc(var(--t) * 100% + var(--ox)); top: calc(var(--s) + 6% - var(--t) * 12% + var(--oy)); }
+  /* smaller and much quieter glass along the tear on a phone (the full-strength version is a lot at this size) */
+  .gate-shards i { width: calc(var(--z) * 0.45); height: calc(var(--z) * 0.7); opacity: 0.35; }
+  .gate-seam { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(142, 234, 255, 0.35)); }
   .gate-title-desk { clip-path: polygon(0 0, 100% 0, 100% calc(var(--s) - 6%), 0 calc(var(--s) + 6%)); }
   .gate-title-std { clip-path: polygon(0 calc(var(--s) + 6%), 100% calc(var(--s) - 6%), 100% 100%, 0 100%); }
   .gate-title > div { padding: 3.5vh 0 0; }
@@ -452,7 +455,7 @@ a.s-switch { text-decoration: none; opacity: 0.6; }
 /* under the sections: a small torn-square icon back to the entry screen */
 .s-nav .s-nav-pick { display: grid; place-items: center; width: 16px; margin-top: 10px; padding: 6px 0; color: var(--grey); opacity: 0.6; transition: opacity 0.25s, color 0.25s; }
 .s-nav .s-nav-pick:hover, .s-nav .s-nav-pick:focus-visible { color: var(--ink); opacity: 1; }
-.s-nav-pick svg, .s-pick-knob svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.s-nav-pick svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
 
 /* ── radial edge menu (touch / narrow screens) ── */
 .s-radial {
@@ -503,31 +506,7 @@ a.s-switch { text-decoration: none; opacity: 0.6; }
 .s-radial-x { position: absolute; right: 0; top: calc(50% - 36px); display: grid; place-items: center; width: 36px; height: 72px; padding: 0 0 0 6px; border: 0; border-radius: 36px 0 0 36px; background: color-mix(in srgb, var(--ink) 10%, transparent); cursor: pointer; }
 .s-radial-x svg { width: 18px; height: 18px; fill: var(--ink); }
 .s-radial { display: none; }
-/* touch / narrow: the way back to the entry screen is a small knob on the left edge, mirroring the menu's */
-.s-pick-knob {
-  position: fixed;
-  left: 0;
-  top: 50%;
-  z-index: 60;
-  display: none;
-  place-items: center;
-  width: 23px;
-  height: 56px;
-  padding-right: 2px;
-  translate: 0 -50%;
-  border-radius: 0 999px 999px 0;
-  background: var(--light);
-  box-shadow: 0 0 20px 2px rgba(0, 0, 0, 0.15);
-  color: var(--ink);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s;
-}
-.std.past-hero .s-pick-knob { opacity: 1; pointer-events: auto; }
-:root[data-theme='dark'] .s-pick-knob { background: var(--ghost); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .s-pick-knob { background: var(--ghost); } }
-.gating .s-pick-knob { visibility: hidden !important; }
-@media (max-width: 799px), (hover: none) { .s-nav { display: none; } .s-radial { display: block; } .s-pick-knob { display: grid; } }
+@media (max-width: 799px), (hover: none) { .s-nav { display: none; } .s-radial { display: block; } }
 
 /* ── live preview: the original's popup (a round close button above a rounded, shadowed frame) ── */
 .preview-close .x-icon { display: none; }

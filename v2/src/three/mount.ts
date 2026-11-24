@@ -341,6 +341,19 @@ export async function mount(tour: HTMLElement) {
 
   // ── camera rail ──
   const posCurve = new THREE.CatmullRomCurve3(stops.map((s) => s.pos), false, 'centripetal');
+  // stops with a width to keep in view (the pinboard): on a narrow screen, back the camera off along its line of
+  // sight until that width fits (the curve holds these same vectors, so moving them moves the path)
+  const basePos = stops.map((s) => s.pos.clone());
+  const fitStops = () => {
+    const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
+    stops.forEach((s, i) => {
+      s.pos.copy(basePos[i]);
+      if (!s.fit) return;
+      const away = s.pos.clone().sub(s.look);
+      const need = s.fit / 2 / tanH;
+      if (need > away.length()) s.pos.copy(s.look).addScaledVector(away.normalize(), need);
+    });
+  };
   const lookCurve = new THREE.CatmullRomCurve3(stops.map((s) => s.look), false, 'centripetal');
   const camPos = stops[0].pos.clone();
   const camLook = stops[0].look.clone();
@@ -918,6 +931,7 @@ export async function mount(tour: HTMLElement) {
     camera.aspect = w / h;
     camera.fov = camera.aspect < 0.8 ? 55 : camera.aspect < 1.2 ? 44 : 35;
     camera.updateProjectionMatrix();
+    fitStops();
     const cs = getComputedStyle(document.documentElement);
     gateAim.set(parseFloat(cs.getPropertyValue('--gate-cat-x')) || 0.15, parseFloat(cs.getPropertyValue('--gate-cat-y')) || 0.68);
   };
