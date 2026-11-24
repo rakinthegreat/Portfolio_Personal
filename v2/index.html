@@ -38,16 +38,63 @@
         if (q === 'pick') { var u = new URL(location.href); u.searchParams.delete('view'); history.replaceState(null, '', u); v = null; }
         // no choice yet: both views run underneath the entry screen, one per half
         if (v !== 'standard' && v !== 'desk') document.documentElement.classList.add('gating');
+        // the 3D desk is coming (on the entry screen or on its own): the loading screen covers it while it builds
+        if (v !== 'standard') document.documentElement.classList.add('booting');
         if (v === 'standard' || v === 'desk') document.documentElement.dataset.view = v;
         var t = localStorage.getItem('theme');
         if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
       } catch (e) {}
     </script>
+    <style>
+      /* the loading screen, inline so it's there on the very first paint: a desk lamp flickering on over a
+         sleeping cat, while the 3D desk is built and its shaders compiled behind it */
+      .boot { position: fixed; inset: 0; z-index: 1000; display: none; place-items: center; align-content: center; gap: 18px; background: radial-gradient(ellipse at 50% 40%, #2a1a0b, #0d0905 70%); color: #f4e6cc; transition: opacity 0.6s ease, visibility 0.6s; }
+      html.booting .boot { display: grid; }
+      html.booting.booted .boot { opacity: 0; visibility: hidden; }
+      .boot-art { position: relative; width: min(240px, 56vw); aspect-ratio: 200 / 160; }
+      .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+      .boot-light { will-change: opacity; animation: boot-flicker 2.4s ease-in-out infinite; }
+      .boot-cat { will-change: transform; transform-origin: 62% 94%; animation: boot-breathe 2.8s ease-in-out infinite; }
+      .boot p { margin: 0; font: 400 22px 'Patrick Hand', 'Comic Sans MS', cursive; letter-spacing: 0.5px; opacity: 0.9; }
+      .boot p i { display: inline-block; will-change: opacity; animation: boot-dot 1.2s infinite; font-style: normal; }
+      .boot p i:nth-child(2) { animation-delay: 0.2s; }
+      .boot p i:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes boot-flicker { 0%, 100% { opacity: 1; } 8% { opacity: 0.55; } 11% { opacity: 1; } 50% { opacity: 0.85; } }
+      @keyframes boot-breathe { 50% { transform: scaleY(1.06); } }
+      @keyframes boot-dot { 50% { opacity: 0.2; } }
+      @media (prefers-reduced-motion: reduce) { .boot * { animation: none !important; } }
+    </style>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat+Brush&family=Patrick+Hand&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <div class="boot" aria-hidden="true">
+      <div class="boot-art">
+        <!-- the lamp and its pool of light are still; only whole layers move (opacity / transform), which the
+             browser animates off the main thread, so the loader keeps going while the 3D desk is being built -->
+        <svg class="boot-lamp" viewBox="0 0 200 160">
+          <g fill="none" stroke="#6b4a2e" stroke-width="5" stroke-linecap="round"><path d="M36 150 L64 96 L108 46" /></g>
+          <ellipse cx="34" cy="151" rx="20" ry="4" fill="#3b2a1a" />
+          <path d="M100 30 L138 46 L126 64 L94 48 Z" fill="#c8742a" />
+        </svg>
+        <svg class="boot-light" viewBox="0 0 200 160">
+          <defs><radialGradient id="boot-glow" cx="0.6" cy="0.05" r="1"><stop offset="0" stop-color="#ffcf7a" stop-opacity="0.6" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient></defs>
+          <path d="M120 56 L58 152 L196 152 Z" fill="url(#boot-glow)" />
+          <ellipse cx="124" cy="152" rx="70" ry="5" fill="#ffcf7a" opacity="0.18" />
+          <circle cx="122" cy="58" r="5" fill="#fff2c8" />
+        </svg>
+        <svg class="boot-cat" viewBox="0 0 200 160">
+          <g fill="#f4e6cc">
+            <ellipse cx="128" cy="146" rx="24" ry="8.5" />
+            <circle cx="106" cy="142" r="8" />
+            <path d="M100 137 L101 128 L107 134 Z M108 134 L112 127 L113 136 Z" />
+            <path d="M150 146 C 162 146 164 136 154 134" fill="none" stroke="#f4e6cc" stroke-width="4" stroke-linecap="round" />
+          </g>
+        </svg>
+      </div>
+      <p>Mi Mao is waking up<i>.</i><i>.</i><i>.</i></p>
+    </div>
     <!--LITE-->
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -22,6 +22,8 @@ export const socialIcons = (labels = false) =>
       return `<a class="soc" href="${s.url}" target="_blank" rel="noopener me" aria-label="${s.label}"><i style="background:${bg}">${g}</i>${labels ? `<span><b>${s.label}</b>${s.handle}</span>` : ''}</a>`;
     })
     .join('');
+/** The laptop's second tab: the projects with no live demo. */
+const MORE = '__more';
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!);
 
 /** CSS px ↔ metres: the CSS scene is scaled up so the browser's 3D maths stays precise. */
@@ -80,8 +82,9 @@ export class Screens {
     el.innerHTML = `
       <div class="win browser">
       <div class="browser-tabs" role="tablist">
-        <button class="browser-tab" role="tab" aria-selected="true" data-tab=""><kbd class="tk">1</kbd>Projects · Rakin</button>
-        ${web.map((p, i) => `<button class="browser-tab" role="tab" aria-selected="false" data-tab="${esc(p.name)}"><kbd class="tk">${i + 2}</kbd>${esc(p.name)}</button>`).join('')}
+        <button class="browser-tab" role="tab" aria-selected="true" data-tab=""><kbd class="tk">1</kbd>Live Projects</button>
+        <button class="browser-tab" role="tab" aria-selected="false" data-tab="${MORE}"><kbd class="tk">2</kbd>More Projects</button>
+        ${web.map((p, i) => `<button class="browser-tab" role="tab" aria-selected="false" data-tab="${esc(p.name)}"><kbd class="tk">${i + 3}</kbd>${esc(p.name)}</button>`).join('')}
       </div>
       <div class="browser-bar"><button class="browser-nav" type="button" data-back aria-label="Back to Projects">◀</button><button class="browser-nav" type="button" data-reload aria-label="Reload">⟳</button><span class="browser-url" data-url>rakin-talukder.me/projects</span></div>
       <div class="browser-body" data-body></div>
@@ -133,8 +136,8 @@ export class Screens {
   private renderHome() {
     this.laptopBody.innerHTML = `
       <div class="home-page">
-        <h1>Web Projects</h1>
-        <p>04  ·  PROJECTS & APPS  ·  LIVE</p>
+        <h1>Live Projects</h1>
+        <p>RUNNING RIGHT HERE  ·  CLICK ONE TO OPEN IT</p>
         <div class="home-grid">
           ${projects
             .filter((p) => p.previewUrl && !p.mobile) // the Victus shows the web projects only
@@ -142,6 +145,23 @@ export class Screens {
               (p) => `<button class="home-card" data-proj="${esc(p.name)}">
                 <b>${esc(p.name)}</b><span>${esc(p.type)} · ${esc(p.year)} · live</span>
                 <p>${esc(p.description)}</p></button>`,
+            )
+            .join('')}
+        </div>
+      </div>
+      <div class="home-page more-page" hidden>
+        <h1>More Projects</h1>
+        <p>NO LIVE DEMO  ·  SOURCE AND DOWNLOADS</p>
+        <div class="home-grid">
+          ${projects
+            .filter((p) => !p.previewUrl) // everything the desk can't run live
+            .map(
+              (p) => `<div class="home-card">
+                <b>${esc(p.name)}</b><span>${esc(p.type)} · ${esc(p.year)}</span>
+                <p>${esc(p.description)}</p>
+                <span class="more-links"><a data-more href="${esc(p.url)}" target="_blank" rel="noopener">Source ↗</a>${
+                  p.downloadUrl ? `<a data-more href="${esc(p.downloadUrl)}" target="_blank" rel="noopener">Download ↗</a>` : ''
+                }</span></div>`,
             )
             .join('')}
         </div>
@@ -161,13 +181,18 @@ export class Screens {
     this.tab = name;
     this.tabs.querySelectorAll<HTMLElement>('[data-tab]').forEach((t) => t.setAttribute('aria-selected', String((t.dataset.tab || null) === name)));
     this.laptopBody.querySelectorAll('iframe').forEach((f) => (f.hidden = true));
-    const home = this.laptopBody.querySelector<HTMLElement>('.home-page');
+    const home = this.laptopBody.querySelector<HTMLElement>('.home-page:not(.more-page)');
+    const more = this.laptopBody.querySelector<HTMLElement>('.more-page');
+    if (home) home.hidden = !!name;
+    if (more) more.hidden = name !== MORE;
     if (!name) {
-      if (home) home.hidden = false;
       this.laptopUrl.textContent = 'rakin-talukder.me/projects';
       return;
     }
-    if (home) home.hidden = true;
+    if (name === MORE) {
+      this.laptopUrl.textContent = 'rakin-talukder.me/projects/more';
+      return;
+    }
     const p = projects.find((x) => x.name === name)!;
     this.laptopUrl.textContent = p.previewUrl!.replace(/^https?:\/\//, '');
     let f = this.laptopBody.querySelector<HTMLIFrameElement>(`iframe[data-name="${CSS.escape(name)}"]`);
@@ -253,7 +278,8 @@ export class Screens {
   tabAt(i: number) {
     const web = projects.filter((p) => p.previewUrl && !p.mobile);
     if (i === 0) this.openTab(null);
-    else if (web[i - 1]) this.openTab(web[i - 1].name);
+    else if (i === 1) this.openTab(MORE);
+    else if (web[i - 2]) this.openTab(web[i - 2].name);
   }
   /** Keyboard: app n on the phone (-1 = home screen). */
   appAt(i: number) {
@@ -266,7 +292,7 @@ export class Screens {
     if (f) f.src = f.src;
   }
   get tabCount() {
-    return projects.filter((p) => p.previewUrl && !p.mobile).length + 1;
+    return projects.filter((p) => p.previewUrl && !p.mobile).length + 2; // + Live Projects and More Projects
   }
   get appCount() {
     return projects.filter((p) => p.mobile && p.previewUrl).length;
@@ -292,7 +318,7 @@ export class Screens {
     const H = root.offsetHeight;
     const x = u * W;
     const y = (1 - v) * H;
-    const sel = which === 'laptop' ? '[data-tab], [data-proj], [data-back], [data-reload]' : '[data-app], [data-home]';
+    const sel = which === 'laptop' ? '[data-tab], [data-proj], [data-more], [data-back], [data-reload]' : '[data-app], [data-home]';
     for (const el of root.querySelectorAll<HTMLElement>(sel)) {
       if (el.closest('[hidden]') || !el.offsetParent) continue;
       const r = localRect(el, root);

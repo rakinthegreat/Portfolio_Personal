@@ -1,8 +1,9 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
+  "framework": null,
+  "installCommand": "echo 'Dependencies are installed by vercel_build.sh (in v2/)'",
+  "buildCommand": "bash vercel_build.sh",
+  "outputDirectory": "v2/dist",
   "cleanUrls": true,
   "headers": [
     {

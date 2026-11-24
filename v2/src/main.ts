@@ -34,11 +34,29 @@ const startStandard = () => {
   standardReady = true;
   initStandard();
 };
+// the loading screen (index.html) covers the 3D desk while it's built; it fades once the desk is ready (or can't be)
+const booted = () => {
+  root.classList.add('booted');
+  setTimeout(() => root.classList.remove('booting', 'booted'), 700);
+};
+if (!hasWebGL) booted();
+setTimeout(booted, 15000); // never leave anyone staring at it
+let stopDesk: Promise<(() => void) | void> | null = null;
 const mountDesk = () => {
   if (deskMounted || !hasWebGL) return;
   deskMounted = true;
   const tour = document.querySelector<HTMLElement>('[data-tour]');
-  if (tour) import('./three/mount').then((m) => m.mount(tour)).catch((err) => console.warn('3D desk unavailable', err));
+  if (!tour) return booted();
+  stopDesk = import('./three/mount')
+    .then((m) => m.mount(tour))
+    .catch((err) => console.warn('3D desk unavailable', err))
+    .finally(booted);
+};
+/** The standard page was picked: shut the 3D desk down (once it's finished starting, if it hasn't yet). */
+const unmountDesk = () => {
+  void stopDesk?.then((stop) => stop?.());
+  stopDesk = null;
+  booted();
 };
 // every visit starts on the entry screen, unless the visitor ticked "Remember my choice" there
 const rememberBox = gate?.querySelector<HTMLInputElement>('[data-remember]');
@@ -66,7 +84,10 @@ function enter(view: View) {
   root.classList.remove('gating', 'pick-desk', 'pick-standard');
   started = true;
   gate?.remove();
-  if (view === 'standard') startStandard();
+  if (view === 'standard') {
+    startStandard();
+    unmountDesk();
+  }
   const anchor = view === 'standard' && location.hash.length > 1 ? document.getElementById(location.hash.slice(1)) : null;
   if (anchor) anchor.scrollIntoView({ behavior: 'instant' });
   else scrollTo({ top: 0, behavior: 'instant' });

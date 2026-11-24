@@ -1,0 +1,2 @@
+# shell scripts run on Vercel's Linux build machines: always LF, whatever the local checkout setting
+*.sh text eol=lf

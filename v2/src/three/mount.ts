@@ -244,9 +244,13 @@ export async function mount(tour: HTMLElement) {
   composer.addPass(new OutputPass());
   composer.addPass(new SMAAPass());
 
+  // building the room is heavy: hand the main thread back between the big steps so the loading screen keeps moving
+  const breathe = () => new Promise<void>((r) => setTimeout(r, 0));
+  await breathe();
   const M = makeMaterials();
   const aniso = renderer.capabilities.getMaxAnisotropy();
   const desk = buildDesk(M, aniso);
+  await breathe();
   scene.add(desk.root);
 
   const cat = new Cat(lowTier ? 8 : 16);
@@ -297,6 +301,7 @@ export async function mount(tour: HTMLElement) {
   const proyash = content.experiences.find((e) => 'mascot' in e && e.mascot);
   const proyashUrl = (proyash && 'url' in proyash ? proyash.url : '') ?? '';
   const proyashLabel = proyash ? `${proyash.role} · ${proyash.title.toLowerCase()}` : '';
+  await breathe();
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
   const pinEls = buildPinCards();
   for (const c of desk.pinCards) screens.addPanel(c.mesh, desk.PIN_W, CARD_PX, pinEls[c.id as keyof typeof pinEls]);
@@ -364,7 +369,7 @@ export async function mount(tour: HTMLElement) {
   const apps = projects.filter((p) => p.previewUrl && p.mobile);
   const buttons: Record<string, string> = {
     basket: `<button class="btn btn-solid" data-act="play">Play as Mi Mao</button>`,
-    laptop: `<button class="btn btn-solid" data-act="use-laptop">Use the laptop</button><button class="btn" data-act="use-plaque">${plaqueUnlocked() ? '♥ Our song' : 'The desk clock'}</button>${web.map((p) => `<button class="btn" data-act="tab" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}`,
+    laptop: `<button class="btn btn-solid" data-act="use-laptop">Use the laptop</button><button class="btn" data-act="use-plaque">${plaqueUnlocked() ? '♥ Our song' : 'The desk clock'}</button><button class="btn" data-act="tab" data-name="__more">More projects</button>${web.map((p) => `<button class="btn" data-act="tab" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}`,
     phone: `<button class="btn btn-solid" data-act="use-phone">Use the phone</button>${apps.map((p) => `<button class="btn" data-act="app" data-name="${esc(p.name)}">${esc(p.name)}</button>`).join('')}<button class="btn" data-act="use-calc">Calculator</button><button class="btn" data-act="socials">Socials</button>`,
     server: `<p class="tour-stats" data-stats>Checking on the server…</p>`,
     proyash: proyashUrl ? `<a class="btn btn-solid" href="${esc(proyashUrl)}" target="_blank" rel="noopener">Visit ${esc(proyashUrl.replace(/^https?:\/\//, ''))} ↗</a>` : '',
@@ -396,7 +401,8 @@ export async function mount(tour: HTMLElement) {
     if (statsEl) statsEl.textContent = describeStats(await fetchServerStats());
   };
   void refreshStats();
-  setInterval(() => document.hidden || void refreshStats(), 60_000);
+  let disposed = false;
+  setInterval(() => document.hidden || disposed || void refreshStats(), 60_000);
 
   const hint = document.createElement('p');
   hint.className = 'tour-hint';
@@ -601,7 +607,7 @@ export async function mount(tour: HTMLElement) {
     }
   });
   const debug: { cam: { pos: THREE.Vector3; look: THREE.Vector3 } | null } = { cam: null };
-  if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug, gatePos: GATE_POS, gateLook } });
+  if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug, renderer, scene, gatePos: GATE_POS, gateLook } });
 
   // caption buttons
   captions.addEventListener('click', (e) => {
@@ -1029,7 +1035,22 @@ export async function mount(tour: HTMLElement) {
     });
   }
 
+  // nothing moving (camera still, no input for a moment, nothing animating but his breathing): draw about a third of
+  // the frames. Any scroll, pointer or key brings back the full rate at once.
+  let lastInput = performance.now();
+  const poke = () => (lastInput = performance.now());
+  for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) addEventListener(ev, poke, { passive: true });
+  let lastCamX = NaN;
+  let lastCamZ = NaN;
+  let lastCamY = NaN;
+  let idleN = 0;
   renderer.setAnimationLoop(() => {
+    const camStill = Math.abs(camPos.x - lastCamX) + Math.abs(camPos.y - lastCamY) + Math.abs(camPos.z - lastCamZ) < 1e-5;
+    lastCamX = camPos.x;
+    lastCamY = camPos.y;
+    lastCamZ = camPos.z;
+    const idle = camStill && !focused && !play.busy && !fx.length && performance.now() - lastInput > 1500;
+    if (idle && ++idleN % 3) return; // the clock keeps the time, so the next drawn frame catches up
     const raw = clock.getDelta();
     const dt = Math.min(raw, 0.05);
     probe(raw);
@@ -1151,5 +1172,28 @@ export async function mount(tour: HTMLElement) {
     screens.render(camera);
   });
 
-  requestAnimationFrame(() => tour.classList.add('ready'));
+  // reveal once the first frames are actually drawn: the shaders for what's in view compile in that first frame,
+  // under the loading screen. (Compiling the whole scene up front instead made the wait longer, not shorter.)
+  // the GPU compiles the scene's shaders in parallel, off the main thread (KHR_parallel_shader_compile), instead
+  // of one after another inside the first frame
+  try {
+    await renderer.compileAsync(scene, camera);
+  } catch {
+    /* no parallel compile: they compile in the first frame instead */
+  }
+  await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+  tour.classList.add('ready');
+
+  /** Shut the desk down completely (the visitor picked the standard page): stop drawing, free the GPU. */
+  return () => {
+    disposed = true;
+    renderer.setAnimationLoop(null);
+    for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) removeEventListener(ev, poke);
+    renderer.dispose();
+    renderer.forceContextLoss();
+    renderer.domElement.remove();
+    screens.renderer.domElement.remove(); // the live demos (iframes) go with it
+    tour.classList.remove('has-3d', 'ready');
+    tour.style.removeProperty('--stops');
+  };
 }
