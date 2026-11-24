@@ -77,9 +77,8 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 44% 54% at 100% 100%, color-mix(in srgb, var(--bg) 94%, transparent) 30%, color-mix(in srgb, var(--bg) 70%, transparent) 60%, transparent);
-  backdrop-filter: blur(6px);
-  mask-image: radial-gradient(ellipse 44% 54% at 100% 100%, #000 55%, transparent);
+  /* a wash of the page's own background, no backdrop blur: that re-blurred this whole corner on every frame */
+  background: radial-gradient(ellipse 44% 54% at 100% 100%, color-mix(in srgb, var(--bg) 96%, transparent) 30%, color-mix(in srgb, var(--bg) 80%, transparent) 60%, transparent);
   pointer-events: none;
 }
 .gate-face-std .gate-opt { text-shadow: 0 0 10px var(--bg), 0 0 18px var(--bg); }
@@ -163,16 +162,48 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   background: linear-gradient(180deg, #fffaf0 0%, #ffe6b8 38%, #b5651d 50%, #ffd28a 58%, #fff3dc 78%, #ffb85c 100%);
   -webkit-background-clip: text;
   background-clip: text;
-  filter: drop-shadow(0 2px 0 #3a1c06) drop-shadow(0 0 24px rgba(255, 160, 60, 0.6));
+}
+/* its shadow and glow: a copy of each word behind it, as text-shadow (painted once), not a drop-shadow filter on
+   the title (re-run on every frame). Behind, because a text-shadow on gradient-clipped text covers the gradient */
+.gate-title-desk .gate-name-big > span { position: relative; }
+.gate-title-desk .gate-name-big > span::before {
+  content: attr(data-t);
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: -1;
+  color: transparent;
+  text-shadow: 0 2px 0 #3a1c06, 0 0 24px rgba(255, 160, 60, 0.6);
 }
 .gate-title-desk .gate-sub, .gate-title-desk .gate-sub2 { color: #ffe2b0; text-shadow: 0 0 12px rgba(255, 150, 50, 0.8), 0 1px 3px rgba(0, 0, 0, 0.8); }
 .gate-title-std { color: var(--ink); }
-.gate-title-std .gate-name-big { filter: drop-shadow(0 2px 0 color-mix(in srgb, var(--bg) 70%, transparent)); }
+.gate-title-std .gate-name-big { text-shadow: 0 2px 0 color-mix(in srgb, var(--bg) 70%, transparent); }
 @keyframes gate-title { from { opacity: 0; transform: translateY(24px) scale(0.98); } }
 .pick-desk .gate-opt, .pick-standard .gate-opt, .pick-desk .gate-title, .pick-standard .gate-title, .pick-desk .gate-sides, .pick-standard .gate-sides { opacity: 0; transition: opacity 0.25s; }
 
 /* the tear: a glowing rim plus glass flying off it */
-.gate-seam { position: absolute; inset: 0; pointer-events: none; filter: drop-shadow(0 0 3px #fff) drop-shadow(0 0 12px #8eeaff) drop-shadow(0 0 26px #ff9a5c); }
+.gate-seam { position: absolute; inset: 0; pointer-events: none; }
+.gate-rim { position: absolute; inset: 0; }
+/* the glow: a gradient whose bands run parallel to the tear. A "to bottom right" gradient's lines run parallel to
+   the top-right / bottom-left diagonal, as the tear does, and the tear sits at --s / 2 along it. White core,
+   cyan, then a wide warm haze: what the three drop-shadows drew, without any filter */
+.gate-glow {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom right,
+    transparent calc(var(--s) / 2 - 30px),
+    rgba(255, 154, 92, 0.07) calc(var(--s) / 2 - 18px),
+    rgba(142, 234, 255, 0.16) calc(var(--s) / 2 - 9px),
+    rgba(220, 248, 255, 0.4) calc(var(--s) / 2 - 3px),
+    rgba(255, 255, 255, 0.6) calc(var(--s) / 2),
+    rgba(220, 248, 255, 0.4) calc(var(--s) / 2 + 3px),
+    rgba(142, 234, 255, 0.16) calc(var(--s) / 2 + 9px),
+    rgba(255, 154, 92, 0.07) calc(var(--s) / 2 + 18px),
+    transparent calc(var(--s) / 2 + 30px)
+  );
+  animation: gate-fade 0.9s 0.3s both;
+}
 .gate-line {
   position: absolute;
   inset: 0;
@@ -213,7 +244,8 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   .gate-shards i { left: calc(var(--t) * 100% + var(--ox)); top: calc(var(--s) + 6% - var(--t) * 12% + var(--oy)); }
   /* smaller and much quieter glass along the tear on a phone (the full-strength version is a lot at this size) */
   .gate-shards i { width: calc(var(--z) * 0.45); height: calc(var(--z) * 0.7); opacity: 0.35; }
-  .gate-seam { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(142, 234, 255, 0.35)); }
+  .gate-glow { display: none; }
+  .gate-rim { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(142, 234, 255, 0.35)); }
   .gate-title-desk { clip-path: polygon(0 0, 100% 0, 100% calc(var(--s) - 6%), 0 calc(var(--s) + 6%)); }
   .gate-title-std { clip-path: polygon(0 calc(var(--s) + 6%), 100% calc(var(--s) - 6%), 100% 100%, 0 100%); }
   .gate-title > div { padding: 3.5vh 0 0; }

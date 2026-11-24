@@ -69,7 +69,7 @@ function renderGate(c: Content) {
   const title = c.person.name
     .toUpperCase()
     .split(' ')
-    .map((w) => `<span>${esc(w)}</span>`)
+    .map((w) => `<span data-t="${esc(w)}">${esc(w)}</span>`)
     .join('');
   // glass flung off the tear: position along it (t), offset from it, size, spin, drift time
   const shards = [
@@ -114,7 +114,7 @@ function renderGate(c: Content) {
       <span class="gate-side gate-side-desk">Know me as a person.</span>
       <span class="gate-side gate-side-std">Know about me.</span>
     </div>
-    <div class="gate-seam" aria-hidden="true"><i class="gate-line"></i><span class="gate-shards">${shards}</span></div>
+    <div class="gate-seam" aria-hidden="true"><b class="gate-glow"></b><span class="gate-rim"><i class="gate-line"></i></span><span class="gate-shards">${shards}</span></div>
   </div>`;
 }
 
