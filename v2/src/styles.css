@@ -219,7 +219,7 @@ a.tool { display: inline-flex; align-items: center; text-decoration: none; }
 .play-stats p { margin: 0; font: 400 11px var(--mono); letter-spacing: 1px; }
 .play-stats .play-mission { margin-top: 10px; padding-top: 8px; border-top: 1px dashed currentColor; font-weight: 700; }
 .play-stats .play-mission span { font-weight: 400; }
-.play-stats .play-mission[hidden] { display: none; }
+.play-stats [hidden] { display: none !important; }
 .play-word { margin: 4px 0 8px !important; font: 700 26px var(--sans) !important; letter-spacing: 0.2em !important; color: var(--grey); }
 .play-word .got { color: var(--ink); }
 .play-help { position: absolute; left: 50%; bottom: 12px; z-index: 4; margin: 0; transform: translateX(-50%); padding: 6px 12px; background: var(--bg); font: 400 11px var(--mono); letter-spacing: 1px; white-space: nowrap; }
