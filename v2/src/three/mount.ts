@@ -14,7 +14,7 @@ import { buildStops } from './stops';
 import { Cat } from './cat';
 import { Play } from './play';
 import { Screens } from './screens';
-import { buildPinCards, CARD_PX } from './pincards';
+import { buildPinCards, rasterizeCards } from './pincards';
 import { buildCalculator, CALC_PX } from './calculator';
 import { buildDeskClock, buildPlaque, CLOCK_PX, PLAQUE_PX, plaqueUnlocked } from './plaque';
 import { sfx, soundOn, setSound } from '../sound';
@@ -40,7 +40,11 @@ export async function mount(tour: HTMLElement) {
 
   // ── renderer: full resolution, crisp shadows, studio reflections ──
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(devicePixelRatio, lowTier ? 1 : 1.5)); // the painted look doesn't need more
+  // the painted look doesn't need many pixels: phones draw at 1x; elsewhere it starts at 1.25x and the frame-rate
+  // governor below moves it between 1x and 1.5x
+  let legacy = false;
+  const benchPr = Number(new URLSearchParams(location.search).get('pr')) || 0; // ?bench&pr=1.5: a fixed ratio to compare at
+  renderer.setPixelRatio(Math.min(devicePixelRatio, benchPr || (lowTier ? 1 : 1.25)));
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.shadowMap.enabled = true;
@@ -74,8 +78,9 @@ export async function mount(tour: HTMLElement) {
 
   // ── post: ambient occlusion (soft contact shadows), warm grade, tone mapping ──
   // every pass keeps the alpha channel, so the live screens still show through their holes
-  // 4x MSAA on the scene itself (geometry edges), SMAA at the very end (edges the shaders make)
-  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: lowTier ? 0 : 4 }));
+  // no MSAA on the scene: the watercolour smears every edge anyway, and SMAA at the very end cleans up the rest
+  // (4x MSAA on a half-float target was a lot of memory traffic, the thing laptop GPUs have least of)
+  const composer = new EffectComposer(renderer, new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType }));
   composer.addPass(new RenderPass(scene, camera));
   let gtao: GTAOPass | null = null;
   if (!lowTier) {
@@ -120,12 +125,14 @@ export async function mount(tour: HTMLElement) {
   // live screens; readable text is mixed back in untouched)
   const paint = new ShaderPass({
     uniforms: {
-      tDiffuse: { value: null }, tMask: { value: null }, uR: { value: lowTier ? 2 : 3 },
+      tDiffuse: { value: null }, tMask: { value: null },
       uTexel: { value: new THREE.Vector2(1 / 1024, 1 / 1024) }, uRes: { value: new THREE.Vector2(1024, 1024) }, uStrength: { value: 1 },
     },
     vertexShader: 'varying vec2 vUv; void main() { vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }',
     fragmentShader: `
-      uniform sampler2D tDiffuse; uniform sampler2D tMask; uniform int uR; uniform vec2 uTexel; uniform vec2 uRes; uniform float uStrength; varying vec2 vUv;
+      // Kuwahara radius 2 (9 samples a quadrant, a fixed loop the compiler unrolls), spaced 1.5x wider on
+      // bigger screens so the brush is the size the old radius 3 gave (16 a quadrant)
+      uniform sampler2D tDiffuse; uniform sampler2D tMask; uniform vec2 uTexel; uniform vec2 uRes; uniform float uStrength; varying vec2 vUv;
       float h21(vec2 p) { p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
       float vn(vec2 p) {
         vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
@@ -143,18 +150,18 @@ export async function mount(tour: HTMLElement) {
         // flat washes: Kuwahara
         vec3 m0 = vec3(0.0), m1 = vec3(0.0), m2 = vec3(0.0), m3 = vec3(0.0);
         vec3 s0 = vec3(0.0), s1 = vec3(0.0), s2 = vec3(0.0), s3 = vec3(0.0);
-        for (int j = 0; j <= 3; j++) {
-          if (j > uR) break;
-          for (int i = 0; i <= 3; i++) {
-            if (i > uR) break;
+        vec2 kt = uTexel * KSTEP;
+        for (int j = 0; j <= R; j++) {
+          for (int i = 0; i <= R; i++) {
+            vec2 o = vec2(float(i), float(j)) * kt;
             vec3 c;
-            c = texture2D(tDiffuse, uv + vec2(-i, -j) * uTexel).rgb; m0 += c; s0 += c * c;
-            c = texture2D(tDiffuse, uv + vec2( i, -j) * uTexel).rgb; m1 += c; s1 += c * c;
-            c = texture2D(tDiffuse, uv + vec2(-i,  j) * uTexel).rgb; m2 += c; s2 += c * c;
-            c = texture2D(tDiffuse, uv + vec2( i,  j) * uTexel).rgb; m3 += c; s3 += c * c;
+            c = texture2D(tDiffuse, uv - o).rgb; m0 += c; s0 += c * c;
+            c = texture2D(tDiffuse, uv + vec2(o.x, -o.y)).rgb; m1 += c; s1 += c * c;
+            c = texture2D(tDiffuse, uv + vec2(-o.x, o.y)).rgb; m2 += c; s2 += c * c;
+            c = texture2D(tDiffuse, uv + o).rgb; m3 += c; s3 += c * c;
           }
         }
-        float n = float((uR + 1) * (uR + 1));
+        float n = float((R + 1) * (R + 1));
         vec3 col = base.rgb; float best = 1e9; vec3 m, v; float sv;
         m = m0 / n; v = abs(s0 / n - m * m); sv = v.r + v.g + v.b; if (sv < best) { best = sv; col = m; }
         m = m1 / n; v = abs(s1 / n - m * m); sv = v.r + v.g + v.b; if (sv < best) { best = sv; col = m; }
@@ -181,10 +188,11 @@ export async function mount(tour: HTMLElement) {
         gl_FragColor = vec4(mix(base.rgb, col, uStrength * (1.0 - sharp)), base.a);
       }`,
   });
+  paint.material.defines = { R: 2, KSTEP: lowTier ? '1.0' : '1.5' };
   composer.addPass(paint);
 
   // text mask: everything black (for depth), then text-layer meshes white where they're visible
-  const textMask = new THREE.WebGLRenderTarget(1, 1, { samples: lowTier ? 0 : 4 }); // soft edges where sharp text meets paint
+  const textMask = new THREE.WebGLRenderTarget(1, 1); // half resolution: filtering gives the soft edge where text meets paint
   paint.uniforms.tMask.value = textMask.texture;
   const maskBlack = new THREE.MeshBasicMaterial({ color: 0x000000 });
   const maskWhite = new THREE.MeshBasicMaterial({ color: 0xffffff, depthFunc: THREE.LessEqualDepth });
@@ -303,8 +311,16 @@ export async function mount(tour: HTMLElement) {
   const proyashLabel = proyash ? `${proyash.role} · ${proyash.title.toLowerCase()}` : '';
   await breathe();
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
-  const pinEls = buildPinCards();
-  for (const c of desk.pinCards) screens.addPanel(c.mesh, desk.PIN_W, CARD_PX, pinEls[c.id as keyof typeof pinEls]);
+  // the pinboard cards: laid out as HTML, then painted onto textures (as live HTML each one cost ~10 ms a frame).
+  // On the text layer, so the watercolour leaves the lettering sharp, as it did the HTML
+  const pinTex = await rasterizeCards(buildPinCards(), lowTier ? 1.5 : 2);
+  for (const c of desk.pinCards) {
+    const map = new THREE.CanvasTexture(pinTex[c.id]);
+    map.colorSpace = THREE.SRGBColorSpace;
+    map.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    c.mesh.material = new THREE.MeshBasicMaterial({ map, toneMapped: false });
+    c.mesh.layers.enable(TEXT_LAYER);
+  }
   const calc = buildCalculator();
   screens.addPanel(desk.calcFace, desk.CALC_W, CALC_PX, calc.el);
   const plaque = buildPlaque();
@@ -997,7 +1013,8 @@ export async function mount(tour: HTMLElement) {
     const pr = renderer.getPixelRatio();
     (paint.uniforms.uTexel.value as THREE.Vector2).set(2.2 / w, 2.2 / h);
     (paint.uniforms.uRes.value as THREE.Vector2).set(w, h);
-    textMask.setSize(Math.round(w * pr), Math.round(h * pr)); // full res: crisp edges where sharp text meets paint
+    const tm = legacy ? 1 : 2; // half res: the whole scene is drawn into it every frame
+    textMask.setSize(Math.round((w * pr) / tm), Math.round((h * pr) / tm));
     catMask.setSize(Math.round((w * pr) / 2), Math.round((h * pr) / 2)); // half res is plenty for a blur mask
     void pr;
     screens.setSize(w, h);
@@ -1029,23 +1046,50 @@ export async function mount(tour: HTMLElement) {
     tour.classList.remove('has-3d', 'ready');
     tour.style.removeProperty('--stops');
   });
-  // first ~2 s: if frames are slow, shed the expensive bits
-  let probeT = 0;
-  let probeN = 0;
-  let downgraded = false;
-  const probe = (dt: number) => {
-    if (downgraded || document.hidden) return;
-    probeT += dt;
-    probeN++;
-    if (probeN < 120) return;
-    if (probeT / probeN > 1 / 35) {
-      if (gtao) gtao.enabled = false;
-      paint.uniforms.uR.value = 2;
-      renderer.setPixelRatio(1);
-      resize();
-    }
-    downgraded = true;
+  // frame-rate governor (not on phones, which already run the light version): every second of steady frames,
+  // under ~45 fps steps quality down, a few seconds at ~full rate steps it back up. A level that proved too slow
+  // after a step up becomes the ceiling, so it doesn't see-saw.
+  //   0: 1x, no ambient occlusion   1: 1x   2: 1.25x (the start)   3: 1.5x
+  const LEVEL_PR = [1, 1, 1.25, 1.5];
+  let level = 2;
+  let ceiling = 3;
+  let govT = 0;
+  let govN = 0;
+  let govGood = 0;
+  let govSkip = 0;
+  let climbed = false;
+  const setLevel = (l: number) => {
+    level = l;
+    if (gtao) gtao.enabled = l >= 1;
+    renderer.setPixelRatio(Math.min(devicePixelRatio, LEVEL_PR[l]));
+    resize();
+    govSkip = 10; // the frames right after a resize aren't representative
   };
+  const govern = (raw: number, wasIdle: boolean) => {
+    if (bench || lowTier || document.hidden) return;
+    if (wasIdle || raw > 0.25 || govSkip > 0) {
+      govSkip = Math.max(0, govSkip - 1);
+      return; // skipped idle frames, a hitch (tab switch, a shader compiling): not the steady rate
+    }
+    govT += raw;
+    govN++;
+    if (govT < 1) return;
+    const avg = govT / govN;
+    govT = govN = 0;
+    if (avg > 1 / 45 && level > 0) {
+      govGood = 0;
+      if (climbed) ceiling = level - 1; // it was fine one step down: stay there
+      climbed = false;
+      setLevel(level - 1);
+    } else if (avg < 1 / 56 && level < ceiling) {
+      if (++govGood >= 3) {
+        govGood = 0;
+        climbed = true;
+        setLevel(level + 1);
+      }
+    } else govGood = 0;
+  };
+  let lastIdle = false;
 
   // ── the desk clock blowing apart: a flash, its plastic and lit digits flying, then the plaque rising ──
   const fx: ((dt: number) => boolean)[] = []; // per-frame effects; each returns false when it's finished
@@ -1133,16 +1177,50 @@ export async function mount(tour: HTMLElement) {
   let lastCamZ = NaN;
   let lastCamY = NaN;
   let idleN = 0;
+  // ?bench: every frame is drawn (no idle skipping, no slow-start downgrade) and timed to when the GPU is done
+  // with it, so different builds compare like for like. window.__bench drives it (see the benchmark script)
+  const bench = location.search.includes('bench') ? { frames: [] as number[], on: false } : null;
+  const benchPx = new Uint8Array(4);
+  const benchSkip = { textMask: false, screens: false };
+  /** ?bench only: the settings before the performance pass (1.5x, 4x MSAA, Kuwahara radius 3, full-res
+   *  multisampled text mask), switchable at run time so old and new compare in one session */
+  const setLegacy = (on: boolean) => {
+    legacy = on;
+    paint.material.defines = on ? { R: 3, KSTEP: '1.0' } : { R: 2, KSTEP: '1.5' };
+    paint.material.needsUpdate = true;
+    for (const rt of [composer.renderTarget1, composer.renderTarget2, textMask]) {
+      rt.samples = on ? 4 : 0;
+      rt.dispose();
+    }
+    renderer.setPixelRatio(Math.min(devicePixelRatio, on ? 1.5 : benchPr || 1.25));
+    resize();
+  };
+  if (bench)
+    Object.assign(window, {
+      __bench: {
+        get frames() { return bench.frames; },
+        start: () => ((bench.frames = []), (bench.on = true)),
+        stop: () => ((bench.on = false), bench.frames),
+        goto: (i: number) => jumpToStop(i),
+        stops: stops.map((s) => s.id),
+        legacy: setLegacy,
+        passes: composer.passes, // to switch one off and see what it costs
+        skip: benchSkip,
+        info: () => ({ pr: renderer.getPixelRatio(), w: renderer.domElement.width, h: renderer.domElement.height, gtao: gtao?.enabled ?? false, level }),
+      },
+    });
   renderer.setAnimationLoop(() => {
+    const frameStart = performance.now();
     const camStill = Math.abs(camPos.x - lastCamX) + Math.abs(camPos.y - lastCamY) + Math.abs(camPos.z - lastCamZ) < 1e-5;
     lastCamX = camPos.x;
     lastCamY = camPos.y;
     lastCamZ = camPos.z;
     const idle = camStill && !focused && !play.busy && !fx.length && performance.now() - lastInput > 1500;
-    if (idle && ++idleN % 3) return; // the clock keeps the time, so the next drawn frame catches up
+    if (idle && !bench && ++idleN % 3) return; // the clock keeps the time, so the next drawn frame catches up
     const raw = clock.getDelta();
     const dt = Math.min(raw, 0.05);
-    probe(raw);
+    govern(raw, lastIdle);
+    lastIdle = idle;
     if (!visible || document.hidden) return;
     const t = clock.elapsedTime;
     const k = 1 - Math.exp(-dt * 6);
@@ -1268,10 +1346,15 @@ export async function mount(tour: HTMLElement) {
         purrT = 1.45; // each purr overlaps the last: one steady rumble
       }
     } else purrT = 0;
-    renderTextMask();
+    if (!(bench && benchSkip.textMask)) renderTextMask();
     updateBlur(dt);
     composer.render(dt);
-    screens.render(camera);
+    if (!(bench && benchSkip.screens)) screens.render(camera);
+    if (bench?.on) {
+      const gl = renderer.getContext();
+      gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, benchPx); // waits for the GPU to finish the frame
+      bench.frames.push(performance.now() - frameStart);
+    }
   });
 
   // reveal once the first frames are actually drawn: the shaders for what's in view compile in that first frame,
