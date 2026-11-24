@@ -1,31 +1,34 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rakin Talukder · Software Engineer</title>
-    <meta name="description" content="Rakin Talukder, a software engineer from Dhaka. Explore his desk from the point of view of his cat, Mi Mao: apps, games, computer vision, ESP32 builds and a self-hosted home server." />
-    <meta name="theme-color" content="#FFFFFF" />
-    <link rel="canonical" href="https://www.rakin-talukder.me/" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
-    <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
-    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Rakin Talukder · Software Engineer" />
-    <meta property="og:description" content="Software engineer from Dhaka. Read the portfolio, or explore the desk in 3D as Mi Mao the cat." />
-    <meta property="og:url" content="https://www.rakin-talukder.me/" />
-    <meta property="og:site_name" content="Rakin Talukder" />
-    <meta property="og:image" content="https://www.rakin-talukder.me/og.jpg?v=2" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Rakin Talukder, software engineer" />
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Rakin Talukder · Software Engineer" />
-    <meta name="twitter:description" content="Software engineer from Dhaka. Read the portfolio, or explore the desk in 3D as Mi Mao the cat." />
-    <meta name="twitter:image" content="https://www.rakin-talukder.me/og.jpg?v=2" />
-    <meta name="twitter:creator" content="@rakinthegreat" />
-    <script type="application/ld+json">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rakin Talukder</title>
+  <meta name="description" content="Rakin Talukder, a software engineer from Dhaka. Explore his personal portfolio." />
+  <meta name="theme-color" content="#FFFFFF" />
+  <link rel="canonical" href="https://www.rakin-talukder.me/" />
+  <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Rakin Talukder · Software Engineer" />
+  <meta property="og:description"
+    content="Software engineer from Dhaka. Read the portfolio, or explore the desk in 3D as Mi Mao." />
+  <meta property="og:url" content="https://www.rakin-talukder.me/" />
+  <meta property="og:site_name" content="Rakin Talukder" />
+  <meta property="og:image" content="https://www.rakin-talukder.me/og.jpg?v=2" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Rakin Talukder, software engineer" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Rakin Talukder · Software Engineer" />
+  <meta name="twitter:description"
+    content="Software engineer from Dhaka. Read the portfolio, or explore the desk in 3D as Mi Mao the cat." />
+  <meta name="twitter:image" content="https://www.rakin-talukder.me/og.jpg?v=2" />
+  <meta name="twitter:creator" content="@rakinthegreat" />
+  <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "Person",
@@ -39,77 +42,93 @@
         "sameAs": ["https://github.com/rakinthegreat", "https://www.linkedin.com/in/rakin-talukder-me", "https://x.com/rakinthegreat"]
       }
     </script>
-    <script>
-      // pick the view before first paint: ?view=standard|desk, or a choice the visitor asked us to remember;
-      // otherwise every visit starts on the entry screen
-      document.documentElement.classList.add('js');
-      try {
-        var q = new URLSearchParams(location.search).get('view');
-        var v = q || localStorage.getItem('view');
-        // ?view=pick: show the entry screen again (a remembered choice stays until it's unticked there)
-        if (q === 'pick') { var u = new URL(location.href); u.searchParams.delete('view'); history.replaceState(null, '', u); v = null; }
-        // no choice yet: both views run underneath the entry screen, one per half
-        if (v !== 'standard' && v !== 'desk') document.documentElement.classList.add('gating');
-        // the 3D desk is coming (on the entry screen or on its own): the loading screen covers it while it builds
-        if (v !== 'standard') document.documentElement.classList.add('booting');
-        if (v === 'standard' || v === 'desk') document.documentElement.dataset.view = v;
-        var t = localStorage.getItem('theme');
-        if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
-        // the 3D desk is always the lamp-lit night (whatever the standard page's theme is set to)
-        if (v === 'desk') document.documentElement.dataset.theme = 'dark';
-      } catch (e) {}
-    </script>
-    <style>
-      /* the loading screen, inline so it's there on the very first paint: a desk lamp flickering on over a
-         sleeping cat, while the 3D desk is built and its shaders compiled behind it */
-      .boot { position: fixed; inset: 0; z-index: 1000; display: none; place-items: center; align-content: center; gap: 18px; background: radial-gradient(ellipse at 50% 40%, #2a1a0b, #0d0905 70%); color: #f4e6cc; transition: opacity 0.6s ease, visibility 0.6s; }
-      html.booting .boot { display: grid; }
-      html.booting.booted .boot { opacity: 0; visibility: hidden; }
-      .boot-art { position: relative; width: min(240px, 56vw); aspect-ratio: 200 / 160; }
-      .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
-      .boot-light { will-change: opacity; animation: boot-flicker 2.4s ease-in-out infinite; }
-      .boot-cat { will-change: transform; transform-origin: 62% 94%; animation: boot-breathe 2.8s ease-in-out infinite; }
-      .boot p { margin: 0; font: 400 22px 'Patrick Hand', 'Comic Sans MS', cursive; letter-spacing: 0.5px; opacity: 0.9; }
-      .boot p i { display: inline-block; will-change: opacity; animation: boot-dot 1.2s infinite; font-style: normal; }
-      .boot p i:nth-child(2) { animation-delay: 0.2s; }
-      .boot p i:nth-child(3) { animation-delay: 0.4s; }
-      @keyframes boot-flicker { 0%, 100% { opacity: 1; } 8% { opacity: 0.55; } 11% { opacity: 1; } 50% { opacity: 0.85; } }
-      @keyframes boot-breathe { 50% { transform: scaleY(1.06); } }
-      @keyframes boot-dot { 50% { opacity: 0.2; } }
-      @media (prefers-reduced-motion: reduce) { .boot * { animation: none !important; } }
-    </style>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat+Brush&family=Patrick+Hand&display=swap" rel="stylesheet" />
-  </head>
-  <body>
-    <div class="boot" aria-hidden="true">
-      <div class="boot-art">
-        <!-- the lamp and its pool of light are still; only whole layers move (opacity / transform), which the
-             browser animates off the main thread, so the loader keeps going while the 3D desk is being built -->
-        <svg class="boot-lamp" viewBox="0 0 200 160">
-          <g fill="none" stroke="#6b4a2e" stroke-width="5" stroke-linecap="round"><path d="M36 150 L64 96 L108 46" /></g>
-          <ellipse cx="34" cy="151" rx="20" ry="4" fill="#3b2a1a" />
-          <path d="M100 30 L138 46 L126 64 L94 48 Z" fill="#c8742a" />
-        </svg>
-        <svg class="boot-light" viewBox="0 0 200 160">
-          <defs><radialGradient id="boot-glow" cx="0.6" cy="0.05" r="1"><stop offset="0" stop-color="#ffcf7a" stop-opacity="0.6" /><stop offset="1" stop-color="#ffb347" stop-opacity="0" /></radialGradient></defs>
-          <path d="M120 56 L58 152 L196 152 Z" fill="url(#boot-glow)" />
-          <ellipse cx="124" cy="152" rx="70" ry="5" fill="#ffcf7a" opacity="0.18" />
-          <circle cx="122" cy="58" r="5" fill="#fff2c8" />
-        </svg>
-        <svg class="boot-cat" viewBox="0 0 200 160">
-          <g fill="#f4e6cc">
-            <ellipse cx="128" cy="146" rx="24" ry="8.5" />
-            <circle cx="106" cy="142" r="8" />
-            <path d="M100 137 L101 128 L107 134 Z M108 134 L112 127 L113 136 Z" />
-            <path d="M150 146 C 162 146 164 136 154 134" fill="none" stroke="#f4e6cc" stroke-width="4" stroke-linecap="round" />
-          </g>
-        </svg>
-      </div>
-      <p>Mi Mao is waking up<i>.</i><i>.</i><i>.</i></p>
+  <script>
+    // pick the view before first paint: ?view=standard|desk, or a choice the visitor asked us to remember;
+    // otherwise every visit starts on the entry screen
+    document.documentElement.classList.add('js');
+    try {
+      var q = new URLSearchParams(location.search).get('view');
+      var v = q || localStorage.getItem('view');
+      // ?view=pick: show the entry screen again (a remembered choice stays until it's unticked there)
+      if (q === 'pick') { var u = new URL(location.href); u.searchParams.delete('view'); history.replaceState(null, '', u); v = null; }
+      // no choice yet: both views run underneath the entry screen, one per half
+      if (v !== 'standard' && v !== 'desk') document.documentElement.classList.add('gating');
+      // the 3D desk is coming (on the entry screen or on its own): the loading screen covers it while it builds
+      if (v !== 'standard') document.documentElement.classList.add('booting');
+      if (v === 'standard' || v === 'desk') document.documentElement.dataset.view = v;
+      var t = localStorage.getItem('theme');
+      if (t === 'dark' || t === 'light') document.documentElement.dataset.theme = t;
+      // the 3D desk is always the lamp-lit night (whatever the standard page's theme is set to)
+      if (v === 'desk') document.documentElement.dataset.theme = 'dark';
+    } catch (e) { }
+  </script>
+  <style>
+    /* the loading screen, inline so it's there on the very first paint: the logo assembles, then each of the letters
+       hidden in it lights up in turn (R the whole mark, A the middle wedge, K the stem and its diagonal, I the stem,
+       N stem, diagonal and the disc's right edge) while R A K I N spells out beneath. Every highlight is its own layer
+       and only opacity / transform animate, which the browser runs off the main thread, so it keeps going while the
+       3D desk is built and its shaders compiled behind it. */
+    .boot {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: none;
+      place-items: center;
+      align-content: center;
+      gap: 28px;
+      background: radial-gradient(ellipse at 50% 42%, #2a1a0b, #0d0905 70%);
+      color: #f4e6cc;
+      transition: opacity 0.6s ease, visibility 0.6s;
+    }
+    html.booting .boot { display: grid; }
+    html.booting.booted .boot { opacity: 0; visibility: hidden; }
+    .boot-art { position: relative; width: min(190px, 44vw); aspect-ratio: 1; }
+    .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+    .boot-disc { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .boot-piece { will-change: transform, opacity; animation: boot-slide 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    .boot-piece:nth-of-type(2) { animation-delay: 0.25s; }
+    .boot-piece:nth-of-type(3) { animation-delay: 0.4s; }
+    .boot-piece:nth-of-type(4) { animation-delay: 0.55s; }
+    .boot-hl { opacity: 0; will-change: opacity; filter: drop-shadow(0 0 6px rgba(255, 170, 80, 0.7)); animation: boot-hl 4.5s 1s ease-in-out infinite; }
+    .boot-word { display: flex; gap: 0.9em; margin: 0; font: 700 18px 'Space Mono', ui-monospace, monospace; }
+    .boot-word span { opacity: 0.28; will-change: opacity; animation: boot-letter 4.5s 1s ease-in-out infinite; }
+    .boot-hl.l2, .boot-word span:nth-child(2) { animation-delay: 1.9s; }
+    .boot-hl.l3, .boot-word span:nth-child(3) { animation-delay: 2.8s; }
+    .boot-hl.l4, .boot-word span:nth-child(4) { animation-delay: 3.7s; }
+    .boot-hl.l5, .boot-word span:nth-child(5) { animation-delay: 4.6s; }
+    @keyframes boot-in { from { opacity: 0; transform: scale(0.82); } }
+    @keyframes boot-slide { from { opacity: 0; transform: translateX(-14%); } }
+    @keyframes boot-hl { 0%, 24%, 100% { opacity: 0; } 5%, 17% { opacity: 1; } }
+    @keyframes boot-letter { 0%, 24%, 100% { opacity: 0.28; } 5%, 17% { opacity: 1; } }
+    @media (prefers-reduced-motion: reduce) {
+      .boot * { animation: none !important; }
+      .boot-word span { opacity: 1; }
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&family=Caveat+Brush&family=Patrick+Hand&display=swap"
+    rel="stylesheet" />
+</head>
+
+<body>
+  <div class="boot" aria-hidden="true">
+    <div class="boot-art">
+      <svg class="boot-disc" viewBox="35.03 47.64 139.94 139.94"><g fill="#f4e6cc"><circle cx="105" cy="117.60895" r="69.969925"/></g></svg>
+      <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z"/></svg>
+      <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z"/></svg>
+      <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></svg>
+      <svg class="boot-hl l1" viewBox="35.03 47.64 139.94 139.94"><path fill="#ffb347" d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></svg>
+      <svg class="boot-hl l2" viewBox="35.03 47.64 139.94 139.94"><path fill="#ffb347" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z"/></svg>
+      <svg class="boot-hl l3" viewBox="35.03 47.64 139.94 139.94"><defs><clipPath id="boot-c3"><path d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></clipPath></defs><rect x="82.15" y="77" width="11.5" height="108" fill="#ffb347" clip-path="url(#boot-c3)"/><path fill="#ffb347" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></svg>
+      <svg class="boot-hl l4" viewBox="35.03 47.64 139.94 139.94"><defs><clipPath id="boot-c4"><path d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></clipPath></defs><rect x="82.15" y="77" width="11.5" height="108" fill="#ffb347" clip-path="url(#boot-c4)"/></svg>
+      <svg class="boot-hl l5" viewBox="35.03 47.64 139.94 139.94"><defs><clipPath id="boot-c5"><path d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></clipPath></defs><rect x="82.15" y="77" width="11.5" height="108" fill="#ffb347" clip-path="url(#boot-c5)"/><path fill="#ffb347" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/><path d="M 139.98,57.01 A 69.969925 69.969925 0 0 1 139.98,178.2" fill="none" stroke="#ffb347" stroke-width="3.2" stroke-linecap="round"/></svg>
     </div>
-    <!--LITE-->
-    <script type="module" src="/src/main.ts"></script>
-  </body>
+    <p class="boot-word"><span>R</span><span>A</span><span>K</span><span>I</span><span>N</span></p>
+  </div>
+  <!--LITE-->
+  <script type="module" src="/src/main.ts"></script>
+</body>
+
 </html>
