@@ -1,6 +1,6 @@
 # Portfolio v2: On Rakin's Desk
 
-A cat's-eye tour of a tinkerer's desk in Dhaka. Scroll through it, click things, or press **E** and play as the cat.
+A cat's-eye tour of a software engineer's desk in Dhaka. Scroll through it, click things, or press **E** and play as the cat.
 The Flutter site in the repo root is v1 and is untouched; this folder is a separate Vite project.
 
 ## Run
