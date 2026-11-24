@@ -64,7 +64,8 @@
   </script>
   <style>
     /* the loading screen, inline so it's there on the very first paint: the logo comes in whole (its pieces never move
-       out of line), then a soft glow breathes behind the disc while a thin arc circles it, with a
+       out of line), then a soft glow breathes behind the disc while two thin arcs
+       circle it in opposite directions, with a
        short note underneath. Only opacity / transform animate, on separate layers, which the browser runs off the
        main thread: it stays smooth while the 3D desk is built and its shaders compiled behind it. */
     .boot {
@@ -85,7 +86,9 @@
     .boot-art { position: relative; width: min(150px, 38vw); aspect-ratio: 1; }
     .boot-art svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
     .boot-disc { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+    /* two arcs turning opposite ways round the disc: the near one clockwise, the far one anticlockwise and slower */
     .boot-ring { will-change: transform; animation: boot-in 0.7s 0.3s both, boot-spin 2.4s 0.3s linear infinite; }
+    .boot-ring.back { animation: boot-in 0.7s 0.45s both, boot-spin 3.6s 0.45s linear infinite reverse; }
     /* the black pieces never move on their own: they come in with the disc, as one logo */
     .boot-piece { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
     .boot-halo { position: absolute; inset: -18%; border-radius: 50%; background: radial-gradient(closest-side, rgba(255, 179, 71, 0.38), transparent); will-change: opacity, transform; animation: boot-breathe 2.4s 0.6s ease-in-out infinite both; }
@@ -111,6 +114,7 @@
     <div class="boot-art">
       <i class="boot-halo"></i>
       <svg class="boot-ring" viewBox="35.03 47.64 139.94 139.94"><circle cx="105" cy="117.6" r="76" fill="none" stroke="#ffb347" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="70 408" opacity="0.85"/></svg>
+      <svg class="boot-ring back" viewBox="35.03 47.64 139.94 139.94"><circle cx="105" cy="117.6" r="84" fill="none" stroke="#ffb347" stroke-width="1.6" stroke-linecap="round" stroke-dasharray="150 378" opacity="0.45"/></svg>
       <svg class="boot-disc" viewBox="35.03 47.64 139.94 139.94"><g fill="#f4e6cc"><circle cx="105" cy="117.60895" r="69.969925"/></g></svg>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z"/></svg>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z"/></svg>
