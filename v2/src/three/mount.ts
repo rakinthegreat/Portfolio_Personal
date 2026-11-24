@@ -14,7 +14,7 @@ import { buildStops } from './stops';
 import { Cat } from './cat';
 import { Play } from './play';
 import { Screens } from './screens';
-import { buildPinCards, rasterizeCards } from './pincards';
+import { buildPinCards, CARD_PX, rasterizeCards } from './pincards';
 import { buildCalculator, CALC_PX } from './calculator';
 import { buildDeskClock, buildPlaque, CLOCK_PX, PLAQUE_PX, plaqueUnlocked } from './plaque';
 import { sfx, soundOn, setSound } from '../sound';
@@ -311,16 +311,49 @@ export async function mount(tour: HTMLElement) {
   const proyashLabel = proyash ? `${proyash.role} · ${proyash.title.toLowerCase()}` : '';
   await breathe();
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
-  // the pinboard cards: laid out as HTML, then painted onto textures (as live HTML each one cost ~10 ms a frame).
-  // On the text layer, so the watercolour leaves the lettering sharp, as it did the HTML
+  // the pinboard cards, from content.json, both ways: live HTML (drawn by the browser at the screen's own
+  // resolution, so it's sharp) and the same layout painted onto a texture at load. Each live HTML card costs
+  // ~10 ms a frame to layer over the canvas, so a card is live only while it's big enough on screen to read;
+  // smaller (the wide shots, the way past), it's the texture. See placePinCards.
+  const pinEls = buildPinCards();
   const pinTex = await rasterizeCards(buildPinCards(), lowTier ? 1.5 : 2);
-  for (const c of desk.pinCards) {
+  const pinHole = desk.pinCards[0].mesh.material as THREE.Material;
+  const pinCards = desk.pinCards.map((c) => {
+    const el = pinEls[c.id as keyof typeof pinEls];
+    screens.addPanel(c.mesh, desk.PIN_W, CARD_PX, el);
     const map = new THREE.CanvasTexture(pinTex[c.id]);
     map.colorSpace = THREE.SRGBColorSpace;
     map.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    c.mesh.material = new THREE.MeshBasicMaterial({ map, toneMapped: false });
-    c.mesh.layers.enable(TEXT_LAYER);
-  }
+    const img = new THREE.MeshBasicMaterial({ map, toneMapped: false });
+    c.mesh.layers.enable(TEXT_LAYER); // the watercolour leaves it alone, like the HTML
+    return { mesh: c.mesh, el, img, live: true };
+  });
+  const cardL = new THREE.Vector3();
+  const cardR = new THREE.Vector3();
+  const cardT = new THREE.Vector3();
+  const cardB = new THREE.Vector3();
+  /** Live HTML for the cards that are big on screen (over ~170 CSS px wide), the texture for the rest. */
+  const placePinCards = () => {
+    const w = sticky.clientWidth;
+    for (const c of pinCards) {
+      c.mesh.updateWorldMatrix(true, false);
+      cardL.set(-desk.PIN_W / 2, 0, 0).applyMatrix4(c.mesh.matrixWorld).project(camera);
+      cardR.set(desk.PIN_W / 2, 0, 0).applyMatrix4(c.mesh.matrixWorld).project(camera);
+      const h = (desk.PIN_W * 1.415) / 2;
+      cardT.set(0, h, 0).applyMatrix4(c.mesh.matrixWorld).project(camera);
+      cardB.set(0, -h, 0).applyMatrix4(c.mesh.matrixWorld).project(camera);
+      // in front of the camera and at least partly on screen
+      const onScreen =
+        cardL.z < 1 && cardR.z < 1 && Math.max(cardL.x, cardR.x) > -1 && Math.min(cardL.x, cardR.x) < 1 &&
+        Math.max(cardT.y, cardB.y) > -1 && Math.min(cardT.y, cardB.y) < 1;
+      const px = onScreen ? (Math.abs(cardR.x - cardL.x) / 2) * w : 0;
+      const live = px > (c.live ? 150 : 170); // a little hysteresis: no flicker at the edge
+      if (live === c.live) continue;
+      c.live = live;
+      c.mesh.material = live ? pinHole : c.img;
+      c.el.style.visibility = live ? '' : 'hidden';
+    }
+  };
   const calc = buildCalculator();
   screens.addPanel(desk.calcFace, desk.CALC_W, CALC_PX, calc.el);
   const plaque = buildPlaque();
@@ -1346,6 +1379,7 @@ export async function mount(tour: HTMLElement) {
         purrT = 1.45; // each purr overlaps the last: one steady rumble
       }
     } else purrT = 0;
+    placePinCards();
     if (!(bench && benchSkip.textMask)) renderTextMask();
     updateBlur(dt);
     composer.render(dt);
