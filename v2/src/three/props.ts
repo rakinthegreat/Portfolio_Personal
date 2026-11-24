@@ -91,10 +91,11 @@ export function buildDesk(M: Materials, aniso: number) {
   floor.rotation.x = -Math.PI / 2;
   floor.position.y = -0.76;
   floor.receiveShadow = true;
-  // a gray mat under the desk, flat on the boards (no thickness: nothing walks or lands any differently on it)
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.44), M.mat);
+  // a gray mat over the whole floor, wall to wall (the back wall at z -0.55, the left at x -1.75); flat, so
+  // nothing walks or lands any differently on it
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(4.75, 3.55), M.mat);
   rug.rotation.x = -Math.PI / 2;
-  rug.position.set(0.05, -0.759, 0.3);
+  rug.position.set(0.625, -0.759, 1.225);
   rug.receiveShadow = true;
   root.add(wall, side, floor, rug);
   block(6, 0.08, 0.015, M.whitePlastic, 0, -0.76, -0.542, 0.002, false); // skirting
