@@ -482,12 +482,8 @@ export async function mount(tour: HTMLElement) {
     laptop: () => `<kbd>1–${screens.tabCount}</kbd> tabs · <kbd>R</kbd> reload · <kbd>⌫</kbd> projects · <kbd>Esc</kbd> back`,
     phone: () => `<kbd>1–${screens.appCount}</kbd> apps · <kbd>0</kbd> home · <kbd>Esc</kbd> back`,
     calc: () => `type to calculate · <kbd>Enter</kbd> EXE · <kbd>⌫</kbd> DEL · <kbd>Del</kbd> AC · <kbd>Esc</kbd> back`,
-    plaque: () =>
-      clockLocked
-        ? touchOnly
-          ? `tap <b>SET</b> on top · type the time · tap <b>SET</b> again`
-          : `press <b>SET</b> on top (or <kbd>Enter</kbd>) · type the time · <b>SET</b> again · <kbd>Esc</kbd> back`
-        : `<kbd>Space</kbd> play / pause · <kbd>←</kbd> <kbd>→</kbd> skip · <kbd>Esc</kbd> back`,
+    // the locked clock is an easter egg: no instructions at all (the strip hides when empty)
+    plaque: () => (clockLocked ? '' : `<kbd>Space</kbd> play / pause · <kbd>←</kbd> <kbd>→</kbd> skip · <kbd>Esc</kbd> back`),
   };
   const unfocus = () => {
     if (!focused) return;
@@ -564,7 +560,8 @@ export async function mount(tour: HTMLElement) {
     laptop: ['Use the Victus', true],
     phone: ['Use the phone', true],
     calc: ['Use the calculator', true],
-    plaque: [clockLocked ? 'Look at the clock' : 'Look at the plaque', true],
+    plaque: ['Look at the plaque', true],
+    clock: ['Look at the clock', true],
     printer: ['Print the résumé', true],
     proyash: [`${proyashLabel} · visit ${proyashUrl.replace(/^https?:\/\//, '')} ↗`, false],
     'proyash-cat': [`Squeeze ${proyash?.role ?? ''}'s cat`, true],
@@ -724,6 +721,7 @@ export async function mount(tour: HTMLElement) {
     console: () => void import('../arcade').then((m) => m.openArcade()),
     printer: () => (printT >= PRINT_SECS ? openResume() : startPrint()),
     plaque: () => focus('plaque'),
+    clock: () => focus('plaque'), // the clock stands in the plaque's spot: same close-up
     'proyash-cat': () => squeezePlush(),
     // F by the books opens the first profile; on the tour, clicking the shelf shows the socials caption
     socials: () => (play.active ? captionEls[socialsAt]?.querySelector<HTMLElement>('.cap-btns > a')?.click() : showSocials()),
@@ -783,7 +781,7 @@ export async function mount(tour: HTMLElement) {
     if (play.active) return cat.root.position.distanceTo(plush.getWorldPosition(new THREE.Vector3())) < 0.4;
     return stops[Math.round(progress)]?.id === 'proyash';
   };
-  const stopOf: Record<string, string> = { boardgame: 'laptop', calc: 'phone', plaque: 'laptop' };
+  const stopOf: Record<string, string> = { boardgame: 'laptop', calc: 'phone', plaque: 'laptop', clock: 'laptop' };
   renderer.domElement.addEventListener('click', (e) => {
     const hit = pick(e);
     if (hit === 'cat') {
@@ -1036,7 +1034,6 @@ export async function mount(tour: HTMLElement) {
     c.updateWorldMatrix(true, false);
     c.visible = false;
     clockLocked = false;
-    HINTS.plaque[0] = 'Look at the plaque';
     // the laptop's caption button now names what's there
     captions.querySelectorAll('[data-act="use-plaque"]').forEach((b) => b.lastChild && (b.lastChild.textContent = '♥ Our song')); // keep its key chip
     sfx.click();

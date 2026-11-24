@@ -567,6 +567,7 @@ dialog.preview:not(.is-mobile) .preview-frame { border-radius: 6px; box-shadow: 
 .tour .play-help kbd { margin: 0 2px; }
 .focus-keys { display: none; position: absolute; left: 50%; bottom: 18px; z-index: 6; margin: 0; padding: 8px 14px; transform: translateX(-50%); border-radius: 10px; white-space: nowrap; font: 400 16px 'Patrick Hand', var(--sans); color: #f4e6cc; background: linear-gradient(180deg, #6f4728, #4a2e1a); box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35); }
 .tour.screen-focus .focus-keys { display: block; }
+.tour.screen-focus .focus-keys:empty { display: none; }
 .keys-chip { position: absolute; right: clamp(16px, 3vw, 40px); bottom: 84px; z-index: 4; display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 0; border-radius: 9px; background: linear-gradient(180deg, #6f4728, #4a2e1a); color: #f4e6cc; font: 400 15px 'Patrick Hand', var(--sans); cursor: pointer; box-shadow: inset 0 1px 0 rgba(255, 220, 170, 0.3), 0 6px 16px rgba(0, 0, 0, 0.3); }
 .tour.screen-focus .keys-chip { display: none; }
 @media (pointer: coarse) { .keys-chip { display: none; } }

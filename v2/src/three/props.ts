@@ -381,7 +381,7 @@ export function buildDesk(M: Materials, aniso: number) {
   deskClock.add(clockFace);
   root.add(shadowed(deskClock));
   clockFace.castShadow = clockFace.receiveShadow = false;
-  prop('plaque', deskClock, [0.27, 0.05, -0.2]);
+  prop('clock', deskClock, [0.27, 0.05, -0.2]); // its own name: Mi Mao only swoons over the plaque itself
 
   // ── left: the old HP Pavilion on its crate, lid shut, running headless 24/7: brushed-silver lid with the
   //    chrome hp disc, charcoal base, hinge barrel, status LEDs on the front lip, an exhaust grille, a blue

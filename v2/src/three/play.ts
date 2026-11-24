@@ -741,6 +741,7 @@ export class Play {
     let near: Prop | null = null;
     let best = 0.24;
     for (const p of this.props) {
+      if (!p.object.visible) continue; // hidden (the plaque, until the clock is beaten): nothing to look at
       if (TOUCH_ONLY.has(p.id) && !this.touchingProp(p, pos)) continue; // the calculator: only once he's on it or against it
       const dy = p.anchor.y - pos.y;
       if (dy < -0.2 || dy > 0.35) continue; // things on another level aren't 'nearby'
