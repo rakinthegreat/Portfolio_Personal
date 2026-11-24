@@ -134,11 +134,42 @@ export function makeMaterials() {
     }
   }, [2, 2]);
 
+  // the gray mat under the desk: soft felt with a bound edge a shade darker, rounded corners (transparent outside)
+  const mat = tex(1024, 640, (g, w, h) => {
+    const R = 46, edge = 22;
+    const round = (x: number, y: number, ww: number, hh: number, r: number) => {
+      g.beginPath();
+      g.roundRect(x, y, ww, hh, r);
+    };
+    round(0, 0, w, h, R);
+    g.fillStyle = '#55585c';
+    g.fill();
+    round(edge, edge, w - edge * 2, h - edge * 2, R - edge * 0.6);
+    g.fillStyle = '#7d8085';
+    g.fill();
+    // felt: fine random flecks, light and dark, clipped to the inside
+    g.save();
+    g.clip();
+    const r = rand(17);
+    for (let i = 0; i < 26000; i++) {
+      g.fillStyle = r() < 0.5 ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)';
+      g.fillRect(r() * w, r() * h, 1 + r() * 2, 1 + r() * 2);
+    }
+    g.restore();
+    // a stitched line just inside the binding
+    g.setLineDash([10, 8]);
+    g.lineWidth = 2;
+    g.strokeStyle = 'rgba(40,42,45,0.5)';
+    round(edge + 9, edge + 9, w - (edge + 9) * 2, h - (edge + 9) * 2, R - edge);
+    g.stroke();
+  });
+
   const std = (o: THREE.MeshStandardMaterialParameters) => new THREE.MeshStandardMaterial(o);
   return {
     desk: std({ map: desk, roughness: 0.55 }),
     shelf: std({ map: shelf, roughness: 0.6 }),
     floor: std({ map: floor, roughness: 0.7 }),
+    mat: std({ map: mat, roughness: 1, alphaTest: 0.5 }),
     crate: std({ map: crate, roughness: 0.75 }),
     plaster: std({ map: plaster, roughness: 0.97 }),
     wicker: std({ map: wicker, roughness: 0.85 }),
