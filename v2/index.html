@@ -94,6 +94,10 @@
     .boot-sweep > .l { left: 0; }
     .boot-sweep i { position: absolute; top: 0; width: 100%; height: 100%; background: #f4e6cc; will-change: transform; animation-duration: 3.2s; animation-iteration-count: infinite; animation-timing-function: linear; }
     .boot-sweep .r i { left: -100%; border-radius: 999px 0 0 999px; transform-origin: 100% 50%; animation-name: boot-hand-r; }
+    /* where the two halves meet, both white leaves a hairline down the middle (edge smoothing): it can only show on
+       the lower half, while the hand is between six o'clock filling and six o'clock emptying, so a thin white strip
+       covers exactly that, for exactly that time */
+    .boot-sweep b { position: absolute; left: calc(50% - 1px); top: 50%; width: 2px; height: 50%; background: #f4e6cc; opacity: 0; will-change: opacity; animation: boot-seam 3.2s linear infinite; }
     .boot-sweep .l i { left: 100%; border-radius: 0 999px 999px 0; transform-origin: 0 50%; animation-name: boot-hand-l; }
     /* the black pieces never move on their own: they come in with the disc, as one logo */
     .boot-piece { will-change: transform, opacity; animation: boot-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -103,11 +107,13 @@
     @keyframes boot-spin { to { transform: rotate(360deg); } }
     /* fill: right half 0-25%, left half 25-50%; empty: right half 50-75%, left half 75-100% (all clockwise) */
     @keyframes boot-hand-r { 0% { transform: rotate(0deg); } 25%, 50% { transform: rotate(180deg); } 75%, 100% { transform: rotate(360deg); } }
+    @keyframes boot-seam { 0%, 24.9% { opacity: 0; } 25%, 74.9% { opacity: 1; } 75%, 100% { opacity: 0; } }
     @keyframes boot-hand-l { 0%, 25% { transform: rotate(0deg); } 50%, 75% { transform: rotate(180deg); } 100% { transform: rotate(360deg); } }
     @keyframes boot-fade { from { opacity: 0; transform: translateY(6px); } }
     @media (prefers-reduced-motion: reduce) {
       .boot * { animation: none !important; }
       .boot-sweep i { transform: rotate(180deg); } /* still: the disc simply full */
+      .boot-sweep b { opacity: 1; }
     }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -121,7 +127,7 @@
   <div class="boot" role="status">
     <div class="boot-art">
       <svg class="boot-disc" viewBox="35.03 47.64 139.94 139.94"><circle cx="105" cy="117.60895" r="69.4" fill="rgba(244,230,204,0.1)" stroke="rgba(244,230,204,0.35)" stroke-width="1.1"/></svg>
-      <div class="boot-sweep" aria-hidden="true"><span class="r"><i></i></span><span class="l"><i></i></span></div>
+      <div class="boot-sweep" aria-hidden="true"><span class="r"><i></i></span><span class="l"><i></i></span><b></b></div>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,77.620585 h 20.979594 c 10.89846,0 17.43771,0.157973 19.61741,0.473873 4.35939,0.758159 7.71971,2.590541 10.08104,5.496822 2.42189,2.843099 3.63285,6.602555 3.63285,11.277865 0,4.169857 -0.90797,7.644745 -2.72438,10.424685 -1.81641,2.7799 -4.32956,4.73839 -7.53856,5.87561 -3.209,1.13726 -11.26169,1.70584 -24.15821,1.70584 H 82.151226 Z"/></svg>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151226,128.70119 h 5.44928 c 6.175802,0 10.686814,0.53722 13.532504,1.61127 2.84572,1.01089 5.54025,2.93794 8.08323,5.78104 1.98424,2.16913 5.29545,6.78096 9.93376,13.83533 H 82.151226 Z"/></svg>
       <svg class="boot-piece" viewBox="35.03 47.64 139.94 139.94"><path fill="#1a120a" d="M 82.151225,166.35677 L 129.75039,166.37747 L 138.11525,179.24645 A 69.969925 69.969925 0 0 1 82.151225,183.74331 Z"/></svg>
