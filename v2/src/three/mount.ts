@@ -341,18 +341,29 @@ export async function mount(tour: HTMLElement) {
 
   // ── camera rail ──
   const posCurve = new THREE.CatmullRomCurve3(stops.map((s) => s.pos), false, 'centripetal');
-  // stops with a width to keep in view (the pinboard): on a narrow screen, back the camera off along its line of
-  // sight until that width fits (the curve holds these same vectors, so moving them moves the path)
+  // the pinboard on a narrow screen: its stop gets extra scroll (PAN_LEN stops' worth), during which the camera holds
+  // close to the board and slides across it card by card (About → Academics → Tech Stack → Experiences). The curve
+  // holds the stop's own vectors, so moving them each frame moves the path in and out of it too.
+  const panAt = stops.findIndex((s) => s.cards);
   const basePos = stops.map((s) => s.pos.clone());
-  const fitStops = () => {
-    const tanH = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect;
-    stops.forEach((s, i) => {
-      s.pos.copy(basePos[i]);
-      if (!s.fit) return;
-      const away = s.pos.clone().sub(s.look);
-      const need = s.fit / 2 / tanH;
-      if (need > away.length()) s.pos.copy(s.look).addScaledVector(away.normalize(), need);
-    });
+  const baseLook = stops.map((s) => s.look.clone());
+  let PAN_LEN = 0; // set on resize: 0 on wide screens (the whole board fits)
+  let panT = 0; // 0 → 1 across the cards
+  const placePanStop = () => {
+    if (panAt < 0) return;
+    const st = stops[panAt];
+    if (!PAN_LEN || !st.cards) {
+      st.pos.copy(basePos[panAt]);
+      st.look.copy(baseLook[panAt]);
+      return;
+    }
+    const { xs, y, z, w } = st.cards;
+    const seg = panT * (xs.length - 1);
+    const i = Math.min(xs.length - 2, Math.floor(seg));
+    const x = THREE.MathUtils.lerp(xs[i], xs[i + 1], smooth(0.25, 0.75, seg - i)); // a beat on each card
+    const d = w / 2 / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * camera.aspect);
+    st.pos.set(x, y + 0.02, z + d);
+    st.look.set(x, y, z);
   };
   const lookCurve = new THREE.CatmullRomCurve3(stops.map((s) => s.look), false, 'centripetal');
   const camPos = stops[0].pos.clone();
@@ -374,7 +385,7 @@ export async function mount(tour: HTMLElement) {
     camPos.copy(GATE_POS);
     camLook.copy(gateLook);
   }
-  tour.style.setProperty('--stops', String(stops.length));
+  tour.style.setProperty('--stops', String(stops.length)); // (plus the pinboard's pan length on narrow screens: resize)
   tour.classList.add('has-3d');
 
   // ── captions ──
@@ -646,17 +657,31 @@ export async function mount(tour: HTMLElement) {
   });
 
   // ── scroll → progress ──
+  // scroll ↔ tour: one unit of scroll per stop-to-stop, plus PAN_LEN units held at the pinboard on narrow screens
+  const scrollUnits = () => stops.length - 1 + PAN_LEN;
   const scrollToStop = (i: number) => {
     const top = tour.getBoundingClientRect().top + scrollY;
     const span = tour.offsetHeight - innerHeight;
-    scrollTo({ top: top + (span * i) / (stops.length - 1), behavior: 'smooth' });
+    const at = panAt >= 0 && i > panAt ? i + PAN_LEN : i; // arriving at the pinboard: its first card
+    scrollTo({ top: top + (span * at) / scrollUnits(), behavior: 'smooth' });
   };
   const readScroll = () => {
     const r = tour.getBoundingClientRect();
     const span = tour.offsetHeight - innerHeight;
-    const raw = Math.min(1, Math.max(0, -r.top / span)) * (stops.length - 1);
-    const i = Math.floor(raw);
-    progress = Math.min(stops.length - 1, i + smooth(0.2, 0.8, raw - i));
+    let x = Math.min(1, Math.max(0, -r.top / span)) * scrollUnits();
+    panT = 0;
+    if (PAN_LEN && panAt >= 0 && x > panAt) {
+      if (x < panAt + PAN_LEN) {
+        panT = (x - panAt) / PAN_LEN;
+        x = panAt; // the caption and the stop hold while the camera crosses the board
+      } else {
+        panT = 1;
+        x -= PAN_LEN;
+      }
+    }
+    const i = Math.floor(x);
+    progress = Math.min(stops.length - 1, i + smooth(0.2, 0.8, x - i));
+    placePanStop();
   };
 
   // ── picking ──
@@ -931,7 +956,9 @@ export async function mount(tour: HTMLElement) {
     camera.aspect = w / h;
     camera.fov = camera.aspect < 0.8 ? 55 : camera.aspect < 1.2 ? 44 : 35;
     camera.updateProjectionMatrix();
-    fitStops();
+    PAN_LEN = camera.aspect < 0.8 && panAt >= 0 ? 2.4 : 0;
+    tour.style.setProperty('--stops', String(stops.length + PAN_LEN));
+    placePanStop();
     const cs = getComputedStyle(document.documentElement);
     gateAim.set(parseFloat(cs.getPropertyValue('--gate-cat-x')) || 0.15, parseFloat(cs.getPropertyValue('--gate-cat-y')) || 0.68);
   };

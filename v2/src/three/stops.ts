@@ -9,8 +9,9 @@ export interface Stop {
   text: string;
   pos: THREE.Vector3;
   look: THREE.Vector3;
-  /** metres across that must stay in view: on a narrow (portrait) screen the camera backs off to fit them */
-  fit?: number;
+  /** cards hung side by side (the pinboard): on a narrow (portrait) screen the stop gets extra scroll, and the
+   *  camera goes in close and slides from card to card instead of showing the whole board small */
+  cards?: { xs: number[]; y: number; z: number; w: number };
 }
 
 const v = (x: number, y: number, z: number) => new THREE.Vector3(x, y, z);
@@ -35,7 +36,7 @@ export function buildStops(): Stop[] {
   const list: Stop[] = [
     { id: 'intro', num: '00', title: 'The desk', text: '', pos: v(0.1, 0.82, 2.0), look: v(-0.2, 0.3, -0.12) },
     { id: 'basket', num: '01', title: 'Mi Mao', text: 'He naps in this basket. Click him for belly-up, or let him loose on the desk.', pos: v(-0.92, 0.16, 0.8), look: v(-1.33, -0.2, 0.12) },
-    { id: 'pinboard', num: '04', title: 'About · Academics · Tech Stack', text: 'Everything on one corkboard, right above the plank Mi Mao uses to cross the desk.', pos: v(0.0, 0.9, 0.44), look: v(0.0, 0.82, -0.54), fit: 0.92 },
+    { id: 'pinboard', num: '04', title: 'About · Academics · Tech Stack', text: 'Everything on one corkboard, right above the plank Mi Mao uses to cross the desk.', pos: v(0.0, 0.9, 0.44), look: v(0.0, 0.82, -0.54), cards: { xs: [-0.315, -0.105, 0.105, 0.315], y: 0.86, z: -0.524, w: 0.25 } },
     { id: 'laptop', num: '02', title: 'Victus 16 · Web projects', text: 'Live projects, running on the laptop. Click the screen to use it.', pos: v(-0.02, 0.3, 0.36), look: v(-0.02, 0.13, -0.27) },
     { id: 'phone', num: '03', title: 'Phone · Mobile apps', text: 'The mobile apps, live on the phone. Tap the screen, open an app, swipe home to switch.', pos: v(0.58, 0.47, 0.12), look: v(0.64, 0.36, -0.31) },
     { id: 'socials', num: '', title: 'Find me online', text: '@rakinthegreat, more or less everywhere. A book per profile on the lower shelf: click a spine to visit.', pos: v(0.8, 0.44, 0.2), look: v(0.9, 0.34, -0.3) },
