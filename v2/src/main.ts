@@ -91,7 +91,10 @@ function enter(view: View) {
   const anchor = view === 'standard' && location.hash.length > 1 ? document.getElementById(location.hash.slice(1)) : null;
   if (anchor) anchor.scrollIntoView({ behavior: 'instant' });
   else scrollTo({ top: 0, behavior: 'instant' });
-  if (view === 'desk') mountDesk();
+  if (view === 'desk') {
+    root.dataset.theme = 'dark'; // the desk is always at night (not saved: the standard page keeps its own theme)
+    mountDesk();
+  }
 }
 // picking: the tear sweeps over the side you didn't pick, then that view simply carries on
 let picking = false;

@@ -274,7 +274,6 @@ function renderDesk(c: Content) {
   return `
   <div class="desk" data-desk>
     <div class="desk-bar">
-      <button class="tool" type="button" data-theme-toggle aria-label="Day or night">◐</button>
       <button class="tool" type="button" data-sound hidden aria-pressed="false">Sound off</button>
       <button class="tool" type="button" data-switch="standard">Standard view</button>
       <a class="tool" href="?view=pick">Pick again</a>

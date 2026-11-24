@@ -548,7 +548,7 @@ export async function mount(tour: HTMLElement) {
       active = -1;
       if (on) {
         const r = tour.getBoundingClientRect();
-        if (r.top > 0 || r.bottom < innerHeight) scrollTo({ top: tour.offsetTop, behavior: 'instant' });
+        if (r.top > 0 || r.bottom < innerHeight) scrollToY(tour.offsetTop, 'instant');
       } else playBtn.focus();
     });
   playBtn.addEventListener('click', () => play.enter());
@@ -659,11 +659,15 @@ export async function mount(tour: HTMLElement) {
   // ── scroll → progress ──
   // scroll ↔ tour: one unit of scroll per stop-to-stop, plus PAN_LEN units held at the pinboard on narrow screens
   const scrollUnits = () => stops.length - 1 + PAN_LEN;
+  // on touch screens the desk scrolls inside its own full-screen box, not the page: the page never moves, so the
+  // phone's address bar stays put instead of sliding in and out (which resized everything mid-scroll)
+  const deskBox = () => (matchMedia('(hover: none)').matches ? tour.closest<HTMLElement>('.desk') : null);
+  const scrollToY = (top: number, behavior: ScrollBehavior) => (deskBox() ?? window).scrollTo({ top, behavior });
   const scrollToStop = (i: number) => {
-    const top = tour.getBoundingClientRect().top + scrollY;
+    const top = tour.getBoundingClientRect().top + (deskBox()?.scrollTop ?? scrollY);
     const span = tour.offsetHeight - innerHeight;
     const at = panAt >= 0 && i > panAt ? i + PAN_LEN : i; // arriving at the pinboard: its first card
-    scrollTo({ top: top + (span * at) / scrollUnits(), behavior: 'smooth' });
+    scrollToY(top + (span * at) / scrollUnits(), 'smooth');
   };
   const readScroll = () => {
     const r = tour.getBoundingClientRect();
@@ -841,6 +845,30 @@ export async function mount(tour: HTMLElement) {
   });
   addEventListener('blur', () => setTimeout(reclaimKeys, 0)); // focus just went into a frame
 
+  // the browser's (or phone's) Back: once you're off the opening shot, one history entry is added, so Back scrolls
+  // to the top of the desk instead of leaving the site. Back up at the top leaves as usual.
+  history.scrollRestoration = 'manual'; // the browser restoring a saved scroll on Back would fight the scroll to the top
+  let backArmed = false;
+  let backSilent = false;
+  addEventListener('popstate', () => {
+    if (backSilent) return void (backSilent = false); // we took the entry back ourselves (scrolled to the top by hand)
+    if (!backArmed) return;
+    backArmed = false;
+    if (focused) unfocus();
+    if (play.active) play.exit();
+    scrollToStop(0);
+  });
+  const armBack = () => {
+    if (!backArmed && progress > 0.6 && !focused && !play.active) {
+      backArmed = true;
+      history.pushState({ desk: 'scrolled' }, '');
+    } else if (backArmed && progress < 0.2) {
+      backArmed = false; // back at the start by hand: drop the entry so Back leaves straight away
+      backSilent = true;
+      history.back();
+    }
+  };
+
   // ── keyboard: almost everything works without a mouse ──
   const keysHelp = document.createElement('div');
   keysHelp.className = 'keys-help';
@@ -911,6 +939,7 @@ export async function mount(tour: HTMLElement) {
       return;
     }
     if (!tourInView()) return;
+    if (k === 'Escape' && !play.active && progress > 0.3) return void (e.preventDefault(), scrollToStop(0)); // back to the start
     if (lower === 'h' || k === '?') return void (e.preventDefault(), toggleHelp());
     if (lower === 'm') return void setSound(!soundOn());
     if (lower === 'q' && plushInReach()) return void (e.preventDefault(), squeezePlush());
@@ -1080,7 +1109,8 @@ export async function mount(tour: HTMLElement) {
   // the frames. Any scroll, pointer or key brings back the full rate at once.
   let lastInput = performance.now();
   const poke = () => (lastInput = performance.now());
-  for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) addEventListener(ev, poke, { passive: true });
+  // (capture: the desk's own scroll box doesn't bubble its scroll events up to the window)
+  for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) addEventListener(ev, poke, { passive: true, capture: true });
   let lastCamX = NaN;
   let lastCamZ = NaN;
   let lastCamY = NaN;
@@ -1137,6 +1167,7 @@ export async function mount(tour: HTMLElement) {
       }
       if (play.busy) play.update(dt, t, junkP, junkL, false); // the leap back to the basket
       readScroll();
+      armBack();
       const u = progress / (stops.length - 1);
       posCurve.getPoint(u, tmpP);
       lookCurve.getPoint(u, tmpL);
@@ -1229,7 +1260,7 @@ export async function mount(tour: HTMLElement) {
   return () => {
     disposed = true;
     renderer.setAnimationLoop(null);
-    for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) removeEventListener(ev, poke);
+    for (const ev of ['pointermove', 'pointerdown', 'wheel', 'keydown', 'scroll', 'touchstart'] as const) removeEventListener(ev, poke, { capture: true });
     renderer.dispose();
     renderer.forceContextLoss();
     renderer.domElement.remove();
