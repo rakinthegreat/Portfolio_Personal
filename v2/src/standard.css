@@ -210,8 +210,9 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   .gating .s-hero { transform: translate(-7vw, 50svh); }
   .gate-line { clip-path: polygon(0 calc(var(--s) + 5.8%), 100% calc(var(--s) - 6.2%), 100% calc(var(--s) - 5.8%), 0 calc(var(--s) + 6.2%)); animation: none; }
   .gate-shards i { left: calc(var(--t) * 100% + var(--ox)); top: calc(var(--s) + 6% - var(--t) * 12% + var(--oy)); }
-  /* smaller and much quieter glass along the tear on a phone (the full-strength version is a lot at this size) */
+  /* on a phone: only a few bits of glass along the tear, small and quiet (all fourteen are a lot at this size) */
   .gate-shards i { width: calc(var(--z) * 0.45); height: calc(var(--z) * 0.7); opacity: 0.35; }
+  .gate-shards i:not(:nth-child(4n + 1)) { display: none; } /* four, spread along the whole tear */
   .gate-seam { filter: drop-shadow(0 0 2px rgba(255, 255, 255, 0.6)) drop-shadow(0 0 6px rgba(142, 234, 255, 0.35)); }
   .gate-title-desk { clip-path: polygon(0 0, 100% 0, 100% calc(var(--s) - 6%), 0 calc(var(--s) + 6%)); }
   .gate-title-std { clip-path: polygon(0 calc(var(--s) + 6%), 100% calc(var(--s) - 6%), 100% 100%, 0 100%); }
