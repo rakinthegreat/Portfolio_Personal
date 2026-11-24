@@ -209,7 +209,6 @@ export class Play {
       <div class="play-stats">
         <p data-caps-title>LOST KEYCAPS</p>
         <p class="play-word" data-word></p>
-        <p data-zoomies hidden>ZOOMIES: <b>ON</b></p>
         <p>KNOCKED OFF THE DESK: <b data-knocked>0</b></p>
         <p class="play-mission" data-mission hidden>MISSION · CLEAN UP THE DESK<br><span>push the bits off: <b data-mess>0</b> left</span></p>
       </div>
@@ -1352,11 +1351,10 @@ export class Play {
 
   private renderHud() {
     const got = new Set(this.saved.keys);
-    // all six found: the word has done its job, so it goes; just the reward stays
+    // all six found: the word has done its job, so it goes
     const done = got.size === WORD.length;
     this.hud.querySelector<HTMLElement>('[data-caps-title]')!.hidden = done;
     this.hud.querySelector<HTMLElement>('[data-word]')!.hidden = done;
-    this.hud.querySelector<HTMLElement>('[data-zoomies]')!.hidden = !done;
     this.hud.querySelector('[data-word]')!.innerHTML = [...WORD].map((ch, i) => `<span class="${got.has(i) ? 'got' : ''}">${got.has(i) ? ch : '·'}</span>`).join('');
     this.hud.querySelector('[data-knocked]')!.textContent = String(this.saved.knocked);
   }
