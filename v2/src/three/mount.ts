@@ -371,6 +371,12 @@ export async function mount(tour: HTMLElement) {
   const tmpP = new THREE.Vector3();
   const tmpL = new THREE.Vector3();
   let progress = 0;
+  // a click on something away from where you are flies straight to it (the scroll jumps; the camera doesn't
+  // wind along the rail past everything in between): from where it was, in an eased arc
+  const FLY_SECS = 1.1;
+  let flyT = -1;
+  const flyFromP = new THREE.Vector3();
+  const flyFromL = new THREE.Vector3();
   // the entry screen: the desk shows in the top-left of a torn poster, framed on the cat,
   // which the camera keeps nudged onto a spot set from CSS (--gate-cat-x / -y, 0..1 of the screen)
   const gating = () => document.documentElement.classList.contains('gating');
@@ -418,7 +424,7 @@ export async function mount(tour: HTMLElement) {
   const showCaption = (i: number) => captionEls.forEach((el, j) => el.classList.toggle('on', j === i));
   // the socials are a stop of their own now (the books on the lower shelf): shown there, or by the books in play
   const socialsAt = stops.findIndex((s) => s.id === 'socials');
-  const showSocials = () => (play.active ? showCaption(socialsAt) : scrollToStop(socialsAt));
+  const showSocials = () => (play.active ? showCaption(socialsAt) : jumpToStop(socialsAt));
 
   const statsEl = captions.querySelector<HTMLElement>('[data-stats]');
   const refreshStats = async () => {
@@ -669,6 +675,16 @@ export async function mount(tour: HTMLElement) {
   // our own scroll line along the top (the browser's scrollbar is hidden in both views)
   const scrollLine = tour.closest('.desk')?.querySelector<HTMLElement>('[data-desk-progress]') ?? null;
   let lineAt = -1;
+  /** Straight there: the scroll jumps to the stop, the camera flies from where it is. */
+  const jumpToStop = (i: number) => {
+    flyFromP.copy(camPos);
+    flyFromL.copy(camLook);
+    flyT = 0;
+    const top = tour.getBoundingClientRect().top + (deskBox()?.scrollTop ?? scrollY);
+    const span = tour.offsetHeight - innerHeight;
+    const at = panAt >= 0 && i > panAt ? i + PAN_LEN : i;
+    scrollToY(top + (span * at) / scrollUnits(), 'instant');
+  };
   const readScroll = () => {
     const r = tour.getBoundingClientRect();
     const span = tour.offsetHeight - innerHeight;
@@ -801,7 +817,7 @@ export async function mount(tour: HTMLElement) {
     // cat itself gets a squeeze
     if ((hit === 'proyash' || hit === 'proyash-cat') && !play.active) {
       const at = stops.findIndex((s) => s.id === 'proyash');
-      if (at >= 0 && at !== Math.round(progress)) return scrollToStop(at);
+      if (at >= 0 && at !== Math.round(progress)) return jumpToStop(at);
     }
     if (hit === 'proyash') {
       if (proyashUrl) window.open(proyashUrl, '_blank', 'noopener');
@@ -825,7 +841,7 @@ export async function mount(tour: HTMLElement) {
     }
     // first click flies to the object; once you're there (or playing) it opens
     if (play.active || i === Math.round(progress) || i < 0) actions[hit]?.();
-    else scrollToStop(i);
+    else jumpToStop(i);
   });
 
   // a click inside a demo on the laptop or phone moves the keyboard into that page (another site, whose keys we
@@ -1131,6 +1147,7 @@ export async function mount(tour: HTMLElement) {
     const t = clock.elapsedTime;
     const k = 1 - Math.exp(-dt * 6);
 
+    if (focused || play.active) flyT = -1; // a flight is cut short by opening a screen or starting to play
     if (focused) {
       camPos.lerp(focusPos, k);
       camLook.lerp(focusLook, k);
@@ -1174,8 +1191,19 @@ export async function mount(tour: HTMLElement) {
       posCurve.getPoint(u, tmpP);
       lookCurve.getPoint(u, tmpL);
       if (camera.aspect < 0.8) tmpP.z += 0.35 * (1 - smooth(0, 1, progress)); // portrait: step back on the wide shot
-      camPos.lerp(tmpP, k);
-      camLook.lerp(tmpL, k);
+      if (flyT >= 0) {
+        // flying to a clicked thing: eased in and out, lifted a little in the middle so it arcs over the desk
+        flyT = Math.min(1, flyT + dt / FLY_SECS);
+        const e = flyT < 0.5 ? 4 * flyT ** 3 : 1 - (-2 * flyT + 2) ** 3 / 2;
+        const lift = Math.sin(Math.PI * e) * Math.min(0.3, flyFromP.distanceTo(tmpP) * 0.25);
+        camPos.lerpVectors(flyFromP, tmpP, e);
+        camPos.y += lift;
+        camLook.lerpVectors(flyFromL, tmpL, e);
+        if (flyT >= 1) flyT = -1;
+      } else {
+        camPos.lerp(tmpP, k);
+        camLook.lerp(tmpL, k);
+      }
       const idx = Math.round(progress);
       if (idx !== active) {
         active = idx;
