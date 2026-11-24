@@ -875,7 +875,7 @@ export async function mount(tour: HTMLElement) {
     backArmed = false;
     if (focused) unfocus();
     if (play.active) play.exit();
-    scrollToStop(0);
+    jumpToStop(0); // flies straight back, like a click
   });
   const armBack = () => {
     if (!backArmed && progress > 0.6 && !focused && !play.active) {
@@ -958,7 +958,7 @@ export async function mount(tour: HTMLElement) {
       return;
     }
     if (!tourInView()) return;
-    if (k === 'Escape' && !play.active && progress > 0.3) return void (e.preventDefault(), scrollToStop(0)); // back to the start
+    if (k === 'Escape' && !play.active && progress > 0.3) return void (e.preventDefault(), jumpToStop(0)); // back to the start, flying straight there
     if (lower === 'h' || k === '?') return void (e.preventDefault(), toggleHelp());
     if (lower === 'm') return void setSound(!soundOn());
     if (lower === 'q' && plushInReach()) return void (e.preventDefault(), squeezePlush());
