@@ -236,7 +236,9 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
    browser's address bar stays put (sliding in and out, it resized the 3D view mid-scroll) */
 @media (hover: none) {
   html[data-view='desk'], html[data-view='desk'] body { height: 100%; overflow: hidden; }
-  html[data-view='desk'] .desk { position: fixed; inset: 0; overflow-y: auto; overscroll-behavior: contain; }
+  /* 1px taller than the screen on purpose: a scroller that exactly fills the viewport is promoted by Chrome on
+     Android to the page's "implicit root scroller", which hides the address bar again as it scrolls */
+  html[data-view='desk'] .desk { position: fixed; inset: 0 0 -1px; overflow-y: auto; overscroll-behavior: contain; }
 }
 .desk-bar { position: fixed; top: 14px; right: clamp(14px, 2vw, 28px); z-index: 70; display: flex; gap: 8px; }
 .desk-bar .tool { background: color-mix(in srgb, var(--bg) 80%, transparent); backdrop-filter: blur(8px); }
