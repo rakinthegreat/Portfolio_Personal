@@ -34,6 +34,9 @@ export async function mount(tour: HTMLElement) {
   const sticky = tour.querySelector<HTMLElement>('[data-sticky]')!;
   const stage = tour.querySelector<HTMLElement>('[data-stage]')!;
   const heroCopy = tour.querySelector<HTMLElement>('.hero-copy');
+  /** ?bootlog: a named moment in the build, next to the frame and long-task log index.html keeps */
+  const mark = (n: string) => (window as unknown as { __boot?: { marks: [string, number][] } }).__boot?.marks.push([n, Math.round(performance.now())]);
+  mark('mount');
   const stops = buildStops();
   const lowTier = (navigator.hardwareConcurrency ?? 8) <= 4 || matchMedia('(pointer: coarse)').matches;
   const dark = () => getComputedStyle(document.documentElement).colorScheme === 'dark';
@@ -255,12 +258,15 @@ export async function mount(tour: HTMLElement) {
   // building the room is heavy: hand the main thread back between the big steps so the loading screen keeps moving
   const breathe = () => new Promise<void>((r) => setTimeout(r, 0));
   await breathe();
+  mark('materials');
   const M = makeMaterials();
   const aniso = renderer.capabilities.getMaxAnisotropy();
+  mark('desk');
   const desk = buildDesk(M, aniso);
   await breathe();
   scene.add(desk.root);
 
+  mark('cat');
   const cat = new Cat(lowTier ? 8 : 16);
   cat.root.position.copy(desk.basketSpot);
   cat.root.rotation.y = 1.1;
@@ -310,12 +316,14 @@ export async function mount(tour: HTMLElement) {
   const proyashUrl = (proyash && 'url' in proyash ? proyash.url : '') ?? '';
   const proyashLabel = proyash ? `${proyash.role} · ${proyash.title.toLowerCase()}` : '';
   await breathe();
+  mark('screens');
   const screens = new Screens(sticky, { anchor: desk.laptopScreen, widthM: desk.SCR_W }, { anchor: desk.phoneScreen, widthM: desk.PH_W });
   // the pinboard cards, from content.json, both ways: live HTML (drawn by the browser at the screen's own
   // resolution, so it's sharp) and the same layout painted onto a texture at load. Each live HTML card costs
   // ~10 ms a frame to layer over the canvas, so a card is live only while it's big enough on screen to read;
   // smaller (the wide shots, the way past), it's the texture. See placePinCards.
   const pinEls = buildPinCards();
+  mark('cards');
   const pinTex = await rasterizeCards(buildPinCards(), lowTier ? 1.5 : 2);
   const pinHole = desk.pinCards[0].mesh.material as THREE.Material;
   const pinCards = desk.pinCards.map((c) => {
@@ -589,6 +597,7 @@ export async function mount(tour: HTMLElement) {
   };
 
   // ── play mode ──
+  mark('play');
   const play = new Play(scene, cat, desk.boxes, desk.knockables, desk.props, desk.basketSpot, sticky,
     (id) => {
       if (id === 'socials') showSocials();
@@ -1242,7 +1251,11 @@ export async function mount(tour: HTMLElement) {
         info: () => ({ pr: renderer.getPixelRatio(), w: renderer.domElement.width, h: renderer.domElement.height, gtao: gtao?.enabled ?? false, level }),
       },
     });
+  // nothing is drawn until every shader is compiled (warmShaders, below): the first frame used to compile all of
+  // them on the spot, one after another, ~6 s with the page frozen, loading screen included
+  let warmed = false;
   renderer.setAnimationLoop(() => {
+    if (!warmed) return;
     const frameStart = performance.now();
     const camStill = Math.abs(camPos.x - lastCamX) + Math.abs(camPos.y - lastCamY) + Math.abs(camPos.z - lastCamZ) < 1e-5;
     lastCamX = camPos.x;
@@ -1395,13 +1408,108 @@ export async function mount(tour: HTMLElement) {
   // under the loading screen. (Compiling the whole scene up front instead made the wait longer, not shorter.)
   // the GPU compiles the scene's shaders in parallel, off the main thread (KHR_parallel_shader_compile), instead
   // of one after another inside the first frame
+  mark('compile');
   try {
-    await renderer.compileAsync(scene, camera);
+    await warmShaders();
   } catch {
     /* no parallel compile: they compile in the first frame instead */
   }
+  mark('compiled');
+  const warmProgs = new Set(renderer.info.programs ?? []);
+  warmed = true;
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
+  // ?bootlog: what the first frames still had to compile
+  const boot = (window as unknown as { __boot?: { late?: string[] } }).__boot;
+  if (boot) {
+    boot.late = (renderer.info.programs ?? []).filter((p) => !warmProgs.has(p)).map((p) => `${p.name} ${p.cacheKey}`);
+    (boot as { warm?: string[] }).warm = [...warmProgs].map((p) => `${p.name} ${p.cacheKey}`);
+  }
+  mark('ready');
   tour.classList.add('ready');
+
+  /**
+   * Every shader a frame needs, compiled in parallel off the main thread (KHR_parallel_shader_compile) before the
+   * first frame. Not just the scene's own materials: a frame also draws every mesh in the text / cat mask
+   * material, its depth for the shadows and its normals for the ambient occlusion, then the post passes. Programs
+   * are cached by their settings, so compiling each mesh with an equivalent material warms the very program the
+   * frame will ask for. (Only the shadow blur and the output pass are left to the first frame.)
+   */
+  async function warmShaders() {
+    // every texture up to the GPU first, one at a time with a break between, instead of all of them in the first
+    // frame: a big upload holds up the browser's own drawing (the loading screen with it)
+    const textures = new Set<THREE.Texture>();
+    scene.traverse((o) => {
+      const m = (o as THREE.Mesh).material;
+      if (!m) return;
+      for (const mat of Array.isArray(m) ? m : [m])
+        for (const v of Object.values(mat)) if ((v as THREE.Texture)?.isTexture) textures.add(v as THREE.Texture);
+    });
+
+    // the scene is drawn into the composer's target, not the screen: that changes each program's colour space and
+    // tone mapping (and so its cache key), so compile against the same target or it's all compiled again
+    renderer.setRenderTarget(composer.renderTarget1);
+    const sceneCompiled = renderer.compileAsync(scene, camera); // compiles on the GPU's own threads, meanwhile…
+    for (const t of textures) {
+      renderer.initTexture(t);
+      await new Promise((r) => setTimeout(r, 16));
+    }
+    renderer.setRenderTarget(composer.renderTarget1); // (an upload can leave another target bound)
+    await sceneCompiled;
+    const meshes: THREE.Mesh[] = [];
+    scene.traverse((o) => (o as THREE.Mesh).isMesh && meshes.push(o as THREE.Mesh));
+    const own = meshes.map((m) => m.material);
+    for (const stand of [maskBlack, ...(gtao ? [gtao.normalMaterial] : [])]) {
+      meshes.forEach((m) => (m.material = stand));
+      try {
+        await renderer.compileAsync(scene, camera);
+      } finally {
+        meshes.forEach((m, i) => (m.material = own[i]));
+      }
+    }
+    // the shadow pass: each mesh in a depth material (its own, with the texture, where a cut-out texture shapes the
+    // shadow, as three does), drawn with no lights in play. Kept, not disposed: that would free the very programs
+    // the shadow pass is about to reuse
+    const depth = new THREE.MeshDepthMaterial();
+    const depthFor = (m: THREE.Material) => {
+      const t = m as THREE.MeshStandardMaterial;
+      return (t.map || t.alphaMap) && t.alphaTest > 0 ? new THREE.MeshDepthMaterial({ map: t.map, alphaMap: t.alphaMap, alphaTest: t.alphaTest }) : depth;
+    };
+    const lights: THREE.Light[] = [];
+    scene.traverse((o) => (o as THREE.Light).isLight && o.visible && lights.push(o as THREE.Light));
+    meshes.forEach((m, i) => (m.material = Array.isArray(own[i]) ? depth : depthFor(own[i] as THREE.Material)));
+    lights.forEach((l) => (l.visible = false));
+    try {
+      await renderer.compileAsync(scene, camera);
+    } finally {
+      meshes.forEach((m, i) => (m.material = own[i]));
+      lights.forEach((l) => (l.visible = true));
+    }
+    // the post passes' own materials, each on a throwaway full-screen quad
+    const quads = new THREE.Scene();
+    // like the passes' own full-screen triangle: positions and uvs only (normals would change the programs' keys)
+    const quad = new THREE.BufferGeometry();
+    quad.setAttribute('position', new THREE.Float32BufferAttribute([-1, 3, 0, -1, -1, 0, 3, -1, 0], 3));
+    quad.setAttribute('uv', new THREE.Float32BufferAttribute([0, 2, 0, 0, 2, 0], 2));
+    const mats = new Set<THREE.Material>();
+    const take = (v: unknown) => {
+      const m = v as { isMaterial?: boolean; material?: { isMaterial?: boolean } } | null;
+      if (m?.isMaterial) mats.add(m as unknown as THREE.Material);
+      else if (m?.material?.isMaterial) mats.add(m.material as unknown as THREE.Material);
+    };
+    for (const pass of [...composer.passes, composer.copyPass]) for (const v of Object.values(pass)) take(v);
+    mats.forEach((m) => quads.add(new THREE.Mesh(quad, m)));
+    const ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    // a pass is drawn with no lights, so no shadow map (a flag in its key): off while these compile
+    renderer.shadowMap.enabled = false;
+    try {
+      await renderer.compileAsync(quads, ortho); // the passes that draw into a target…
+      renderer.setRenderTarget(null);
+      await renderer.compileAsync(quads, ortho); // …and the last one, to the screen
+    } finally {
+      renderer.shadowMap.enabled = true;
+    }
+    quad.dispose();
+  }
 
   /** Shut the desk down completely (the visitor picked the standard page): stop drawing, free the GPU. */
   return () => {

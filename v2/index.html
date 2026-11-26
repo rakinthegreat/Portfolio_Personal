@@ -61,6 +61,15 @@
       // the 3D desk is always the lamp-lit night (whatever the standard page's theme is set to)
       if (v === 'desk') document.documentElement.dataset.theme = 'dark';
     } catch (e) { }
+    // ?bootlog: from the very first moment, every frame's time and every long main-thread task (to see what makes
+    // the loading screen and the entry screen stutter)
+    if (location.search.indexOf('bootlog') >= 0) {
+      window.__boot = { frames: [], tasks: [], marks: [] };
+      (function f(t) { window.__boot.frames.push(t); requestAnimationFrame(f); })(performance.now());
+      try {
+        new PerformanceObserver(function (l) { l.getEntries().forEach(function (e) { window.__boot.tasks.push([Math.round(e.startTime), Math.round(e.duration)]); }); }).observe({ type: 'longtask', buffered: true });
+      } catch (e) { }
+    }
   </script>
   <style>
     /* the loading screen, inline so it's there on the very first paint: the logo comes in whole (its pieces never move
