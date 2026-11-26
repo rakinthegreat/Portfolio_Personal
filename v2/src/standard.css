@@ -37,10 +37,21 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
 .gating .desk-bar, .gating .hero-copy, .gating .tour-captions, .gating .tour-hint, .gating .play-btn,
 .gating .keys-chip, .gating .keys-help, .gating .interact-hint { visibility: hidden !important; }
 .gating .std.own-cursor, .gating .std.own-cursor * { cursor: auto !important; }
-/* the side you're not pointing at sinks back a little */
-.gating:has([data-pick='desk']:hover:not(:disabled)) .std,
-.gating:has([data-pick='standard']:hover) .desk { filter: brightness(0.72) saturate(0.85); }
-.gating .std, .gating .desk { transition: filter 0.5s; }
+/* both views sit back behind a veil, so the title and the two ways in are what you read: dusk over the desk (also
+   drawn at half resolution behind this screen, which softens it), the page's own background over the page. The
+   side you point at lifts its veil; the other keeps it. Opacity only: no filters re-run over the whole screen */
+.gating .desk::after, .gating .std::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+  transition: opacity 0.5s;
+}
+.gating .desk::after { background: rgba(10, 6, 3, 0.5); }
+.gating .std::after { background: color-mix(in srgb, var(--bg) 60%, transparent); }
+.gating:has([data-pick='desk']:hover:not(:disabled), [data-pick='desk']:focus-visible) .desk::after,
+.gating:has([data-pick='standard']:hover, [data-pick='standard']:focus-visible) .std::after { opacity: 0.35; }
 
 .gate { position: fixed; inset: 0; z-index: 500; pointer-events: none; }
 .gate-face {

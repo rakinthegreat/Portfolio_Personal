@@ -438,6 +438,10 @@ export async function mount(tour: HTMLElement) {
   // the entry screen: the desk shows in the top-left of a torn poster, framed on the cat,
   // which the camera keeps nudged onto a spot set from CSS (--gate-cat-x / -y, 0..1 of the screen)
   const gating = () => document.documentElement.classList.contains('gating');
+  // behind the entry screen the desk is drawn at half resolution: the browser scales it up, so it reads as a soft
+  // blur behind the title (and costs a quarter of the pixels); full resolution again once a view is picked
+  const GATE_PR = 0.5;
+  if (gating() && !location.search.includes('bench')) renderer.setPixelRatio(GATE_PR);
   const GATE_POS = new THREE.Vector3(-1.05, 0.08, 0.85);
   const gateLook = new THREE.Vector3(-1.2, -0.2, 0.1);
   const gateAim = new THREE.Vector2(0.22, 0.55);
@@ -1105,10 +1109,15 @@ export async function mount(tour: HTMLElement) {
   const setLevel = (l: number) => {
     level = l;
     if (gtao) gtao.enabled = l >= 1;
-    renderer.setPixelRatio(Math.min(devicePixelRatio, LEVEL_PR[l]));
+    renderer.setPixelRatio(gating() && !bench ? GATE_PR : Math.min(devicePixelRatio, LEVEL_PR[l]));
     resize();
     govSkip = 10; // the frames right after a resize aren't representative
   };
+  new MutationObserver(() => {
+    if (gating() || renderer.getPixelRatio() !== GATE_PR || bench) return;
+    renderer.setPixelRatio(lowTier ? 1 : Math.min(devicePixelRatio, LEVEL_PR[level])); // a view was picked: sharp again
+    resize();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
   const govern = (raw: number, wasIdle: boolean) => {
     if (bench || lowTier || document.hidden) return;
     if (wasIdle || raw > 0.25 || govSkip > 0) {
