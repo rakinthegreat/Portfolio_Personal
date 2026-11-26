@@ -74,8 +74,8 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
 .gating:has(.gate-face-desk:disabled) .desk { filter: grayscale(1) brightness(0.5); }
 
 /* each side's way in: the desk's top-left, over a soft shade; the page's inside its own clock */
-.gate-opt { position: absolute; display: flex; flex-direction: column; gap: 10px; animation: gate-fade 0.9s 0.5s both; }
-.gate-face-desk .gate-opt { left: 6vw; top: 8vh; width: min(380px, 30vw); align-items: flex-start; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7); }
+.gate-opt { position: absolute; display: flex; flex-direction: column; gap: 7px; animation: gate-fade 0.9s 0.5s both; }
+.gate-face-desk .gate-opt { left: 6vw; top: 8vh; width: min(290px, 23vw); align-items: flex-start; text-shadow: 0 1px 14px rgba(0, 0, 0, 0.7); }
 .gate-face-desk::before {
   content: '';
   position: absolute;
@@ -93,10 +93,10 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   pointer-events: none;
 }
 .gate-face-std .gate-opt { text-shadow: 0 0 10px var(--bg), 0 0 18px var(--bg); }
-.gate-face-std .gate-opt { right: 6vw; bottom: 7vh; width: min(300px, 24vw); align-items: flex-end; text-align: right; }
-.gate-num { font: 700 11px var(--mono); letter-spacing: 3px; opacity: 0.7; }
-.gate-name { font: 700 clamp(28px, 3.3vw, 48px) / 1 var(--sans); letter-spacing: -1px; }
-.gate-desc { font-size: 15px; line-height: 1.5; opacity: 0.8; }
+.gate-face-std .gate-opt { right: 6vw; bottom: 7vh; width: min(240px, 19vw); align-items: flex-end; text-align: right; }
+.gate-num { font: 700 10px var(--mono); letter-spacing: 3px; opacity: 0.7; }
+.gate-name { font: 700 clamp(22px, 2.2vw, 32px) / 1 var(--sans); letter-spacing: -0.5px; }
+.gate-desc { font-size: 13px; line-height: 1.45; opacity: 0.8; }
 .gate-tag { display: none; font: italic 400 15px / 1.3 var(--sans); opacity: 0.85; }
 /* the taglines: the desk's at the top centre, the page's at the bottom centre, each well inside its own side */
 .gate-sides { position: absolute; inset: 0; pointer-events: none; animation: gate-fade 0.9s 0.7s both; }
@@ -104,21 +104,21 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
 .gate-side-desk { top: 4vh; color: #ffe2b0; text-shadow: 0 0 12px rgba(255, 150, 50, 0.8), 0 1px 3px rgba(0, 0, 0, 0.8); }
 .gate-side-std { bottom: 4vh; color: var(--ink); text-shadow: 0 0 4px var(--bg), 0 0 10px var(--bg), 0 0 18px var(--bg); }
 .gate-go {
-  margin-top: 6px;
-  padding: 10px 18px;
+  margin-top: 4px;
+  padding: 7px 14px;
   border: 1.5px solid currentColor;
   border-radius: 999px;
-  font: 700 11px var(--mono);
+  font: 700 10px var(--mono);
   letter-spacing: 2px;
   white-space: pre;
   text-shadow: none;
   transition: background 0.25s, color 0.25s, box-shadow 0.25s;
 }
 /* the keys that pick this side, as little keycaps under the button */
-.gate-keys { display: flex; align-items: center; gap: 6px; font: 700 10px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; }
+.gate-keys { display: flex; align-items: center; gap: 5px; font: 700 9px var(--mono); letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.75; }
 .gate-keys kbd {
-  min-width: 20px;
-  padding: 2px 4px 1px;
+  min-width: 17px;
+  padding: 1px 3px 0;
   border: 1px solid currentColor;
   border-bottom-width: 2px;
   border-radius: 4px;
