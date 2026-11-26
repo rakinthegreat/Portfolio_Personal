@@ -341,7 +341,9 @@ export async function mount(tour: HTMLElement) {
   const cardR = new THREE.Vector3();
   const cardT = new THREE.Vector3();
   const cardB = new THREE.Vector3();
-  /** Live HTML for the cards that are big on screen (over ~170 CSS px wide), the texture for the rest. */
+  /** Live HTML for the cards that are big on screen, the texture for the rest. "Big" scales with the screen: over
+   *  ~170 CSS px on a laptop, ~22% of the width on a phone (~86 px), where the 3D is drawn at 1x and an image card
+   *  is soft long before it's small, e.g. walking the plank under the board as Mi Mao */
   const placePinCards = () => {
     const w = sticky.clientWidth;
     for (const c of pinCards) {
@@ -356,7 +358,8 @@ export async function mount(tour: HTMLElement) {
         cardL.z < 1 && cardR.z < 1 && Math.max(cardL.x, cardR.x) > -1 && Math.min(cardL.x, cardR.x) < 1 &&
         Math.max(cardT.y, cardB.y) > -1 && Math.min(cardT.y, cardB.y) < 1;
       const px = onScreen ? (Math.abs(cardR.x - cardL.x) / 2) * w : 0;
-      const live = px > (c.live ? 150 : 170); // a little hysteresis: no flicker at the edge
+      const big = Math.min(170, w * 0.22);
+      const live = px > (c.live ? big * 0.88 : big); // a little hysteresis: no flicker at the edge
       if (live === c.live) continue;
       c.live = live;
       c.mesh.material = live ? pinHole : c.img;
