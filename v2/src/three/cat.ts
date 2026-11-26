@@ -1,4 +1,4 @@
-// Rakin's cat, modelled on his photos (v2/cat/): a slim, long-legged young white cat with big tall
+// Rakin's cat, modelled on his photos (v2/reference/cat/): a slim, long-legged young white cat with big tall
 // pink-lined ears, grey-green eyes and a pink nose; a dark tabby patch over the crown that sweeps over
 // one ear; a grey smudge at the base of the tail; a broom tail that fades from white to near-black.
 //

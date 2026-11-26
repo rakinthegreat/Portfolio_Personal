@@ -86,9 +86,9 @@ Status (2026-11-18): phases 1–7 built in `v2/` (uncommitted). Left for Rakin: 
 
 ## 9. Decisions made
 
-- v2 lives in `v2/`; the Flutter site at the repo root stays untouched and deployed.
+- v2 lives in `v2/`; the Flutter site is kept in `legacy/` (no longer deployed).
 - Desk props: built procedurally in code (rounded clay shapes).
-- **The cat**: built procedurally in code (no free model fit), modelled on his photos in `v2/cat/`: a slim, long-legged young white cat with big tall pink-lined ears, a wedge face, pink nose and grey-green eyes; a dark grey-brown tabby patch on the crown sweeping over one ear (that ear dark-backed); a grey smudge at the base of the tail; a broom tail that is white at the root and fades to near-black, bushiest at the tip; pink beans.
+- **The cat**: built procedurally in code (no free model fit), modelled on his photos in `v2/reference/cat/`: a slim, long-legged young white cat with big tall pink-lined ears, a wedge face, pink nose and grey-green eyes; a dark grey-brown tabby patch on the crown sweeping over one ear (that ear dark-backed); a grey smudge at the base of the tail; a broom tail that is white at the root and fades to near-black, bushiest at the tip; pink beans.
 - Dropped: Jotno Ai, Type I Error.
 
 

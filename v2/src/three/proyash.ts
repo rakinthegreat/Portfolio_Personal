@@ -1,4 +1,4 @@
-// Proyash's mascot as a plushie: the green cat from the logo (proyash/pussy.svg), sitting up with its paws on
+// Proyash's mascot as a plushie: the green cat from the logo (v2/reference/proyash/pussy.svg), sitting up with its paws on
 // a tablet that shows the Proyash wordmark. Its sewn-in tag says what I do there (from content.json).
 // Built in the drawing's own units (1 unit = 1 px of the 1932 px tall artwork, y up from the feet) and
 // scaled down to the desk at the end, so the proportions can be read straight off the drawing.

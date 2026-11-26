@@ -1,7 +1,8 @@
 # Portfolio v2: On Rakin's Desk
 
 A cat's-eye tour of a software engineer's desk in Dhaka. Scroll through it, click things, or press **E** and play as the cat.
-The Flutter site in the repo root is v1 and is untouched; this folder is a separate Vite project.
+This is the live site. The original Flutter site (v1) is kept in `../legacy/`; this folder is a separate Vite project.
+Reference art (Mi Mao's photos, Proyash's logo and tablet art) is in `reference/`.
 
 ## Run
 
@@ -43,7 +44,7 @@ Without it, the server stop says the server is napping.
 ## Deploy (Vercel)
 
 Create a **new** Vercel project from this repo with **Root Directory = `v2`** (framework: Vite; `vercel.json` sets the rest).
-The existing project that builds the Flutter site keeps working. When v2 is ready, move the `rakin-talukder.me` domain to the new project.
+Deployed on Vercel from the repo root (`vercel.json` → `vercel_build.sh` builds this folder; output `v2/dist`).
 
 ## Controls
 

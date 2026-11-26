@@ -1,6 +1,6 @@
 #!/bin/bash
 # Vercel build: the v2 portfolio (Vite + TypeScript + three.js) in v2/. Output: v2/dist (see vercel.json).
-# The original Flutter site still lives at the repo root, but is no longer built or deployed.
+# The original Flutter site is kept in legacy/ for reference; it is not built or deployed.
 set -euo pipefail
 
 cd "$(dirname "$0")/v2"

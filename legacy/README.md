@@ -1,4 +1,7 @@
-# Rakin Talukder - Portfolio
+# Rakin Talukder - Portfolio (v1, Flutter)
+
+> The original Flutter site, kept for reference. It is no longer built or deployed: the live site is in [`../v2`](../v2).
+> Run it from this folder (`cd legacy`).
 
 A highly engineered, responsive personal portfolio built with Flutter Web. 
 
