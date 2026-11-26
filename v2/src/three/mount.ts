@@ -39,6 +39,7 @@ export async function mount(tour: HTMLElement) {
   mark('mount');
   const stops = buildStops();
   const lowTier = (navigator.hardwareConcurrency ?? 8) <= 4 || matchMedia('(pointer: coarse)').matches;
+  let gateSince = Infinity; // when the entry screen's 3D poster was last woken (first frame, a resize): drawn 2.5 s
   const dark = () => getComputedStyle(document.documentElement).colorScheme === 'dark';
 
   // ── renderer: full resolution, crisp shadows, studio reflections ──
@@ -691,7 +692,7 @@ export async function mount(tour: HTMLElement) {
       play.carry();
     }
   });
-  const debug: { cam: { pos: THREE.Vector3; look: THREE.Vector3 } | null } = { cam: null };
+  const debug: { cam: { pos: THREE.Vector3; look: THREE.Vector3 } | null; gateMs: number } = { cam: null, gateMs: 1 }; // gateMs 0: never rest
   if (location.search.includes('debug')) Object.assign(window, { __desk: { cat, play, camera, screens, desk, debug, renderer, scene, gatePos: GATE_POS, gateLook } });
 
   // caption buttons
@@ -1047,6 +1048,7 @@ export async function mount(tour: HTMLElement) {
 
   // ── resize ──
   const resize = () => {
+    gateSince = performance.now(); // a resize clears the canvas: the entry screen's poster is drawn again
     const w = sticky.clientWidth;
     const h = sticky.clientHeight;
     renderer.setSize(w, h, false);
@@ -1254,6 +1256,7 @@ export async function mount(tour: HTMLElement) {
   // nothing is drawn until every shader is compiled (warmShaders, below): the first frame used to compile all of
   // them on the spot, one after another, ~6 s with the page frozen, loading screen included
   let warmed = false;
+  const deskFace = document.querySelector<HTMLElement>('[data-pick="desk"]');
   renderer.setAnimationLoop(() => {
     if (!warmed) return;
     const frameStart = performance.now();
@@ -1263,7 +1266,13 @@ export async function mount(tour: HTMLElement) {
     lastCamZ = camPos.z;
     const idle = camStill && !focused && !play.busy && !fx.length && performance.now() - lastInput > 1500;
     if (idle && !bench && ++idleN % 3) return; // the clock keeps the time, so the next drawn frame catches up
-    const raw = clock.getDelta();
+    // behind the entry screen the desk is a poster: once the camera has settled on him it stops being drawn (the
+    // canvas keeps its last frame), and comes alive again while the pointer is on the desk's side. Each drawn frame
+    // costs the 3D itself plus the browser re-blending every full-screen layer of the entry screen over it
+    if (gating() && !bench) {
+      const settled = performance.now() - gateSince > 2500; // (Infinity until the first frame: then 2.5 s)
+      if (settled && !deskFace?.matches(':hover') && debug.gateMs > 0) return;
+    }    const raw = clock.getDelta();
     const dt = Math.min(raw, 0.05);
     govern(raw, lastIdle);
     lastIdle = idle;
@@ -1417,6 +1426,7 @@ export async function mount(tour: HTMLElement) {
   mark('compiled');
   const warmProgs = new Set(renderer.info.programs ?? []);
   warmed = true;
+  gateSince = performance.now();
   await new Promise<void>((r) => requestAnimationFrame(() => requestAnimationFrame(() => r())));
   // ?bootlog: what the first frames still had to compile
   const boot = (window as unknown as { __boot?: { late?: string[] } }).__boot;

@@ -123,6 +123,21 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
 /* the title: one copy per half, so the tear splits it; molten chrome on the desk's side, ink on the page's */
 .gate-title, .gate-title > div { position: absolute; inset: 0; pointer-events: none; }
 .gate-title > div { display: flex; flex-direction: column; align-items: center; justify-content: center; padding-bottom: 6vh; text-align: center; animation: gate-title 1.1s 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+/* a soft pool of shade behind the name, so the words in the middle read first: dusk on the desk's side (over the
+   busy 3D), the page's own background on the other. Painted once, inside the title copies (no extra layer) */
+.gate-title-desk::before, .gate-title-std::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 3vh);
+  z-index: -1;
+  width: min(92vw, 1000px);
+  height: min(74vh, 600px);
+  translate: -50% -50%;
+  pointer-events: none;
+}
+.gate-title-desk::before { background: radial-gradient(closest-side, rgba(14, 9, 4, 0.72), rgba(14, 9, 4, 0.45) 55%, transparent); }
+.gate-title-std::before { background: radial-gradient(closest-side, color-mix(in srgb, var(--bg) 82%, transparent), color-mix(in srgb, var(--bg) 50%, transparent) 55%, transparent); }
 .gate-title-desk { clip-path: polygon(0 0, var(--s) 0, 0 var(--s)); }
 .gate-title-std { clip-path: polygon(var(--s) 0, 400% 0, 400% 400%, 0 400%, 0 var(--s)); translate: 0.35vw 0.5vw; }
 .gate-title-ctl { pointer-events: none; }
@@ -221,12 +236,13 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   clip-path: polygon(50% 0, 100% 70%, 30% 100%, 0 40%);
   opacity: 0.9;
   transform: rotate(var(--r));
-  animation: gate-shard var(--d) ease-in-out infinite alternate, gate-burst 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  /* they burst out of the tear and then stay put: shards drifting forever made the browser redraw the whole entry
+     screen (every one of its full-screen layers) on every frame */
+  animation: gate-burst 1s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 @keyframes gate-fade { from { opacity: 0; } }
 @keyframes gate-rip { from { clip-path: polygon(calc(var(--s) * 0.5) calc(var(--s) * 0.5), calc(var(--s) * 0.5) calc(var(--s) * 0.5), calc(var(--s) * 0.5) calc(var(--s) * 0.5), calc(var(--s) * 0.5) calc(var(--s) * 0.5)); } }
-@keyframes gate-shard { to { transform: rotate(calc(var(--r) + 40deg)) translate(6px, -10px); } }
 @keyframes gate-burst { from { opacity: 0; translate: calc(var(--ox) * -1) calc(var(--oy) * -1); scale: 0.2; } }
 
 /* phones and tall windows: the tear runs across, gently tilted; the desk on top, the page below
@@ -249,6 +265,7 @@ html.gating.pick-standard { --s: -20% !important; transition-duration: 0.6s; }
   .gate-title-desk { clip-path: polygon(0 0, 100% 0, 100% calc(var(--s) - 6%), 0 calc(var(--s) + 6%)); }
   .gate-title-std { clip-path: polygon(0 calc(var(--s) + 6%), 100% calc(var(--s) - 6%), 100% 100%, 0 100%); }
   .gate-title > div { padding: 3.5vh 0 0; }
+  .gate-title-desk::before, .gate-title-std::before { top: calc(50% + 1.75vh); height: min(56vh, 420px); }
   .gate-name-big { font-size: min(16vw, 9vh); }
   .gate-sub { letter-spacing: 0.5em; text-indent: 0.5em; }
   .gate-face-std .gate-opt { left: 7vw; right: 7vw; bottom: 3vh; width: auto; align-items: flex-end; text-align: right; gap: 6px; }
