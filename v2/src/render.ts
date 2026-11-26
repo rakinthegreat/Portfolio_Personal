@@ -87,7 +87,7 @@ function renderGate(c: Content) {
       <span class="gate-opt">
         <span class="gate-num">01</span>
         <span class="gate-name">3D Interactive</span>
-        <span class="gate-desc">Sneak onto my desk as Mi Mao, my cat. Poke the laptop and phone, grab the résumé, or just roam around.</span>
+        <span class="gate-desc">Sneak onto my desk as Mi Mao. Poke the laptop and phone, grab the résumé, or just roam around.</span>
         <span class="gate-tag">Know me as a person.</span>
         <span class="gate-go" data-desk-note>ENTER  ↖</span>
         <span class="gate-keys">or press <kbd>1</kbd> / <kbd>D</kbd></span>
